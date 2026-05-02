@@ -49,7 +49,7 @@ export default function Dashboard() {
       {/* Summary Cards */}
       <div className="summary-cards">
         <div className="card agencies">
-          <h3>PARTY</h3>
+          <h3>BRANCH</h3>
           <p>{totalBranches}</p>
         </div>
         <div className="card shipments">

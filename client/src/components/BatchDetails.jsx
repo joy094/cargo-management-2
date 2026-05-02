@@ -121,6 +121,10 @@ export default function BatchDetails() {
               <th>কাস্টমার ও আইটেম</th>
               <th>ওজন</th>
               <th>বক্স</th>
+              <th>শিপিং মার্ক</th>
+              <th>বিল</th>
+              <th>জমা</th>
+              <th>বকেয়া</th>
               <th>অবস্থা</th>
             </tr>
           </thead>
@@ -134,6 +138,12 @@ export default function BatchDetails() {
                 </td>
                 <td>{s.weight} KG</td>
                 <td>{s.boxCount}</td>
+                <td>{s.shippingMark || "-"}</td>
+                <td>৳ {s.totalCharge}</td>
+                <td>৳ {s.paidAmount}</td>
+                <td>৳ {s.totalCharge - s.paidAmount}</td>
+                
+
                 <td>
                   <span className={`pill ${s.status.toLowerCase()}`}>
                     {s.status}

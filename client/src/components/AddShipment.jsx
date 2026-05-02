@@ -21,6 +21,7 @@ export default function AddShipment() {
     receiverAddress: "",
     itemName: "",
     batch: "", // ✅ ব্যাচ ফিল্ড যোগ করা হয়েছে
+    shippingMark:"",
     weight: "",
     boxCount: 1,
     shipmentType: "Air",
@@ -137,6 +138,7 @@ export default function AddShipment() {
         batch: form.batch || null, // ✅ ব্যাচ আইডি পাঠানো হচ্ছে
         weight: parseFloat(form.weight) || 0,
         boxCount: parseInt(form.boxCount) || 1,
+        shippingMark: form.shippingMark,
         shipmentType: form.shipmentType,
         totalCharge: parseFloat(form.totalCharge) || 0,
         status: form.status,
@@ -308,6 +310,17 @@ export default function AddShipment() {
                   value={form.boxCount}
                   onChange={handleChange}
                 />
+
+
+
+                <label>Shipping Mark</label>
+                <input
+                  type="text"
+                  name="shippingMark"
+                  className="no-spin"
+                  value={form.shippingMark}
+                  onChange={handleChange}
+                />
               </div>
               <div>
                 <label>Status</label>
@@ -349,6 +362,8 @@ export default function AddShipment() {
 
       <style>{`
         .shipment-form-container { background: #f0f2f5; padding: 30px; min-height: 100vh; display: flex; justify-content: center; }
+
+      
         .form-card { background: #fff; padding: 25px; border-radius: 12px; width: 100%; max-width: 800px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .form-section { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #007bff; }
         h2 { color: #333; margin-bottom: 20px; text-align: center; }
@@ -362,7 +377,11 @@ export default function AddShipment() {
         .btn-save:hover { background: #0056b3; }
         .btn-save:disabled { background: #ccc; }
         .no-spin::-webkit-outer-spin-button, .no-spin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+
       `}</style>
+
+
     </div>
   );
 }

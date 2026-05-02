@@ -1,5 +1,7 @@
 //src/components/ShipmentList.jsx
 
+//src/components/ShipmentList.jsx
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -7,11 +9,15 @@ import axios from "axios";
 export default function ShipmentList() {
   const [shipments, setShipments] = useState([]);
   const [agencies, setAgencies] = useState([]);
+  const [batches, setBatches] = useState([]); // ✅ ব্যাচের জন্য স্টেট
+
   const [filterAgency, setFilterAgency] = useState("");
-  const [searchTerm, setSearchTerm] = useState(""); // সার্চ ফিচার যোগ করা হয়েছে
+  const [filterBatch, setFilterBatch] = useState(""); // ✅ ব্যাচ ফিল্টারের স্টেট
+  const [searchTerm, setSearchTerm] = useState("");
+
   const navigate = useNavigate();
 
-  // ১. ব্রাঞ্চ/এজেন্সি লোড করা
+  // ১. ব্রাঞ্চ/এজেন্সি લોড করা
   const loadAgencies = async () => {
     try {
       const res = await axios.get("/api/agencies");
@@ -22,7 +28,17 @@ export default function ShipmentList() {
     }
   };
 
-  // ২. সকল শিপমেন্ট লোড করা
+  // ২. ব্যাচ লিস্ট লোড করা (✅ নতুন লজিক)
+  const loadBatches = async () => {
+    try {
+      const res = await axios.get("/api/batches");
+      setBatches(res.data);
+    } catch (err) {
+      console.error("Error loading batches:", err);
+    }
+  };
+
+  // ৩. সকল শিপমেন্ট লোড করা
   const loadShipments = async () => {
     try {
       const res = await axios.get("/api/shipments");
@@ -33,6 +49,14 @@ export default function ShipmentList() {
         list = list.filter((s) => {
           const agencyId = s.agency?._id || s.agency;
           return String(agencyId) === String(filterAgency);
+        });
+      }
+
+      // ফিল্টার লজিক (ব্যাচ অনুযায়ী ✅)
+      if (filterBatch) {
+        list = list.filter((s) => {
+          const batchId = s.batch?._id || s.batch;
+          return String(batchId) === String(filterBatch);
         });
       }
 
@@ -59,15 +83,18 @@ export default function ShipmentList() {
     navigate("/login");
   };
 
+  // কম্পোনেন্ট লোড হওয়ার সময় ব্রাঞ্চ এবং ব্যাচ কল করবে
   useEffect(() => {
     loadAgencies();
+    loadBatches(); // ✅ ব্যাচ কল করা হলো
   }, []);
 
+  // ডিপেন্ডেন্সি অ্যারে-তে filterBatch যুক্ত করা হয়েছে ✅
   useEffect(() => {
     loadShipments();
-  }, [filterAgency, searchTerm]);
+  }, [filterAgency, filterBatch, searchTerm]);
 
-  // ৩. শিপমেন্ট ডিলিট করা
+  // ৪. শিপমেন্ট ডিলিট করা
   const deleteShipment = async (id) => {
     if (
       !window.confirm("আপনি কি নিশ্চিত যে এই শিপমেন্ট রেকর্ডটি ডিলিট করতে চান?")
@@ -77,7 +104,7 @@ export default function ShipmentList() {
       await axios.delete(`/api/shipments/${id}`);
       loadShipments();
     } catch (err) {
-      alert("ডিলিট করতে সমস্যা হয়েছে।");
+      alert("ডিলিট করতে সমস্যা হয়েছে।");
     }
   };
 
@@ -102,6 +129,23 @@ export default function ShipmentList() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+
+        {/* ✅ ব্যাচ ফিল্টার ড্রপডাউন */}
+        <div className="filter-box">
+          <label>Batch/Flight:</label>
+          <select
+            value={filterBatch}
+            onChange={(e) => setFilterBatch(e.target.value)}
+          >
+            <option value="">All Batches</option>
+            {batches.map((b) => (
+              <option key={b._id} value={b._id}>
+                {b.batchName}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="filter-box">
           <label>Branch:</label>
           <select
@@ -127,6 +171,8 @@ export default function ShipmentList() {
               <th>Branch</th>
               <th>Item</th>
               <th>Weight</th>
+              <th>Shipping Mark</th>
+              <th>Box Count</th>
               <th>Total</th>
               <th>Paid</th>
               <th>Status</th>
@@ -140,10 +186,12 @@ export default function ShipmentList() {
 
                 {/* পরিবর্তন এখানে: যদি shipmentLabel থাকে তবে সেটা দেখাবে, না থাকলে মেইন নাম */}
                 <td>{s.shipmentLabel || s.customer?.fullName || "Unknown"}</td>
-                
+
                 <td>{s.agency?.name || "-"}</td>
                 <td>{s.itemName || "-"}</td>
                 <td>{s.weight} KG</td>
+                <td>{s.shippingMark || "-"}</td>
+                <td>{s.boxCount || "-"}</td>
                 <td>৳ {s.totalCharge}</td>
                 <td className="paid-amt">৳ {s.paidAmount}</td>
                 <td>
@@ -174,7 +222,9 @@ export default function ShipmentList() {
 
             {shipments.length === 0 && (
               <tr className="empty-row">
-                <td colSpan="8">No shipments found matching criteria</td>
+                <td colSpan="11" style={{ textAlign: "center" }}>
+                  No shipments found matching criteria
+                </td>
               </tr>
             )}
           </tbody>
@@ -184,16 +234,18 @@ export default function ShipmentList() {
       <style>{`
         :root { --primary: #4834d4; --success: #2ecc71; --warning: #f1c40f; --danger: #eb4d4b; }
         
-        .shipment-list { padding: 20px; background: #fff; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.05); }
+        .shipment-list { padding: 10px; background: #fff; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.05); }
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
         .top-bar h2 { font-size: 24px; color: #2d3436; }
 
         .btn-primary { padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(72, 52, 212, 0.3); }
 
-        .filter-section { display: flex; gap: 20px; margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 10px; }
+        .filter-section { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 10px; align-items: flex-end; }
         .search-box input { padding: 8px 15px; border: 1px solid #ddd; border-radius: 6px; width: 250px; }
-        .filter-box select { padding: 8px; border: 1px solid #ddd; border-radius: 6px; }
+        .filter-box { display: flex; flex-direction: column; gap: 5px; }
+        .filter-box label { font-size: 13px; font-weight: bold; color: #555; }
+        .filter-box select { padding: 8px; border: 1px solid #ddd; border-radius: 6px; min-width: 150px; }
 
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -215,7 +267,7 @@ export default function ShipmentList() {
         .delete { background: #ffebeb; color: #ff4757; }
 
         @media (max-width: 768px) {
-          .filter-section { flex-direction: column; }
+          .filter-section { flex-direction: column; align-items: stretch; }
           .search-box input { width: 100%; }
         }
       `}</style>

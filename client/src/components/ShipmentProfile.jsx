@@ -90,6 +90,13 @@ export default function ShipmentProfile() {
         </div>
         <div style={styles.detailItem}>
           <strong>Weight:</strong> {shipment.weight} KG
+          
+        </div>
+        <div style={styles.detailItem}>
+          <strong>Shipping Mark:</strong> {shipment.shippingMark || "N/A"}
+        </div>
+        <div style={styles.detailItem}>
+          <strong>Box Count:</strong> {shipment.boxCount || "N/A"}
         </div>
 
         <div style={styles.detailItem}>
@@ -238,7 +245,7 @@ const styles = {
     background: "#fff",
     borderRadius: "12px",
     margin: "20px auto",
-    maxWidth: "950px",
+    maxWidth: "1120px",
     boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
   },
   headerRow: {

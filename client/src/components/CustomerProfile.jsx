@@ -84,8 +84,9 @@ export default function CustomerProfile() {
                 <th>ট্র্যাকিং নং</th>
                 <th>শিপমেন্ট লেবেল</th>
                 <th>আইটেম</th>
-                <th>ওজন</th>
-
+                <th>ওজন (KG)</th>
+                <th>শিপিং মার্ক</th>
+                <th>বক্স সংখ্যা</th>
                 <th>বিল</th>
                 <th>জমা</th>
                 <th>বকেয়া</th>
@@ -100,6 +101,8 @@ export default function CustomerProfile() {
                   <td>{s.shipmentLabel || s.customer?.fullName || "N/A"}</td>
                   <td>{s.itemName}</td>
                   <td>{s.weight}</td>
+                  <td>{s.shippingMark || "-"}</td>
+                  <td>{s.boxCount || "-"}</td>
                   <td>৳ {s.totalCharge}</td>
                   <td className="paid-text">৳ {s.paidAmount}</td>
                   <td className="due-text">৳ {s.totalCharge - s.paidAmount}</td>
@@ -119,7 +122,7 @@ export default function CustomerProfile() {
         @import url('https://fonts.googleapis.com/css2?family=Tiro+Bangla&display=swap');
 
         .profile-container {
-          max-width: 1100px;
+          max-width: 1350px;
           margin: 20px auto;
           padding: 20px;
           font-family: 'Tiro Bangla', serif;

@@ -29,7 +29,7 @@ app.use(express.json());
    Routes
 =========================== */
 app.use("/api", routes);
-app.use("/api", batchRoute);
+app.use("/api/", batchRoute);
 
 /* ===========================
    MongoDB Connection

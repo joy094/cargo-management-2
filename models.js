@@ -56,6 +56,13 @@ const ShipmentSchema = new Schema(
     itemName: { type: String, required: true },
     weight: { type: Number, default: 0 },
     boxCount: { type: Number, default: 1 },
+    shippingMark: { type: String,
+      trim:true,
+      default:""
+      
+
+
+     },
     shipmentType: {
       type: String,
       enum: ["Air", "Sea", "Road"],
@@ -215,4 +222,4 @@ const BatchSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-export const Batch= mongoose.model("Batch", BatchSchema);
+export const Batch = mongoose.model("Batch", BatchSchema);

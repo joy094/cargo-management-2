@@ -230,41 +230,6 @@ router.delete("/agencies/:id", async (req, res) => {
   }
 });
 
-/* =====================================================
-   2️⃣ CUSTOMER & SHIPMENT CONTROLLERS (New Feature)
-===================================================== */
-
-// Add New Shipment (সাথে কাস্টমার অটো ক্রিয়েট বা লিংক)
-// router.post("/shipments", async (req, res) => {
-//   try {
-//     const { customerData, shipmentData } = req.body;
-
-//     // ১. কাস্টমার চেক বা নতুন তৈরি
-//     let customer;
-//     if (customerData._id) {
-//       customer = await Customer.findById(customerData._id);
-//     } else {
-//       customer = await Customer.create({
-//         ...customerData,
-//         agency: shipmentData.agency,
-//       });
-//     }
-
-//     // ২. ইউনিক ট্র্যাকিং নম্বর জেনারেশন (উদা: CRG-171355)
-//     const trackingNumber = `TRK-${Date.now().toString().slice(-6)}`;
-
-//     // ৩. শিপমেন্ট তৈরি
-//     const shipment = await Shipment.create({
-//       ...shipmentData,
-//       customer: customer._id,
-//       trackingNumber,
-//     });
-
-//     res.json({ success: true, shipment, customer });
-//   } catch (err) {
-//     res.status(400).json({ error: err.message });
-//   }
-// });
 
 /* =====================================================
    Add New Shipment (Name Cleanup লজিকসহ)
@@ -481,7 +446,7 @@ router.post("/payments/allocate", async (req, res) => {
    4️⃣ REPORTS (Cargo Focused)
 ===================================================== */
 
-// Shipment Ledger (আগে ছিল Hajji Ledger)
+// Shipment Ledger 
 router.get("/reports/shipment-ledger/:id", async (req, res) => {
   try {
     const shipment = await Shipment.findById(req.params.id)

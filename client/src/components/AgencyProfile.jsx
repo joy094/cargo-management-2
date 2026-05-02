@@ -175,6 +175,7 @@ export default function AgencyProfile() {
               <div className="statement-info">
                 <strong>Statement No:</strong> {s.statementNo} |
                 <strong> Mode:</strong> {s.paymentType.toUpperCase()} |
+                <strong> Bank Name:</strong> {s.sourceName.toUpperCase()} |
                 <strong> Date:</strong>{" "}
                 {new Date(s.receivedDate).toLocaleDateString()}
               </div>

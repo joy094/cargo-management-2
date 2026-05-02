@@ -1,4 +1,3 @@
-
 //src/PaymentsAllowcations.jsx
 
 import React, { useEffect, useState, useRef } from "react";
@@ -12,7 +11,7 @@ export default function PaymentAllocation() {
   const [mobileBank, setMobileBank] = useState("");
   const [receiptNo, setReceiptNo] = useState("");
   const [amount, setAmount] = useState("");
-  const [shipmentList, setShipmentList] = useState([]); // Hajji -> Shipment
+  const [shipmentList, setShipmentList] = useState([]);
   const [allocations, setAllocations] = useState([]);
   const [selectedShipments, setSelectedShipments] = useState([]);
   const [receivedDate, setReceivedDate] = useState("");
@@ -20,12 +19,16 @@ export default function PaymentAllocation() {
   const [agencyList, setAgencyList] = useState([]);
   const [selectedAgency, setSelectedAgency] = useState("");
 
+  // ✅ ব্যাচের জন্য নতুন স্টেট
+  const [batches, setBatches] = useState([]);
+  const [selectedBatch, setSelectedBatch] = useState("");
+
   // App source updated for Cargo
   const APP_SOURCE = "CARGO";
 
   const errorAudioRef = useRef(null);
 
-  // ১. রেফারেন্স নম্বর নরমালাইজ করা (ডুপ্লিকেট ফিল্টারের জন্য জরুরি)
+  // ১. রেফারেন্স নম্বর নরমালাইজ করা
   const normalizeRef = (value = "") => {
     return value
       .toString()
@@ -34,7 +37,7 @@ export default function PaymentAllocation() {
       .trim();
   };
 
-  // ২. শিপমেন্ট লিস্ট লোড করা (বকেয়া থাকা শিপমেন্টগুলো আগে দেখাবে)
+  // ২. শিপমেন্ট লিস্ট লোড করা
   useEffect(() => {
     axios
       .get("/api/shipments")
@@ -53,9 +56,18 @@ export default function PaymentAllocation() {
       })
       .catch((err) => console.error("Error fetching agencies:", err));
   }, []);
-  
 
-  // ৪. শিপমেন্ট সিলেকশন হ্যান্ডলার
+  // ✅ ৪. ব্যাচ লিস্ট লোড করা
+  useEffect(() => {
+    axios
+      .get("/api/batches")
+      .then((res) => {
+        setBatches(Array.isArray(res.data) ? res.data : []);
+      })
+      .catch((err) => console.error("Error fetching batches:", err));
+  }, []);
+
+  // ৫. শিপমেন্ট সিলেকশন হ্যান্ডলার
   const handleShipmentSelect = (shipmentId) => {
     setSelectedShipments((prev) =>
       prev.includes(shipmentId)
@@ -70,7 +82,7 @@ export default function PaymentAllocation() {
     });
   };
 
-  // ৫. ইন্ডিভিজুয়াল পেমেন্ট ইনপুট হ্যান্ডলার
+  // ৬. ইন্ডিভিজুয়াল পেমেন্ট ইনপুট হ্যান্ডলার
   const handleAmountChange = (shipmentId, value) => {
     setAllocations((prev) =>
       prev.map((a) =>
@@ -81,7 +93,7 @@ export default function PaymentAllocation() {
     );
   };
 
-  // ৬. সাবমিট লজিক (ডুপ্লিকেট চেক সহ)
+  // ৭. সাবমিট লজিক
   const handleSubmit = async () => {
     if (!paymentType || !receivedDate || !amount) {
       alert("Please fill all basic payment info!");
@@ -117,7 +129,6 @@ export default function PaymentAllocation() {
         })),
     };
 
-    // পেমেন্ট মেথড অনুযায়ী স্টেটমেন্ট নম্বর সেট করা
     if (paymentType === "bank") {
       if (!statementNo || !bankName) return alert("Bank details required");
       payload.statementNo = normalizeRef(statementNo);
@@ -135,19 +146,26 @@ export default function PaymentAllocation() {
     try {
       const res = await axios.post("/api/payments/allocate", payload);
       alert(res.data.message || "Payment allocated successfully!");
-      window.location.reload(); // ফর্ম রিসেট করার সহজ উপায়
+      window.location.reload();
     } catch (err) {
       const msg = err.response?.data?.error || "Error in allocation";
       if (msg.includes("already used") || msg.includes("exists")) {
-        errorAudioRef.current?.play(); // ডুপ্লিকেট হলে এলার্ম বাজবে
+        errorAudioRef.current?.play();
       }
       alert(msg);
     }
   };
 
-  const filteredShipments = selectedAgency
-    ? shipmentList.filter((s) => s.agency?._id === selectedAgency)
-    : shipmentList;
+  // ✅ ৮. মাল্টিপল ফিল্টার লজিক (ব্রাঞ্চ এবং ব্যাচ)
+  const filteredShipments = shipmentList.filter((s) => {
+    const matchAgency = selectedAgency
+      ? s.agency?._id === selectedAgency
+      : true;
+    const matchBatch = selectedBatch
+      ? (s.batch?._id || s.batch) === selectedBatch
+      : true;
+    return matchAgency && matchBatch;
+  });
 
   return (
     <div className="payment-allocation">
@@ -192,7 +210,6 @@ export default function PaymentAllocation() {
         </div>
       </div>
 
-      {/* Dynamic Fields Based on Payment Type */}
       <div className="dynamic-fields">
         {paymentType === "bank" && (
           <div className="grid-2">
@@ -235,7 +252,21 @@ export default function PaymentAllocation() {
 
       <div className="shipment-selection-area">
         <h3>📦 Select Shipments for Allocation</h3>
+
+        {/* ✅ ফিল্টার অপশনগুলো (ব্রাঞ্চ এবং ব্যাচ) */}
         <div className="filter-row">
+          <select
+            value={selectedBatch}
+            onChange={(e) => setSelectedBatch(e.target.value)}
+          >
+            <option value="">All Batches / Flights</option>
+            {batches.map((b) => (
+              <option key={b._id} value={b._id}>
+                {b.batchName}
+              </option>
+            ))}
+          </select>
+
           <select
             value={selectedAgency}
             onChange={(e) => setSelectedAgency(e.target.value)}
@@ -280,7 +311,6 @@ export default function PaymentAllocation() {
                       />
                     </td>
                     <td className="trk-no">{s.trackingNumber}</td>
-                    {/* পরিবর্তন এখানে: যদি shipmentLabel থাকে তবে সেটা দেখাবে, না থাকলে মেইন নাম */}
                     <td>
                       {s.shipmentLabel || s.customer?.fullName || "Unknown"}
                     </td>
@@ -305,6 +335,17 @@ export default function PaymentAllocation() {
                   </tr>
                 );
               })}
+
+              {filteredShipments.length === 0 && (
+                <tr>
+                  <td
+                    colSpan="7"
+                    style={{ textAlign: "center", padding: "15px" }}
+                  >
+                    No unpaid shipments found for the selected criteria.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -328,9 +369,12 @@ export default function PaymentAllocation() {
         .dynamic-fields { margin: 20px 0; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 
+        .filter-row { display: flex; gap: 15px; margin-bottom: 15px; }
+        .filter-row select { flex: 1; }
+
         .table-wrapper { max-height: 400px; overflow-y: auto; margin-top: 15px; border: 1px solid #eee; border-radius: 10px; }
         .cargo-table { width: 100%; border-collapse: collapse; }
-        .cargo-table th { background: #f8f9fa; position: sticky; top: 0; padding: 12px; text-align: left; font-size: 13px; }
+        .cargo-table th { background: #f8f9fa; position: sticky; top: 0; padding: 12px; text-align: left; font-size: 13px; z-index: 10; }
         .cargo-table td { padding: 12px; border-bottom: 1px solid #f1f1f1; font-size: 14px; }
         
         .selected-row { background: #f0f7ff; }
@@ -340,6 +384,11 @@ export default function PaymentAllocation() {
 
         .submit-btn { width: 100%; padding: 15px; margin-top: 25px; background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: #fff; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; }
         .submit-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(108, 92, 231, 0.3); }
+
+        @media (max-width: 600px) {
+          .filter-row { flex-direction: column; }
+          .form-grid { grid-template-columns: 1fr; }
+        }
       `}</style>
     </div>
   );
