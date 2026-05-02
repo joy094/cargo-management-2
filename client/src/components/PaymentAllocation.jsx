@@ -149,10 +149,19 @@ export default function PaymentAllocation() {
       window.location.reload();
     } catch (err) {
       const msg = err.response?.data?.error || "Error in allocation";
-      if (msg.includes("already used") || msg.includes("exists")) {
-        errorAudioRef.current?.play();
+      // ✅ এখন মেসেজের ভেতর বাংলা শব্দ খুঁজবে
+      if (msg.includes("ইতিমধ্যে") || msg.includes("ব্যবহার করা হয়েছে")) {
+        // সাউন্ড প্লে করা
+        const errorSound = new Audio("/sounds/error.mp3");
+        errorSound.play().catch((e) => console.log("Audio Error:", e));
+
+        // আধা সেকেন্ড ডিলে করে অ্যালার্ট দেখানো
+        setTimeout(() => {
+          alert(msg);
+        }, 500);
+      } else {
+        alert(msg);
       }
-      alert(msg);
     }
   };
 
