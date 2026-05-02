@@ -71,7 +71,7 @@ const Header = () => {
         <div className="logo" onClick={() => navigate("/")}>
           <span className="logo-icon">📦</span>
           <div className="logo-text">
-            <h1>মাসুম এয়ার ট্রাভেলস</h1>
+            <h1>SABA & RIHAN </h1>
             <span className="sub-logo">কারগো ম্যানেজমেন্ট সিস্টেম</span>
           </div>
         </div>
