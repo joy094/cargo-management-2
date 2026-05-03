@@ -1,3 +1,5 @@
+//routes.js
+
 import express from "express";
 import dotenv from "dotenv";
 dotenv.config();
@@ -10,6 +12,7 @@ import {
   PaymentAllocation,
   // Adjustment,
   GlobalBankStatement,
+  Batch,
 } from "./models.js";
 import { authMiddleware, loginHandler, LOGIN_RATE_LIMIT } from "./auth.js";
 
@@ -217,6 +220,21 @@ router.put("/agencies/:id", async (req, res) => {
   }
 });
 
+// শিপমেন্টে এজেন্সি অ্যাসাইন করার রাউট
+
+router.put("/shipments/bulk-assign-agency", async (req, res) => {
+  try {
+    const { shipmentIds, agencyId } = req.body;
+    await Shipment.updateMany(
+      { _id: { $in: shipmentIds } },
+      { $set: { agency: agencyId } },
+    );
+    res.json({ success: true, message: "এজেন্সি সফলভাবে আপডেট করা হয়েছে।" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 //delete agency route
 router.delete("/agencies/:id", async (req, res) => {
   try {
@@ -229,7 +247,6 @@ router.delete("/agencies/:id", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 /* =====================================================
    Add New Shipment (Name Cleanup লজিকসহ)
@@ -275,6 +292,96 @@ router.post("/shipments", async (req, res) => {
     res.json({ success: true, shipment, customer });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+/* =====================================================
+   Smart Excel Bulk Import (Packing List)
+===================================================== */
+router.post("/shipments/bulk-import", async (req, res) => {
+  try {
+    const { shipments, agencyId, batchId } = req.body;
+    // shipments হলো ফ্রন্টএন্ড থেকে পাঠানো এক্সেল ডাটার Array
+
+    if (!shipments || !shipments.length) {
+      return res.status(400).json({ error: "কোনো ডাটা পাওয়া যায়নি!" });
+    }
+
+    const results = [];
+
+    // প্রতিটি এক্সেল রো (Row) লুপ করে ডাটাবেজে ঢোকানো হবে
+    for (const item of shipments) {
+      // ১. নাম প্রসেস করা (আগের লজিকের মতো)
+      const rawName = item.customerName || "Unknown";
+      const cleanName = rawName
+        .replace(/\s*\(\s*শিপমেন্ট\s*\d+\s*\)/g, "")
+        .trim();
+
+      // ২. কাস্টমার চেক বা তৈরি করা
+      let customer = await Customer.findOne({
+        phoneNumber: item.customerMobile,
+      });
+
+      if (!customer) {
+        customer = await Customer.create({
+          fullName: cleanName,
+          phoneNumber: item.customerMobile,
+          agency: agencyId,
+        });
+      }
+
+      // ৩. CBM অটো-ক্যালকুলেশন (যদি এক্সেল শিটে CBM না থাকে, তবে L*W*H দিয়ে হিসাব করবে)
+      let calculatedCbm = item.cbm || 0;
+      if (!calculatedCbm && item.length && item.width && item.height) {
+        calculatedCbm =
+          (Number(item.length) * Number(item.width) * Number(item.height)) /
+          1000000;
+      }
+
+      // ৪. ইউনিক লোকাল ট্র্যাকিং নম্বর জেনারেট (আপনার সিস্টেমের জন্য)
+      // র্যান্ডম স্ট্রিং তৈরি করা হলো যাতে ডুপ্লিকেট না হয়
+      const localTracking = `MAT-${Date.now().toString().slice(-5)}${Math.floor(10 + Math.random() * 90)}`;
+
+      // ৫. শিপমেন্ট তৈরি
+      const newShipment = await Shipment.create({
+        trackingNumber: localTracking, // সিস্টেমের ইউনিক নম্বর
+        chinaTrackingNo: item.trackingNumber, // এক্সেলের চায়না ট্র্যাকিং (ডুপ্লিকেট হতে পারে)
+        shippingMark: item.shippingMark || "-",
+        cartonNo: item.cartonNo || "-",
+        productName: item.productName || "Various Items",
+        quantity: Number(item.quantity) || 1,
+        grossWeight: Number(item.grossWeight) || 0,
+        actualWeight:
+          Number(item.actualWeight) || Number(item.grossWeight) || 0,
+
+        dimensions: {
+          length: Number(item.length) || 0,
+          width: Number(item.width) || 0,
+          height: Number(item.height) || 0,
+        },
+        cbm: Number(calculatedCbm).toFixed(3),
+
+        customer: customer._id,
+        shipmentLabel: rawName,
+        agency: agencyId,
+        batch: batchId || null,
+        receivedDate: item.receivedDate
+          ? new Date(item.receivedDate)
+          : new Date(),
+        status: "Booked", // ডিফল্ট স্ট্যাটাস
+      });
+
+      results.push(newShipment);
+    }
+
+    res.json({
+      success: true,
+      count: results.length,
+      message: `${results.length} টি শিপমেন্ট সফলভাবে ইম্পোর্ট হয়েছে!`,
+    });
+  } catch (err) {
+    console.error("Bulk Import Error:", err);
+    res.status(500).json({ error: "সার্ভার এরর: এক্সেল আপলোড ব্যর্থ হয়েছে।" });
   }
 });
 
@@ -356,9 +463,6 @@ router.get("/customers/search/:phone", async (req, res) => {
   }
 });
 
-
-
-
 /* =====================================================
    3️⃣ PAYMENT ALLOCATION (With Duplicate Filter)
 ===================================================== */
@@ -383,7 +487,6 @@ router.post("/payments/allocate", async (req, res) => {
     if (lockExists) {
       return res.status(400).json({
         error: `এই স্টেটমেন্ট নম্বরটি ইতিমধ্যে ${lockExists.appSource} সিস্টেমে ব্যবহার করা হয়েছে।`,
-        
       });
     }
 
@@ -440,13 +543,11 @@ router.post("/payments/allocate", async (req, res) => {
   }
 });
 
-
-
 /* =====================================================
    4️⃣ REPORTS (Cargo Focused)
 ===================================================== */
 
-// Shipment Ledger 
+// Shipment Ledger
 router.get("/reports/shipment-ledger/:id", async (req, res) => {
   try {
     const shipment = await Shipment.findById(req.params.id)
@@ -501,11 +602,6 @@ router.delete("/statements/:id", async (req, res) => {
   }
 });
 
-
-
-
-
-
 // Recent Payments Route
 router.get("/payments/recent", async (req, res) => {
   try {
@@ -524,11 +620,15 @@ router.get("/payments/recent", async (req, res) => {
   }
 });
 
-
-
-
-
-
-
+// ✅ শুধু ওজন আপডেট করার জন্য স্পেশাল রাউট
+router.put("/shipments/:id/weight", async (req, res) => {
+  try {
+    const { actualWeight } = req.body;
+    await Shipment.findByIdAndUpdate(req.params.id, { actualWeight });
+    res.json({ success: true, message: "ওজন আপডেট হয়েছে" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 export default router;

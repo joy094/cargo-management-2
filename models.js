@@ -1,3 +1,5 @@
+// models.js
+
 import mongoose from "mongoose";
 const { Schema, model } = mongoose;
 
@@ -23,7 +25,7 @@ const CustomerSchema = new Schema(
   {
     agency: { type: Schema.Types.ObjectId, ref: "Agency", required: true },
     fullName: { type: String, required: true, trim: true },
-    phoneNumber: { type: String, required: true, unique: true },
+    phoneNumber: { type: String, required: false, unique: true },
     address: String,
     nidOrPassport: String,
     notes: String,
@@ -35,62 +37,54 @@ export const Customer = model("Customer", CustomerSchema);
 /* =====================================================
    3️⃣ Shipment Model
 ===================================================== */
-const ShipmentSchema = new Schema(
+const shipmentSchema = new mongoose.Schema(
   {
-    trackingNumber: {
-      type: String,
-      required: true,
-      unique: true,
-      uppercase: true,
+    // সিস্টেমের নিজস্ব ইউনিক আইডি (Auto-generated)
+    trackingNumber: { type: String, unique: true },
+
+    // ক্লায়েন্টের রিকোয়ারমেন্ট অনুযায়ী নতুন ফিল্ডস
+    shippingMark: { type: String, required: true },
+    cartonNo: { type: String },
+    productName: { type: String },
+    quantity: { type: Number, default: 1 },
+    grossWeight: { type: Number }, // চায়না থেকে আসা ওজন
+    actualWeight: { type: Number }, // অফিসে মাপা ওজন
+
+    // ডাইমেনশন ও CBM
+    dimensions: {
+      length: { type: Number, default: 0 },
+      width: { type: Number, default: 0 },
+      height: { type: Number, default: 0 },
     },
-    customer: { type: Schema.Types.ObjectId, ref: "Customer", required: true },
-    agency: { type: Schema.Types.ObjectId, ref: "Agency", required: true },
-    receiverName: { type: String, required: true },
-    receiverMobile: { type: String },
-    receiverAddress: String,
-    shipmentLabel: {
-      type: String,
-      required: true,
-    },
+    cbm: { type: Number, default: 0 },
 
-    itemName: { type: String, required: true },
-    weight: { type: Number, default: 0 },
-    boxCount: { type: Number, default: 1 },
-    shippingMark: { type: String,
-      trim:true,
-      default:""
-      
+    // ট্র্যাকিং লজিক (চায়না ট্র্যাকিং ডুপ্লিকেট হতে পারবে)
+    chinaTrackingNo: { type: String },
 
+    receivedDate: { type: Date, default: Date.now },
 
-     },
+    // ✅ ক্লায়েন্টের রিকোয়ারমেন্ট অনুযায়ী আপডেট করা হয়েছে
     shipmentType: {
       type: String,
-      enum: ["Air", "Sea", "Road"],
+      enum: ["Air", "Sea", "Hand Carry"],
       default: "Air",
     },
-    totalCharge: { type: Number, required: true },
-    paidAmount: { type: Number, default: 0 },
-    status: {
-      type: String,
-      enum: [
-        "Booked",
-        "In-Transit",
-        "Received-at-Warehouse",
-        "Out-for-Delivery",
-        "Delivered",
-        "Cancelled",
-      ],
-      default: "Booked",
-    },
+    originPort: { type: String }, // ✅ পোর্টের নাম (যেমন: Guangzhou, Hong Kong)
 
+    // রিলেশনস
+    customer: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
+    agency: { type: mongoose.Schema.Types.ObjectId, ref: "Agency" }, // অপশনাল রাখা হয়েছে
     batch: { type: mongoose.Schema.Types.ObjectId, ref: "Batch" },
-    deliveryDate: Date,
-    notes: String,
+
+    status: { type: String, default: "Booked" },
+    totalCharge: { type: Number, default: 0 },
+    paidAmount: { type: Number, default: 0 },
+    notes: { type: String },
   },
   { timestamps: true },
 );
-export const Shipment = model("Shipment", ShipmentSchema);
 
+export const Shipment = model("Shipment", shipmentSchema);
 /* =====================================================
    4️⃣ Bank Statement Model
 ===================================================== */

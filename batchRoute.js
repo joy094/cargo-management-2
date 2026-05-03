@@ -1,3 +1,5 @@
+// batchRoute.js
+
 import express from "express";
 
 import {
@@ -38,15 +40,16 @@ router.post("/batches", async (req, res) => {
 });
 
 // --- ৩. একটি নির্দিষ্ট ব্যাচের বিস্তারিত ও তার শিপমেন্টগুলো দেখা ---
+// --- ৩. একটি নির্দিষ্ট ব্যাচের বিস্তারিত ও তার শিপমেন্টগুলো দেখা ---
 router.get("/batches/:id", async (req, res) => {
   try {
     const batch = await Batch.findById(req.params.id);
-    if (!batch) return res.status(404).json({ error: "ব্যাচ পাওয়া যায়নি।" });
+    if (!batch) return res.status(404).json({ error: "ব্যাচ পাওয়া যায়নি।" });
 
-    // ওই ব্যাচের সব শিপমেন্ট খুঁজে বের করা
-    const shipments = await Shipment.find({ batch: batch._id }).populate(
-      "customer",
-    );
+    // ✅ আসল ম্যাজিক এখানেই! customer এর পাশাপাশি agency-কেও populate করা হলো
+    const shipments = await Shipment.find({ batch: batch._id })
+      .populate("customer")
+      .populate("agency"); // এই লাইনটি যুক্ত করা হয়েছে
 
     res.json({ batch, shipments });
   } catch (err) {

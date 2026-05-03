@@ -1,7 +1,5 @@
 //src/components/ShipmentList.jsx
 
-//src/components/ShipmentList.jsx
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -9,15 +7,15 @@ import axios from "axios";
 export default function ShipmentList() {
   const [shipments, setShipments] = useState([]);
   const [agencies, setAgencies] = useState([]);
-  const [batches, setBatches] = useState([]); // ✅ ব্যাচের জন্য স্টেট
+  const [batches, setBatches] = useState([]);
 
   const [filterAgency, setFilterAgency] = useState("");
-  const [filterBatch, setFilterBatch] = useState(""); // ✅ ব্যাচ ফিল্টারের স্টেট
+  const [filterBatch, setFilterBatch] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
   const navigate = useNavigate();
 
-  // ১. ব্রাঞ্চ/এজেন্সি લોড করা
+  // ১. ব্রাঞ্চ/এজেন্সি লোড করা
   const loadAgencies = async () => {
     try {
       const res = await axios.get("/api/agencies");
@@ -28,7 +26,7 @@ export default function ShipmentList() {
     }
   };
 
-  // ২. ব্যাচ লিস্ট লোড করা (✅ নতুন লজিক)
+  // ২. ব্যাচ লিস্ট লোড করা
   const loadBatches = async () => {
     try {
       const res = await axios.get("/api/batches");
@@ -44,7 +42,7 @@ export default function ShipmentList() {
       const res = await axios.get("/api/shipments");
       let list = Array.isArray(res.data) ? res.data : [];
 
-      // ফিল্টার লজিক (ব্রাঞ্চ অনুযায়ী)
+      // ফিল্টার লজিক (ব্রাঞ্চ অনুযায়ী)
       if (filterAgency) {
         list = list.filter((s) => {
           const agencyId = s.agency?._id || s.agency;
@@ -52,7 +50,7 @@ export default function ShipmentList() {
         });
       }
 
-      // ফিল্টার লজিক (ব্যাচ অনুযায়ী ✅)
+      // ফিল্টার লজিক (ব্যাচ অনুযায়ী)
       if (filterBatch) {
         list = list.filter((s) => {
           const batchId = s.batch?._id || s.batch;
@@ -60,14 +58,15 @@ export default function ShipmentList() {
         });
       }
 
-      // সার্চ লজিক (নাম বা ট্র্যাকিং নম্বর অনুযায়ী)
+      // সার্চ লজিক (নাম বা ট্র্যাকিং নম্বর অনুযায়ী)
       if (searchTerm) {
         list = list.filter(
           (s) =>
             s.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            s.customer?.fullName
-              .toLowerCase()
-              .includes(searchTerm.toLowerCase()),
+            (s.customer?.fullName &&
+              s.customer.fullName
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase())),
         );
       }
 
@@ -83,22 +82,18 @@ export default function ShipmentList() {
     navigate("/login");
   };
 
-  // কম্পোনেন্ট লোড হওয়ার সময় ব্রাঞ্চ এবং ব্যাচ কল করবে
   useEffect(() => {
     loadAgencies();
-    loadBatches(); // ✅ ব্যাচ কল করা হলো
+    loadBatches();
   }, []);
 
-  // ডিপেন্ডেন্সি অ্যারে-তে filterBatch যুক্ত করা হয়েছে ✅
   useEffect(() => {
     loadShipments();
   }, [filterAgency, filterBatch, searchTerm]);
 
   // ৪. শিপমেন্ট ডিলিট করা
   const deleteShipment = async (id) => {
-    if (
-      !window.confirm("আপনি কি নিশ্চিত যে এই শিপমেন্ট রেকর্ডটি ডিলিট করতে চান?")
-    )
+    if (!window.confirm("আপনি কি নিশ্চিত যে এই রেকর্ডটি ডিলিট করতে চান?"))
       return;
     try {
       await axios.delete(`/api/shipments/${id}`);
@@ -111,13 +106,32 @@ export default function ShipmentList() {
   return (
     <div className="shipment-list">
       <div className="top-bar">
-        <h2>📦 Cargo Shipments</h2>
-        <button
-          className="btn-primary"
-          onClick={() => navigate("/shipment/new")}
-        >
-          + New Shipment
-        </button>
+        <h2>📦 Cargo Packaging Lists</h2>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button
+            className="btn-secondary"
+            style={{
+              backgroundColor: "#27ae60",
+              color: "white",
+              padding: "10px 20px",
+              borderRadius: "8px",
+              border: "none",
+              fontWeight: "bold",
+              cursor: "pointer",
+            }}
+            onClick={() => navigate("/bulk-import")}
+          >
+            📥 Excel Upload
+          </button>
+
+          {/* ✅ বাটন টেক্সট আপডেট করা হয়েছে */}
+          <button
+            className="btn-primary"
+            onClick={() => navigate("/shipment/new")}
+          >
+            + New Packaging List
+          </button>
+        </div>
       </div>
 
       <div className="filter-section">
@@ -130,7 +144,6 @@ export default function ShipmentList() {
           />
         </div>
 
-        {/* ✅ ব্যাচ ফিল্টার ড্রপডাউন */}
         <div className="filter-box">
           <label>Batch/Flight:</label>
           <select
@@ -161,20 +174,20 @@ export default function ShipmentList() {
           </select>
         </div>
       </div>
-
       <div className="table-responsive">
         <table>
           <thead>
             <tr>
               <th>Tracking No</th>
-              <th>Customer Name</th>
+              <th>China Tracking</th>
+              <th>Shipping Mark / Name</th>
               <th>Branch</th>
-              <th>Item</th>
+              <th>Product</th>
+              <th>Carton No</th>
+              <th>Qty</th>
               <th>Weight</th>
-              <th>Shipping Mark</th>
-              <th>Box Count</th>
-              <th>Total</th>
-              <th>Paid</th>
+              <th>CBM</th>
+              <th>Total Bill</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -184,19 +197,54 @@ export default function ShipmentList() {
               <tr key={s._id}>
                 <td className="tracking-id">{s.trackingNumber}</td>
 
-                {/* পরিবর্তন এখানে: যদি shipmentLabel থাকে তবে সেটা দেখাবে, না থাকলে মেইন নাম */}
-                <td>{s.shipmentLabel || s.customer?.fullName || "Unknown"}</td>
+                {/* চায়না ট্র্যাকিং */}
+                <td>{s.chinaTrackingNo || "-"}</td>
+
+                {/* ক্লায়েন্টের পরিচয়: প্রথমে শিপিং মার্ক খুঁজবে, না পেলে কাস্টমারের নাম */}
+                <td>
+                  <span style={{ fontWeight: "bold", color: "#d35400" }}>
+                    {s.shippingMark ||
+                      s.shipmentLabel ||
+                      s.customer?.fullName ||
+                      "Unknown"}
+                  </span>
+                </td>
 
                 <td>{s.agency?.name || "-"}</td>
-                <td>{s.itemName || "-"}</td>
-                <td>{s.weight} KG</td>
-                <td>{s.shippingMark || "-"}</td>
-                <td>{s.boxCount || "-"}</td>
+
+                {/* প্রোডাক্টের নাম */}
+                <td>{s.productName || s.itemName || "-"}</td>
+
+                {/* কার্টুন বা বক্স নম্বর */}
+                <td style={{ fontWeight: "bold" }}>
+                  {s.cartonNo || s.boxCount || "-"}
+                </td>
+
+                {/* পরিমাণ (কোয়ান্টিটি) */}
+                <td>{s.quantity || "-"} Pcs</td>
+
+                {/* ওজন: প্রথমে actualWeight, না থাকলে grossWeight, না থাকলে পুরনো weight */}
+                <td>{s.actualWeight || s.grossWeight || s.weight || 0} KG</td>
+
+                {/* সিবিএম (CBM) */}
+                <td>
+                  {s.cbm ? (
+                    <span style={{ color: "#0984e3", fontWeight: "bold" }}>
+                      {s.cbm} m³
+                    </span>
+                  ) : (
+                    "-"
+                  )}
+                </td>
+
+                {/* বিল */}
                 <td>৳ {s.totalCharge}</td>
-                <td className="paid-amt">৳ {s.paidAmount}</td>
+
+                {/* স্ট্যাটাস */}
                 <td>
                   <span className={`status-tag ${s.status}`}>{s.status}</span>
                 </td>
+
                 <td className="actions">
                   <button
                     className="view"
@@ -222,8 +270,11 @@ export default function ShipmentList() {
 
             {shipments.length === 0 && (
               <tr className="empty-row">
-                <td colSpan="11" style={{ textAlign: "center" }}>
-                  No shipments found matching criteria
+                <td
+                  colSpan="12"
+                  style={{ textAlign: "center", padding: "20px" }}
+                >
+                  No packaging lists found matching your criteria
                 </td>
               </tr>
             )}
@@ -234,7 +285,7 @@ export default function ShipmentList() {
       <style>{`
         :root { --primary: #4834d4; --success: #2ecc71; --warning: #f1c40f; --danger: #eb4d4b; }
         
-        .shipment-list { padding: 10px; background: #fff; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.05); }
+        .shipment-list { padding: 10px; background: #fff; border-radius: 15px; width: 1400px; box-shadow: 0 5px 25px rgba(0,0,0,0.05); }
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
         .top-bar h2 { font-size: 24px; color: #2d3436; }
 

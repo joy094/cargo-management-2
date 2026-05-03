@@ -1,15 +1,25 @@
-//AddShipment.jsx
-
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
+
+// ✅ ১. রুট অনুযায়ী পোর্টের লিস্ট
+const originPorts = {
+  Air: [
+    "Guangzhou (CAN)",
+    "Hong Kong (HKG)",
+    "Shenzhen (SZX)",
+    "Beijing (PEK)",
+  ],
+  Sea: ["Guangzhou Port", "Ningbo Port", "Shanghai Port", "Shenzhen Port"],
+  Road: ["Benapole Border", "Burimari Border", "Direct Truck"],
+};
 
 export default function AddShipment() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [agencies, setAgencies] = useState([]);
-  const [batches, setBatches] = useState([]); // ✅ নতুন ব্যাচ স্টেট
+  const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
@@ -19,28 +29,36 @@ export default function AddShipment() {
     receiverName: "",
     receiverMobile: "",
     receiverAddress: "",
-    itemName: "",
-    batch: "", // ✅ ব্যাচ ফিল্ড যোগ করা হয়েছে
-    shippingMark:"",
-    weight: "",
+    productName: "",
+    batch: "",
+    shippingMark: "",
+
+    chinaTrackingNo: "",
+    cartonNo: "",
+    quantity: 1,
+    length: "",
+    width: "",
+    height: "",
+    cbm: "",
+
+    grossWeight: "",
     boxCount: 1,
-    shipmentType: "Air",
+    shipmentType: "Air", // এটি রুট ক্যাটাগরি হিসেবে কাজ করবে
+    originPort: "", // ✅ নতুন ফিল্ড: অরিজিন পোর্ট
     totalCharge: "",
     status: "Booked",
     notes: "",
   });
 
-  // ১. ব্রাঞ্চ এবং ব্যাচ লিস্ট লোড করা
   useEffect(() => {
     const loadInitialData = async () => {
       try {
         const [agencyRes, batchRes] = await Promise.all([
           axios.get("/api/agencies"),
-          axios.get("/api/batches"), // ✅ ব্যাচ ডাটা আনা হচ্ছে
+          axios.get("/api/batches"),
         ]);
         setAgencies(agencyRes.data);
 
-        // শুধু সেই ব্যাচগুলো দেখাবো যেগুলোর কাজ এখনো শেষ হয়নি
         const activeBatches = batchRes.data.filter(
           (b) => b.status === "Draft" || b.status === "Loaded",
         );
@@ -52,7 +70,6 @@ export default function AddShipment() {
     loadInitialData();
   }, []);
 
-  // ২. এডিট মোড হলে শিপমেন্ট ডাটা লোড করা
   useEffect(() => {
     if (!id) return;
 
@@ -67,11 +84,22 @@ export default function AddShipment() {
           receiverName: s.receiverName,
           receiverMobile: s.receiverMobile,
           receiverAddress: s.receiverAddress || "",
-          itemName: s.itemName || "",
-          batch: s.batch?._id || s.batch || "", // ✅ বিদ্যমান ব্যাচ থাকলে লোড হবে
-          weight: s.weight,
-          boxCount: s.boxCount,
-          shipmentType: s.shipmentType,
+          productName: s.productName || "",
+          batch: s.batch?._id || s.batch || "",
+          shippingMark: s.shippingMark || "",
+
+          chinaTrackingNo: s.chinaTrackingNo || "",
+          cartonNo: s.cartonNo || "",
+          quantity: s.quantity || 1,
+          length: s.dimensions?.length || "",
+          width: s.dimensions?.width || "",
+          height: s.dimensions?.height || "",
+          cbm: s.cbm || "",
+
+          grossWeight: s.grossWeight || "",
+          boxCount: s.boxCount || 1,
+          shipmentType: s.shipmentType || "Air",
+          originPort: s.originPort || "", // ✅ এডিটে পোর্ট লোড করা
           totalCharge: s.totalCharge,
           status: s.status,
           notes: s.notes || "",
@@ -82,6 +110,17 @@ export default function AddShipment() {
     };
     loadShipment();
   }, [id]);
+
+  useEffect(() => {
+    const l = parseFloat(form.length) || 0;
+    const w = parseFloat(form.width) || 0;
+    const h = parseFloat(form.height) || 0;
+
+    if (l > 0 && w > 0 && h > 0) {
+      const calculatedCbm = (l * w * h) / 1000000;
+      setForm((prev) => ({ ...prev, cbm: calculatedCbm.toFixed(3) }));
+    }
+  }, [form.length, form.width, form.height]);
 
   const handleError = (err) => {
     if (err.response?.status === 401) {
@@ -126,20 +165,32 @@ export default function AddShipment() {
 
     const payload = {
       customerData: {
-        fullName: form.customerName,
-        phoneNumber: form.customerMobile,
+        fullName: form.customerName || form.shippingMark, // নাম না থাকলে শিপিং মার্ক কাস্টমার নাম হবে
+        phoneNumber: form.customerMobile || "", // ফোন নম্বর এখন অপশনাল
       },
       shipmentData: {
-        agency: form.agency,
+        agency: form.agency || null,
         receiverName: form.receiverName,
         receiverMobile: form.receiverMobile,
         receiverAddress: form.receiverAddress,
-        itemName: form.itemName,
-        batch: form.batch || null, // ✅ ব্যাচ আইডি পাঠানো হচ্ছে
-        weight: parseFloat(form.weight) || 0,
-        boxCount: parseInt(form.boxCount) || 1,
+        productName: form.productName,
+        batch: form.batch || null,
         shippingMark: form.shippingMark,
+
+        chinaTrackingNo: form.chinaTrackingNo,
+        cartonNo: form.cartonNo,
+        quantity: parseInt(form.quantity) || 1,
+        dimensions: {
+          length: parseFloat(form.length) || 0,
+          width: parseFloat(form.width) || 0,
+          height: parseFloat(form.height) || 0,
+        },
+        cbm: parseFloat(form.cbm) || 0,
+
+        grossWeight: parseFloat(form.grossWeight) || 0,
+        boxCount: parseInt(form.boxCount) || 1,
         shipmentType: form.shipmentType,
+        originPort: form.originPort, // ✅ ব্যাকএন্ডে পোর্ট পাঠানো হচ্ছে
         totalCharge: parseFloat(form.totalCharge) || 0,
         status: form.status,
         notes: form.notes,
@@ -172,23 +223,21 @@ export default function AddShipment() {
             <h3>👤 Sender Information</h3>
             <div className="grid-2">
               <div>
-                <label>
-                  Sender Mobile (সার্চ করতে নম্বর লিখে বাইরে ক্লিক করুন) *
-                </label>
+                {/* ✅ ফোন নম্বর এখন অপশনাল */}
+                <label>Sender Mobile (ঐচ্ছিক - থাকলে সার্চ করুন)</label>
                 <input
                   name="customerMobile"
                   placeholder="017XXXXXXXX"
                   value={form.customerMobile}
                   onChange={handleChange}
                   onBlur={(e) => handleCustomerSearch(e.target.value)}
-                  required
                 />
               </div>
               <div>
-                <label>Sender Name *</label>
+                <label>Sender Name / Shipping Mark *</label>
                 <input
                   name="customerName"
-                  placeholder="পুরো নাম লিখুন"
+                  placeholder="নাম বা শিপিং মার্ক লিখুন"
                   value={form.customerName}
                   onChange={handleChange}
                   required
@@ -196,12 +245,7 @@ export default function AddShipment() {
               </div>
             </div>
             <label>Booking Branch/Party *</label>
-            <select
-              name="agency"
-              value={form.agency}
-              onChange={handleChange}
-              required
-            >
+            <select name="agency" value={form.agency} onChange={handleChange}>
               <option value="">Select Branch</option>
               {agencies.map((a) => (
                 <option key={a._id} value={a._id}>
@@ -221,7 +265,6 @@ export default function AddShipment() {
                   name="receiverName"
                   value={form.receiverName}
                   onChange={handleChange}
-                  required
                 />
               </div>
               <div>
@@ -230,7 +273,6 @@ export default function AddShipment() {
                   name="receiverMobile"
                   value={form.receiverMobile}
                   onChange={handleChange}
-                  required
                 />
               </div>
             </div>
@@ -242,18 +284,58 @@ export default function AddShipment() {
             />
           </div>
 
-          {/* Section 3: Cargo Details */}
-          <div className="form-section">
-            <h3>⚖️ Cargo & Pricing</h3>
+          {/* ✅ Section 3: Route & Port Selection (New Conditional UI) */}
+          <div className="form-section highlight-section">
+            <h3>✈️ Route & Port Selection</h3>
+            <div className="grid-2">
+              <div>
+                <label>Route Category (শিপমেন্টের মাধ্যম)</label>
+                <select
+                  name="shipmentType"
+                  value={form.shipmentType}
+                  onChange={(e) => {
+                    setForm({
+                      ...form,
+                      shipmentType: e.target.value,
+                      originPort: "",
+                    });
+                  }}
+                >
+                  <option value="Air">🚀 Air Cargo</option>
+                  <option value="Sea">🚢 Sea Cargo</option>
+                  <option value="Road">🚛 Road / Hand Carry</option>
+                </select>
+              </div>
+              <div>
+                <label>{form.shipmentType} Origin Port (লোকেশন)</label>
+                <select
+                  name="originPort"
+                  value={form.originPort}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">-- Select Port/Location --</option>
+                  {originPorts[form.shipmentType]?.map((port) => (
+                    <option key={port} value={port}>
+                      {port}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
 
-            {/* ✅ ব্যাচ সিলেকশন ড্রপডাউন এখানে যোগ করা হয়েছে */}
+          {/* Section 4: Cargo & Packing Details */}
+          <div className="form-section">
+            <h3>⚖️ Cargo & Packing Details</h3>
+
             <div style={{ marginBottom: "15px" }}>
               <label style={{ color: "#007bff" }}>
                 Assign to Flight/Batch (চালান সিলেক্ট করুন)
               </label>
               <select name="batch" value={form.batch} onChange={handleChange}>
                 <option value="">
-                  কোনো ব্যাচ ছাড়াই বুকিং দিন (Later Assign)
+                  কোনো ব্যাচ ছাড়াই বুকিং দিন (Later Assign)
                 </option>
                 {batches.map((b) => (
                   <option key={b._id} value={b._id}>
@@ -264,39 +346,129 @@ export default function AddShipment() {
               </select>
             </div>
 
-            <div className="grid-2">
+            <div className="grid-3" style={{ marginBottom: "15px" }}>
               <div>
-                <label>Item Name</label>
+                <label>China Tracking No</label>
                 <input
                   type="text"
-                  name="itemName"
-                  value={form.itemName}
+                  name="chinaTrackingNo"
+                  value={form.chinaTrackingNo}
                   onChange={handleChange}
-                  placeholder="যেমন: কাপড়, কসমেটিকস"
+                  placeholder="যেমন: SF123456"
+                  className="highlight-input"
                 />
               </div>
               <div>
-                <label>Shipment Type</label>
-                <select
-                  name="shipmentType"
-                  value={form.shipmentType}
+                <label>Carton No (বক্স নং)</label>
+                <input
+                  type="text"
+                  name="cartonNo"
+                  value={form.cartonNo}
                   onChange={handleChange}
-                >
-                  <option value="Air">Air (Fast)</option>
-                  <option value="Sea">Sea (Standard)</option>
-                  <option value="Road">Road</option>
-                </select>
+                  placeholder="যেমন: 5"
+                />
+              </div>
+              <div>
+                <label>Shipping Mark</label>
+                <input
+                  type="text"
+                  name="shippingMark"
+                  value={form.shippingMark}
+                  onChange={(e) => {
+                    // শিপিং মার্ক লিখলে অটোমেটিক কাস্টমার নামেও বসে যাবে যদি নাম ফাঁকা থাকে
+                    setForm({
+                      ...form,
+                      shippingMark: e.target.value,
+                      customerName:
+                        form.customerName === ""
+                          ? e.target.value
+                          : form.customerName,
+                    });
+                  }}
+                  placeholder="যেমন: SKL/RONY"
+                />
               </div>
             </div>
 
-            <div className="grid-3" style={{ marginTop: "10px" }}>
+            <div className="grid-2">
               <div>
-                <label>Weight (KG)</label>
+                <label>Product Name</label>
+                <input
+                  type="text"
+                  name="productName"
+                  value={form.productName}
+                  onChange={handleChange}
+                  placeholder="যেমন: phone case"
+                />
+              </div>
+              <div>
+                <label>Quantity (পিস)</label>
                 <input
                   type="number"
-                  name="weight"
+                  name="quantity"
+                  value={form.quantity}
+                  onChange={handleChange}
                   className="no-spin"
-                  value={form.weight}
+                />
+              </div>
+            </div>
+
+            <div className="grid-4" style={{ marginTop: "15px" }}>
+              <div>
+                <label>Length (cm)</label>
+                <input
+                  type="number"
+                  name="length"
+                  value={form.length}
+                  onChange={handleChange}
+                  className="no-spin"
+                  placeholder="L"
+                />
+              </div>
+              <div>
+                <label>Width (cm)</label>
+                <input
+                  type="number"
+                  name="width"
+                  value={form.width}
+                  onChange={handleChange}
+                  className="no-spin"
+                  placeholder="W"
+                />
+              </div>
+              <div>
+                <label>Height (cm)</label>
+                <input
+                  type="number"
+                  name="height"
+                  value={form.height}
+                  onChange={handleChange}
+                  className="no-spin"
+                  placeholder="H"
+                />
+              </div>
+              <div>
+                <label style={{ color: "#d35400" }}>Total CBM</label>
+                <input
+                  type="number"
+                  name="cbm"
+                  value={form.cbm}
+                  onChange={handleChange}
+                  className="cbm-input no-spin"
+                  placeholder="0.000"
+                  step="0.001"
+                />
+              </div>
+            </div>
+
+            <div className="grid-2" style={{ marginTop: "15px" }}>
+              <div>
+                <label>Gross Weight (KG)</label>
+                <input
+                  type="number"
+                  name="grossWeight"
+                  className="no-spin"
+                  value={form.grossWeight}
                   onChange={handleChange}
                   step="0.01"
                 />
@@ -310,18 +482,10 @@ export default function AddShipment() {
                   value={form.boxCount}
                   onChange={handleChange}
                 />
-
-
-
-                <label>Shipping Mark</label>
-                <input
-                  type="text"
-                  name="shippingMark"
-                  className="no-spin"
-                  value={form.shippingMark}
-                  onChange={handleChange}
-                />
               </div>
+            </div>
+
+            <div className="grid-2" style={{ marginTop: "15px" }}>
               <div>
                 <label>Status</label>
                 <select
@@ -335,18 +499,17 @@ export default function AddShipment() {
                   <option value="Cancelled">Cancelled</option>
                 </select>
               </div>
-            </div>
-
-            <div style={{ marginTop: "10px" }}>
-              <label>Total Charge (Amount) *</label>
-              <input
-                type="number"
-                name="totalCharge"
-                className="total-input"
-                value={form.totalCharge}
-                onChange={handleChange}
-                required
-              />
+              <div>
+                <label>Total Charge (Amount) *</label>
+                <input
+                  type="number"
+                  name="totalCharge"
+                  className="total-input no-spin"
+                  value={form.totalCharge}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
             </div>
           </div>
 
@@ -363,25 +526,37 @@ export default function AddShipment() {
       <style>{`
         .shipment-form-container { background: #f0f2f5; padding: 30px; min-height: 100vh; display: flex; justify-content: center; }
 
-      
         .form-card { background: #fff; padding: 25px; border-radius: 12px; width: 100%; max-width: 800px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .form-section { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #007bff; }
+        
+        /* ✅ নতুন হাইলাইট সেকশনের ডিজাইন */
+        .highlight-section { border-left: 4px solid #f39c12 !important; background: #fffdf5 !important; }
+        .highlight-section h3 { color: #d35400 !important; }
+
         h2 { color: #333; margin-bottom: 20px; text-align: center; }
         h3 { font-size: 16px; color: #007bff; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+        .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; }
+        
         label { display: block; margin-top: 10px; font-weight: 600; font-size: 13px; color: #555; }
         input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        select:focus { border-color: #007bff; box-shadow: 0 0 8px rgba(0, 123, 255, 0.2); }
+        
         .total-input { border: 2px solid #007bff; font-weight: bold; font-size: 18px; color: #007bff; }
+        .highlight-input { border: 1px solid #e67e22; background: #fffdfa; }
+        .cbm-input { border: 2px solid #e67e22; font-weight: bold; color: #d35400; background: #fffaf0; }
+        
         .btn-save { margin-top: 25px; padding: 15px; width: 100%; background: #007bff; color: #fff; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; }
         .btn-save:hover { background: #0056b3; }
         .btn-save:disabled { background: #ccc; }
         .no-spin::-webkit-outer-spin-button, .no-spin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-
+        @media (max-width: 600px) {
+          .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+        }
       `}</style>
-
-
     </div>
   );
 }

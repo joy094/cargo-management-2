@@ -20,6 +20,7 @@ import CustomerProfile from "./components/CustomerProfile";
 import BatchList from "./components/BatchList";
 
 import BatchDetails from "./components/BatchDetails";
+import BulkImport from "./components/BulkImport";
 // Layout Component
 export const Layout = () => {
   const navigate = useNavigate();
@@ -190,6 +191,7 @@ const App = () => (
       {/* নতুন ব্যাচ রাউট */}
       <Route path="/batches" element={<BatchList />} />
       <Route path="/batches/:id" element={<BatchDetails />} />
+      <Route path="/bulk-import" element={<BulkImport />} />
 
       {/* Payment System */}
       <Route path="/payment-allocation" element={<PaymentAllocation />} />
