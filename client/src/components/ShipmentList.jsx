@@ -125,12 +125,12 @@ export default function ShipmentList() {
           </button>
 
           {/* ✅ বাটন টেক্সট আপডেট করা হয়েছে */}
-          <button
+          {/* <button
             className="btn-primary"
             onClick={() => navigate("/shipment/new")}
           >
             + New Packaging List
-          </button>
+          </button> */}
         </div>
       </div>
 

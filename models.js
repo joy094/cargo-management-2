@@ -200,20 +200,42 @@ UserSchema.virtual("isLocked").get(function () {
 export const User = model("User", UserSchema);
 
 //Batch
+/* =====================================================
+   8️⃣ Batch Model (UPDATED)
+===================================================== */
 const BatchSchema = new mongoose.Schema(
   {
-    batchName: { type: String, required: true, unique: true }, // উদাহরণ: DXB-FLIGHT-001
+    batchName: { type: String, required: true, unique: true }, // উদাহরণ: MAY-20-DXB
     flightNumber: { type: String },
     flightDate: { type: Date },
+
+    // ✅ নতুন যুক্ত করা রুট এবং পোর্ট (Shipment মডেলের সাথে মিল রেখে)
+    shipmentType: {
+      type: String,
+      enum: ["Air", "Sea", "Hand Carry"],
+      default: "Air",
+    },
+    originPort: { type: String },
     destination: { type: String },
+
+    // ✅ আপডেট করা ৮টি কার্গো লাইফ-সাইকেল স্টেজ
     status: {
       type: String,
-      enum: ["Draft", "Loaded", "In-Transit", "Arrived", "Released"],
-      default: "Draft",
+      enum: [
+        "Warehouse Received",
+        "Processing",
+        "Ready to Ship",
+        "Dispatched",
+        "In-Transit",
+        "Customs Clearing",
+        "Arrived",
+        "Delivered",
+      ],
+      default: "Warehouse Received",
     },
     notes: { type: String },
   },
   { timestamps: true },
 );
 
-export const Batch = mongoose.model("Batch", BatchSchema);
+export const Batch = model("Batch", BatchSchema);

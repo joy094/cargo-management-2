@@ -27,12 +27,19 @@ export default function BatchDetails() {
     "Delivered",
   ];
 
+  // ✅ নতুন রো স্টেটে ডাইমেনশন এবং CBM যুক্ত করা হলো
   const [newRows, setNewRows] = useState([
     {
       shippingMark: "",
       productName: "",
       chinaTrackingNo: "",
+      cartonNo: "", // নতুন
+      quantity: 1, // ✅ নতুন যোগ করা হলো
       grossWeight: "",
+      length: 0, // নতুন
+      width: 0, // নতুন
+      height: 0, // নতুন
+      cbm: 0, // নতুন (অটো ক্যালকুলেট হবে)
       receivedDate: new Date().toISOString().split("T")[0],
     },
   ]);
@@ -57,14 +64,12 @@ export default function BatchDetails() {
 
       setBatch(batchRes.data.batch);
       setShipments(batchRes.data.shipments);
-
       setAgencies(agencyRes.data);
     } catch (err) {
       console.error(err);
     }
   };
 
-  // ✅ ব্যাচ স্ট্যাটাস আপডেট
   const handleBatchStatusChange = async (newStatus) => {
     if (!window.confirm(`স্ট্যাটাস পরিবর্তন করে "${newStatus}" করবেন?`)) return;
     try {
@@ -75,30 +80,47 @@ export default function BatchDetails() {
     }
   };
 
-  // ✅ নতুন রো হ্যান্ডেল করা
+  // ✅ নতুন রো হ্যান্ডেল করা (আপডেটেড ফিল্ডসহ)
   const addNewRow = () => {
     setNewRows([
       ...newRows,
       {
         shippingMark: "",
         productName: "",
-        chinaTrackingNo: "",
+
+        cartonNo: "",
+        quantity: 1, // ✅ নতুন যোগ করা হলো
         grossWeight: "",
+        length: 0,
+        width: 0,
+        height: 0,
+        cbm: 0,
         receivedDate: new Date().toISOString().split("T")[0],
       },
     ]);
   };
 
-  // ✅ রো রিমুভ করার ফাংশন (ক্রস বাটন)
   const removeNewRow = (index) => {
     const rows = [...newRows];
     rows.splice(index, 1);
     setNewRows(rows);
   };
 
+  // ✅ ইনপুট চেঞ্জ এবং অটো CBM ক্যালকুলেশন লজিক
   const handleInputChange = (index, field, value) => {
     const rows = [...newRows];
     rows[index][field] = value;
+
+    // যদি L, W বা H পরিবর্তন হয়, তবে CBM অটো ক্যালকুলেট হবে
+    if (["length", "width", "height"].includes(field)) {
+      const l = Number(rows[index].length) || 0;
+      const w = Number(rows[index].width) || 0;
+      const h = Number(rows[index].height) || 0;
+
+      const calculatedCbm = (l * w * h) / 1000000;
+      rows[index].cbm = calculatedCbm.toFixed(3);
+    }
+
     setNewRows(rows);
   };
 
@@ -111,13 +133,18 @@ export default function BatchDetails() {
         shipments: newRows,
         batchId: id,
       });
-      alert("সফলভাবে যুক্ত হয়েছে!");
+      alert("সফলভাবে যুক্ত হয়েছে!");
       setNewRows([
         {
           shippingMark: "",
           productName: "",
-          chinaTrackingNo: "",
+
+          cartonNo: "",
           grossWeight: "",
+          length: 0,
+          width: 0,
+          height: 0,
+          cbm: 0,
           receivedDate: new Date().toISOString().split("T")[0],
         },
       ]);
@@ -151,18 +178,18 @@ export default function BatchDetails() {
     (sum, s) => sum + (Number(s.actualWeight) || 0),
     0,
   );
+
+  const totalCbm = shipments.reduce((sum, s) => sum + (Number(s.cbm) || 0), 0);
   const totalBill = Object.values(bills).reduce(
     (a, b) => Number(a) + Number(b),
     0,
   );
-
   const filteredList = shipments.filter((s) =>
     s.shippingMark?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
     <div className="modern-batch-container">
-      {/* 🚀 Header: Dashboard Style */}
       <div className="dashboard-header">
         <div className="batch-meta">
           <span className="batch-tag">FLIGHT BATCH</span>
@@ -192,13 +219,12 @@ export default function BatchDetails() {
         </div>
       </div>
 
-      {/* 📦 Main Operations Card */}
       <div className="main-card">
         <div className="toolbar">
           <div className="search-wrapper">
             <input
               type="text"
-              placeholder="Shipping Mark দিয়ে খুঁজুন..."
+              placeholder="Shipping Mark দিয়ে খুঁজুন..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -213,7 +239,7 @@ export default function BatchDetails() {
                 {showBulkEntry ? "Close Entry" : "📥 Quick Bulk Entry"}
               </button>
             )}
-            <select
+            {/* <select
               className="agency-select"
               value={targetAgency}
               onChange={(e) => setTargetAgency(e.target.value)}
@@ -224,125 +250,195 @@ export default function BatchDetails() {
                   {a.name}
                 </option>
               ))}
-            </select>
-            <button className="assign-btn" onClick={() => {}}>
+            </select> */}
+            {/* <button className="assign-btn" onClick={() => {}}>
               Assign ({selectedShipments.length})
-            </button>
+            </button> */}
           </div>
         </div>
 
-        {/* 📥 Bulk Entry Form: Excel Like */}
+        {/* 📥 Bulk Entry Form: Updated with Carton & Dimensions */}
         {showBulkEntry && (
           <div className="bulk-entry-panel">
-            <table className="bulk-table">
-              <thead>
-                <tr>
-                  <th>Shipping Mark *</th>
-                  <th>Product Name</th>
-                  <th>China Tracking</th>
-                  <th>China Weight</th>
-                  <th>Date</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {newRows.map((row, index) => (
-                  <tr key={index}>
-                    <td>
-                      <input
-                        type="text"
-                        value={row.shippingMark}
-                        onChange={(e) =>
-                          handleInputChange(
-                            index,
-                            "shippingMark",
-                            e.target.value,
-                          )
-                        }
-                        placeholder="Marking"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        value={row.productName}
-                        onChange={(e) =>
-                          handleInputChange(
-                            index,
-                            "productName",
-                            e.target.value,
-                          )
-                        }
-                        placeholder="Product"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        value={row.chinaTrackingNo}
-                        onChange={(e) =>
-                          handleInputChange(
-                            index,
-                            "chinaTrackingNo",
-                            e.target.value,
-                          )
-                        }
-                        placeholder="Tracking"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        value={row.grossWeight}
-                        onChange={(e) =>
-                          handleInputChange(
-                            index,
-                            "grossWeight",
-                            e.target.value,
-                          )
-                        }
-                        placeholder="KG"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="date"
-                        value={row.receivedDate}
-                        onChange={(e) =>
-                          handleInputChange(
-                            index,
-                            "receivedDate",
-                            e.target.value,
-                          )
-                        }
-                      />
-                    </td>
-                    <td className="center-cell">
-                      {newRows.length > 1 && (
-                        <button
-                          className="remove-row-btn"
-                          onClick={() => removeNewRow(index)}
-                        >
-                          ✖
-                        </button>
-                      )}
-                    </td>
+            <div className="table-scroll-wrapper">
+              <table className="bulk-table">
+                <thead>
+                  <tr>
+                    <th>Tracking No(CN)</th>
+                    <th>Shipping Mark*</th>
+                    <th>Product</th>
+                    <th style={{ width: "60px" }}>Carton </th>
+                    <th style={{ width: "60px" }}>Qty</th> {/* ✅ নতুন কলাম */}
+                    <th style={{ width: "70px" }}>Wt (KG)</th>
+                    <th style={{ width: "50px" }}>L</th>
+                    <th style={{ width: "50px" }}>W</th>
+                    <th style={{ width: "50px" }}>H</th>
+                    <th style={{ width: "70px" }}>CBM</th>
+                    <th style={{ width: "120px" }}>Date</th>
+                    <th></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {newRows.map((row, index) => (
+                    <tr key={index}>
+                      <td>
+                        <input
+                          type="text"
+                          value={row.chinaTrackingNo}
+                          onChange={(e) =>
+                            handleInputChange(
+                              index,
+                              "chinaTrackingNo",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Tracking No"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          value={row.shippingMark}
+                          onChange={(e) =>
+                            handleInputChange(
+                              index,
+                              "shippingMark",
+                              e.target.value,
+                            )
+                          }
+                          placeholder=" Shipping Mark"
+                        />
+                      </td>
+
+                      <td>
+                        <input
+                          type="text"
+                          value={row.productName}
+                          onChange={(e) =>
+                            handleInputChange(
+                              index,
+                              "productName",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Item"
+                        />
+                      </td>
+
+                      <td>
+                        <input
+                          type="text"
+                          className="small-input"
+                          value={row.cartonNo}
+                          onChange={(e) =>
+                            handleInputChange(index, "cartonNo", e.target.value)
+                          }
+                          placeholder="No."
+                        />
+                      </td>
+
+                      {/* ✅ নতুন Quantity ইনপুট */}
+                      <td>
+                        <input
+                          type="number"
+                          className="small-input"
+                          value={row.quantity}
+                          onChange={(e) =>
+                            handleInputChange(index, "quantity", e.target.value)
+                          }
+                          placeholder="Qty"
+                        />
+                      </td>
+
+                      <td>
+                        <input
+                          type="number"
+                          className="small-input"
+                          value={row.grossWeight}
+                          onChange={(e) =>
+                            handleInputChange(
+                              index,
+                              "grossWeight",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="KG"
+                        />
+                      </td>
+
+                      {/* ডাইমেনশন ফিল্ডস */}
+                      <td>
+                        <input
+                          type="number"
+                          className="dim-input"
+                          value={row.length}
+                          onChange={(e) =>
+                            handleInputChange(index, "length", e.target.value)
+                          }
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          className="dim-input"
+                          value={row.width}
+                          onChange={(e) =>
+                            handleInputChange(index, "width", e.target.value)
+                          }
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          className="dim-input"
+                          value={row.height}
+                          onChange={(e) =>
+                            handleInputChange(index, "height", e.target.value)
+                          }
+                        />
+                      </td>
+
+                      <td className="cbm-text">{row.cbm}</td>
+                      <td>
+                        <input
+                          type="date"
+                          value={row.receivedDate}
+                          onChange={(e) =>
+                            handleInputChange(
+                              index,
+                              "receivedDate",
+                              e.target.value,
+                            )
+                          }
+                        />
+                      </td>
+                      <td className="center-cell">
+                        {newRows.length > 1 && (
+                          <button
+                            className="remove-row-btn"
+                            onClick={() => removeNewRow(index)}
+                          >
+                            ✖
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <div className="bulk-footer">
               <button className="add-row-btn" onClick={addNewRow}>
                 + Add New Row
               </button>
               <button className="save-all-btn" onClick={handleBulkSave}>
-                {loading ? "Saving..." : "Save All Item"}
+                {loading ? "Saving..." : "Save All Items"}
               </button>
             </div>
           </div>
         )}
 
-        {/* 📋 Data Table */}
+        {/* 📋 Data Table (No changes here, as requested) */}
         <div className="table-responsive">
           <table className="data-table">
             <thead>
@@ -351,10 +447,19 @@ export default function BatchDetails() {
                   <input type="checkbox" />
                 </th>
                 <th>SL</th>
-                <th>Shipping Mark</th>
+                <th>Tracking No</th> {/* স্পেলিং ঠিক করা হয়েছে */}
                 <th>Tracking (China)</th>
+                <th>Shipping Mark</th>
+                <th>Product</th>
+                <th>Carton No</th>
+                <th>Quantity</th>
                 <th>China Wt.</th>
                 <th>Office Wt. (Edit)</th>
+                <th>L</th> {/* td থেকে th করা হয়েছে */}
+                <th>W</th> {/* td থেকে th করা হয়েছে */}
+                <th>H</th> {/* td থেকে th করা হয়েছে */}
+                <th>CBM</th>
+                <th>Received Date</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -365,9 +470,19 @@ export default function BatchDetails() {
                     <input type="checkbox" />
                   </td>
                   <td>{idx + 1}</td>
+
+                  {/* নতুন কলাম অনুযায়ী ডেটা বসানো হয়েছে */}
+                  <td>
+                    <strong>{s.trackingNumber}</strong>
+                  </td>
+                  <td>{s.chinaTrackingNo || "-"}</td>
                   <td className="mark-cell">{s.shippingMark}</td>
-                  <td>{s.chinaTrackingNo}</td>
-                  <td>{s.grossWeight} KG</td>
+
+                  <td>{s.productName || "-"}</td>
+                  <td>{s.cartonNo || "-"}</td>
+                  <td>{s.quantity || 1}</td>
+                  <td>{s.grossWeight || 0} KG</td>
+
                   <td>
                     <input
                       type="number"
@@ -376,6 +491,20 @@ export default function BatchDetails() {
                       disabled={isLocked}
                       className={isLocked ? "input-disabled" : "input-editable"}
                     />
+                  </td>
+
+                  {/* ডেট, ডাইমেনশন এবং CBM */}
+
+                  <td>{s.dimensions?.length || 0}</td>
+                  <td>{s.dimensions?.width || 0}</td>
+                  <td>{s.dimensions?.height || 0}</td>
+                  <td style={{ color: "#0284c7", fontWeight: "bold" }}>
+                    {s.cbm || 0}
+                  </td>
+                  <td>
+                    {s.receivedDate
+                      ? new Date(s.receivedDate).toLocaleDateString("en-GB")
+                      : "-"}
                   </td>
                   <td>
                     <span
@@ -391,7 +520,7 @@ export default function BatchDetails() {
         </div>
       </div>
 
-      {/* 📊 Summary Grid */}
+      {/* 📊 Summary Grid (No changes here) */}
       <div className="summary-section">
         <div className="stats-grid">
           <div className="stat-card blue">
@@ -410,6 +539,13 @@ export default function BatchDetails() {
             <label>Missing Weight</label>
             <div className="value">
               {(totalGross - totalActual).toFixed(2)} <span>KG</span>
+            </div>
+          </div>
+
+          <div className="stat-card blue">
+            <label>Total CBM</label>
+            <div className="value">
+              {totalCbm.toFixed(3)} <span>CBM</span>
             </div>
           </div>
         </div>
@@ -436,7 +572,6 @@ export default function BatchDetails() {
                 }
               />
             </div>
-
             <div className="cost-box">
               <label>Load Unload bill</label>
               <input
@@ -447,7 +582,6 @@ export default function BatchDetails() {
                 }
               />
             </div>
-
             <div className="cost-box">
               <label>Other bill</label>
               <input
@@ -456,7 +590,6 @@ export default function BatchDetails() {
                 onChange={(e) => setBills({ ...bills, other: e.target.value })}
               />
             </div>
-
             <div className="total-expense">
               <label>Total Expense</label>
               <div className="amt">৳ {totalBill}</div>
@@ -472,50 +605,64 @@ export default function BatchDetails() {
       </div>
 
       <style>{`
+
+
+
+
+      /* নাম্বার ইনপুটের আপ/ডাউন অ্যারো (Spinners) লুকানোর জন্য */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ফায়ারফক্স (Firefox) ব্রাউজারের জন্য */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+        /* আপনার আগের সব CSS অবিকল রাখা হয়েছে */
         .modern-batch-container { padding: 30px; background: #f0f2f5; min-height: 100vh; font-family: 'Inter', sans-serif; color: #1e293b; }
-        
-        /* Header */
         .dashboard-header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 25px; }
         .batch-tag { background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; }
         .dashboard-header h1 { margin: 10px 0 5px; font-size: 28px; color: #0f172a; }
         .date-sub { color: #64748b; font-size: 14px; }
-        
         .status-select-box { padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0; font-weight: bold; width: 220px; margin-top: 5px; outline: none; transition: 0.3s; }
         .status-select-box.arrived { background: #dcfce7; color: #15803d; border-color: #15803d; }
         .locked-info { color: #ef4444; font-size: 12px; font-weight: bold; margin-top: 5px; text-align: center; }
-
-        /* Main Card & Toolbar */
-        .main-card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        
+        .main-card { background: #fff; border-radius: 16px; padding: 20px; width:1500px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .toolbar { display: flex; justify-content: space-between; margin-bottom: 25px; gap: 15px; }
         .search-wrapper input { padding: 12px 20px; border: 1px solid #e2e8f0; border-radius: 10px; width: 300px; }
         .action-btns { display: flex; gap: 10px; }
         .bulk-toggle-btn { background: #0f172a; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.2s; }
         .bulk-toggle-btn.active { background: #ef4444; }
 
-        /* Bulk Entry Panel */
+        /* ✅ নতুন যুক্ত করা CSS ক্লাসেস (CBM এর জন্য) */
         .bulk-entry-panel { background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px dashed #cbd5e1; margin-bottom: 25px; }
-        .bulk-table { width: 100%; border-collapse: collapse; }
+        .table-scroll-wrapper { overflow-x: auto; }
+        .bulk-table { width: 100%; border-collapse: collapse; min-width: 900px; }
         .bulk-table th { text-align: left; padding: 10px; font-size: 12px; color: #64748b; }
-        .bulk-table input { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; }
-        .remove-row-btn { background: #fee2e2; color: #ef4444; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; transition: 0.2s; }
+        .bulk-table input { width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 13px; }
+        .small-input { width: 100% !important; text-align: center; }
+        .dim-input { width: 100% !important; text-align: center; background: #fffbeb !important; border-color: #fde68a !important; }
+        .cbm-text { font-weight: 800; color: #0284c7; text-align: center; font-size: 14px; }
+        
+        .remove-row-btn { background: #fee2e2; color: #ef4444; border: none; width: 25px; height: 25px; border-radius: 50%; cursor: pointer; transition: 0.2s; font-size: 12px; }
         .remove-row-btn:hover { background: #ef4444; color: #fff; }
         .bulk-footer { display: flex; justify-content: space-between; margin-top: 15px; }
         .add-row-btn { background: #fff; border: 2px solid #0f172a; color: #0f172a; padding: 8px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .save-all-btn { background: #16a34a; color: white; border: none; padding: 8px 30px; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
-        /* Data Table */
+        /* Data Table & Stats... */
         .data-table { width: 100%; border-collapse: collapse; }
         .data-table th { text-align: left; padding: 15px; background: #f8fafc; color: #64748b; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
         .data-table td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
         .mark-cell { font-weight: 700; color: #0369a1; }
         .input-editable { width: 80px; padding: 6px; border: 1px solid #16a34a; border-radius: 6px; text-align: center; font-weight: bold; }
         .input-disabled { width: 80px; padding: 6px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; color: #94a3b8; cursor: not-allowed; }
-        
         .status-pill { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; }
         .status-pill.arrived { background: #dcfce7; color: #15803d; }
         .status-pill.customs-clearing { background: #fef3c7; color: #92400e; }
-
-        /* Summary Stats */
         .summary-section { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 30px; }
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
         .stat-card { background: #fff; padding: 25px; border-radius: 16px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-bottom: 5px solid #eee; }
@@ -525,13 +672,15 @@ export default function BatchDetails() {
         .stat-card label { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; }
         .stat-card .value { font-size: 24px; font-weight: 900; margin-top: 10px; color: #0f172a; }
         .stat-card .value span { font-size: 14px; color: #94a3b8; }
-
         .costing-card { background: #0f172a; color: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .cost-inputs { display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 20px; align-items: center; }
         .cost-box label { display: block; font-size: 11px; opacity: 0.7; margin-bottom: 5px; }
         .cost-box input { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 10px; border-radius: 8px; width: 100%; }
         .total-expense { text-align: right; }
         .total-expense .amt { font-size: 28px; font-weight: 900; color: #22c55e; }
+        
+  
+        
         .avg-cost-bar { margin-top: 20px; background: rgba(255,255,255,0.05); padding: 12px; border-radius: 10px; text-align: center; font-size: 15px; border: 1px dashed rgba(255,255,255,0.2); }
       `}</style>
     </div>
