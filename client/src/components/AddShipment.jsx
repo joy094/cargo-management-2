@@ -1,561 +1,335 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-// ✅ ১. রুট অনুযায়ী পোর্টের লিস্ট
-const originPorts = {
-  Air: [
-    "Guangzhou (CAN)",
-    "Hong Kong (HKG)",
-    "Shenzhen (SZX)",
-    "Beijing (PEK)",
-  ],
-  Sea: ["Guangzhou Port", "Ningbo Port", "Shanghai Port", "Shenzhen Port"],
-  Road: ["Benapole Border", "Burimari Border", "Direct Truck"],
-};
-
 export default function AddShipment() {
-  const { id } = useParams();
   const navigate = useNavigate();
-
-  const [agencies, setAgencies] = useState([]);
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const [form, setForm] = useState({
-    customerName: "",
-    customerMobile: "",
-    agency: "",
-    receiverName: "",
-    receiverMobile: "",
-    receiverAddress: "",
-    productName: "",
+  // গ্লোবাল সেটিংস (যা সব রো-এর জন্য এক থাকবে)
+  const [globalInfo, setGlobalInfo] = useState({
     batch: "",
-    shippingMark: "",
-
-    chinaTrackingNo: "",
-    cartonNo: "",
-    quantity: 1,
-    length: "",
-    width: "",
-    height: "",
-    cbm: "",
-
-    grossWeight: "",
-    boxCount: 1,
-    shipmentType: "Air", // এটি রুট ক্যাটাগরি হিসেবে কাজ করবে
-    originPort: "", // ✅ নতুন ফিল্ড: অরিজিন পোর্ট
-    totalCharge: "",
-    status: "Booked",
-    notes: "",
+    routeCategory: "Air",
+    originPort: "",
   });
 
-  useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        const [agencyRes, batchRes] = await Promise.all([
-          axios.get("/api/agencies"),
-          axios.get("/api/batches"),
-        ]);
-        setAgencies(agencyRes.data);
+  // শিপমেন্ট রো-এর স্টেট (Array of Objects)
+  const [rows, setRows] = useState([
+    {
+      shippingMark: "",
+      productName: "",
+      chinaTrackingNo: "",
+      cartonNo: "",
+      grossWeight: "",
+      receivedDate: new Date().toISOString().split("T")[0], // আজকের তারিখ ডিফল্ট
+      length: 0,
+      width: 0,
+      height: 0,
+      cbm: 0,
+    },
+  ]);
 
-        const activeBatches = batchRes.data.filter(
-          (b) => b.status === "Draft" || b.status === "Loaded",
-        );
-        setBatches(activeBatches);
-      } catch (err) {
-        handleError(err);
-      }
-    };
-    loadInitialData();
+  useEffect(() => {
+    axios.get("/api/batches").then((res) => setBatches(res.data));
   }, []);
 
-  useEffect(() => {
-    if (!id) return;
-
-    const loadShipment = async () => {
-      try {
-        const res = await axios.get(`/api/reports/shipment-ledger/${id}`);
-        const s = res.data.shipment;
-        setForm({
-          customerName: s.customer?.fullName || "",
-          customerMobile: s.customer?.phoneNumber || "",
-          agency: s.agency?._id || "",
-          receiverName: s.receiverName,
-          receiverMobile: s.receiverMobile,
-          receiverAddress: s.receiverAddress || "",
-          productName: s.productName || "",
-          batch: s.batch?._id || s.batch || "",
-          shippingMark: s.shippingMark || "",
-
-          chinaTrackingNo: s.chinaTrackingNo || "",
-          cartonNo: s.cartonNo || "",
-          quantity: s.quantity || 1,
-          length: s.dimensions?.length || "",
-          width: s.dimensions?.width || "",
-          height: s.dimensions?.height || "",
-          cbm: s.cbm || "",
-
-          grossWeight: s.grossWeight || "",
-          boxCount: s.boxCount || 1,
-          shipmentType: s.shipmentType || "Air",
-          originPort: s.originPort || "", // ✅ এডিটে পোর্ট লোড করা
-          totalCharge: s.totalCharge,
-          status: s.status,
-          notes: s.notes || "",
-        });
-      } catch (err) {
-        handleError(err);
-      }
-    };
-    loadShipment();
-  }, [id]);
-
-  useEffect(() => {
-    const l = parseFloat(form.length) || 0;
-    const w = parseFloat(form.width) || 0;
-    const h = parseFloat(form.height) || 0;
-
-    if (l > 0 && w > 0 && h > 0) {
-      const calculatedCbm = (l * w * h) / 1000000;
-      setForm((prev) => ({ ...prev, cbm: calculatedCbm.toFixed(3) }));
-    }
-  }, [form.length, form.width, form.height]);
-
-  const handleError = (err) => {
-    if (err.response?.status === 401) {
-      localStorage.clear();
-      navigate("/login");
-    }
+  const originPorts = {
+    Air: ["Guangzhou (CAN)", "Hong Kong (HKG)", "Shenzhen (SZX)"],
+    Sea: ["Guangzhou Port", "Ningbo Port", "Shanghai Port"],
+    "Hand Carry": ["Special Hand Carry", "Airport Collection"],
   };
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  // রো যোগ করার ফাংশন
+  const addRow = () => {
+    setRows([
+      ...rows,
+      {
+        shippingMark: "",
+        productName: "",
+        chinaTrackingNo: "",
+        cartonNo: "",
+        grossWeight: "",
+        receivedDate: new Date().toISOString().split("T")[0],
+        length: 0,
+        width: 0,
+        height: 0,
+        cbm: 0,
+      },
+    ]);
   };
 
-  const handleCustomerSearch = async (phone) => {
-    if (!phone || phone.length < 11) return;
-    try {
-      const res = await axios.get(`/api/customers/search/${phone}`);
-      if (res.data) {
-        const cleanName = res.data.fullName
-          .replace(/\s*\(\s*শিপমেন্ট\s*\d+\s*\)/g, "")
-          .trim();
-        setForm((prev) => ({
-          ...prev,
-          customerName: `${cleanName} (শিপমেন্ট ${res.data.nextShipmentNumber})`,
-          customerMobile: res.data.phoneNumber,
-          agency: res.data.agency || prev.agency,
-        }));
-      }
-    } catch (err) {
-      const cleanName = form.customerName
-        .replace(/\s*\(\s*শিপমেন্ট\s*\d+\s*\)/g, "")
-        .trim();
-      setForm((prev) => ({
-        ...prev,
-        customerName: cleanName ? `${cleanName} (শিপমেন্ট 1)` : "",
-      }));
+  // রো ডিলিট করার ফাংশন
+  const removeRow = (index) => {
+    const updatedRows = rows.filter((_, i) => i !== index);
+    setRows(updatedRows);
+  };
+
+  // ইনপুট হ্যান্ডেল এবং CBM ক্যালকুলেশন
+  const handleInputChange = (index, field, value) => {
+    const updatedRows = [...rows];
+    updatedRows[index][field] = value;
+
+    // যদি L, W, H চেঞ্জ হয় তবে CBM আপডেট হবে
+    if (["length", "width", "height"].includes(field)) {
+      const { length, width, height } = updatedRows[index];
+      const calculatedCbm = (length * width * height) / 1000000;
+      updatedRows[index].cbm = calculatedCbm.toFixed(3);
     }
+
+    setRows(updatedRows);
+  };
+
+  const handleGlobalChange = (e) => {
+    setGlobalInfo({ ...globalInfo, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!globalInfo.batch) return alert("দয়া করে ব্যাচ সিলেক্ট করুন!");
+
     setLoading(true);
-
-    const payload = {
-      customerData: {
-        fullName: form.customerName || form.shippingMark, // নাম না থাকলে শিপিং মার্ক কাস্টমার নাম হবে
-        phoneNumber: form.customerMobile || "", // ফোন নম্বর এখন অপশনাল
-      },
-      shipmentData: {
-        agency: form.agency || null,
-        receiverName: form.receiverName,
-        receiverMobile: form.receiverMobile,
-        receiverAddress: form.receiverAddress,
-        productName: form.productName,
-        batch: form.batch || null,
-        shippingMark: form.shippingMark,
-
-        chinaTrackingNo: form.chinaTrackingNo,
-        cartonNo: form.cartonNo,
-        quantity: parseInt(form.quantity) || 1,
-        dimensions: {
-          length: parseFloat(form.length) || 0,
-          width: parseFloat(form.width) || 0,
-          height: parseFloat(form.height) || 0,
-        },
-        cbm: parseFloat(form.cbm) || 0,
-
-        grossWeight: parseFloat(form.grossWeight) || 0,
-        boxCount: parseInt(form.boxCount) || 1,
-        shipmentType: form.shipmentType,
-        originPort: form.originPort, // ✅ ব্যাকএন্ডে পোর্ট পাঠানো হচ্ছে
-        totalCharge: parseFloat(form.totalCharge) || 0,
-        status: form.status,
-        notes: form.notes,
-      },
-    };
-
     try {
-      const url = id ? `/api/shipments/${id}` : "/api/shipments";
-      const method = id ? "put" : "post";
-      await axios[method](url, payload);
-      alert(
-        id ? "শিপমেন্ট আপডেট হয়েছে" : "নতুন শিপমেন্ট বুকিং সম্পন্ন হয়েছে",
-      );
-      navigate("/shipment-list");
+      // সব রো-এর সাথে গ্লোবাল ইনফো যোগ করে পেলোড তৈরি
+      const finalData = rows.map((row) => ({
+        ...row,
+        ...globalInfo,
+        dimensions: {
+          length: row.length,
+          width: row.width,
+          height: row.height,
+        },
+      }));
+
+      await axios.post("/api/shipments/bulk-import", {
+        shipments: finalData,
+        batchId: globalInfo.batch,
+      });
+
+      alert(`${rows.length} টি শিপমেন্ট সফলভাবে সেভ হয়েছে!`);
+      navigate("/shipments");
     } catch (err) {
-      alert(err.response?.data?.error || "সেভ করতে সমস্যা হয়েছে");
+      alert("সেভ করতে সমস্যা হয়েছে!");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="shipment-form-container">
-      <div className="form-card">
-        <h2>{id ? "📝 Edit Shipment" : "📦 New Cargo Booking"}</h2>
+    <div className="bulk-add-container">
+      <div className="form-header">
+        <h2>🚀 Bulk Cargo Entry (Excel Style)</h2>
+        <p>একসাথে অনেকগুলো মাল এন্ট্রি করুন এবং সময় বাঁচান</p>
+      </div>
 
-        <form onSubmit={handleSubmit}>
-          {/* Section 1: Sender */}
-          <div className="form-section">
-            <h3>👤 Sender Information</h3>
-            <div className="grid-2">
-              <div>
-                {/* ✅ ফোন নম্বর এখন অপশনাল */}
-                <label>Sender Mobile (ঐচ্ছিক - থাকলে সার্চ করুন)</label>
-                <input
-                  name="customerMobile"
-                  placeholder="017XXXXXXXX"
-                  value={form.customerMobile}
-                  onChange={handleChange}
-                  onBlur={(e) => handleCustomerSearch(e.target.value)}
-                />
-              </div>
-              <div>
-                <label>Sender Name / Shipping Mark *</label>
-                <input
-                  name="customerName"
-                  placeholder="নাম বা শিপিং মার্ক লিখুন"
-                  value={form.customerName}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-            <label>Booking Branch/Party *</label>
-            <select name="agency" value={form.agency} onChange={handleChange}>
-              <option value="">Select Branch</option>
-              {agencies.map((a) => (
-                <option key={a._id} value={a._id}>
-                  {a.name}
+      <div className="global-settings">
+        <div className="grid-3">
+          <div>
+            <label>Select Batch *</label>
+            <select
+              name="batch"
+              value={globalInfo.batch}
+              onChange={handleGlobalChange}
+              required
+            >
+              <option value="">-- ব্যাচ বেছে নিন --</option>
+              {batches.map((b) => (
+                <option key={b._id} value={b._id}>
+                  {b.batchName}
                 </option>
               ))}
             </select>
           </div>
-
-          {/* Section 2: Receiver */}
-          <div className="form-section">
-            <h3>📍 Receiver Information</h3>
-            <div className="grid-2">
-              <div>
-                <label>Receiver Name *</label>
-                <input
-                  name="receiverName"
-                  value={form.receiverName}
-                  onChange={handleChange}
-                />
-              </div>
-              <div>
-                <label>Receiver Mobile *</label>
-                <input
-                  name="receiverMobile"
-                  value={form.receiverMobile}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-            <label>Delivery Address</label>
-            <textarea
-              name="receiverAddress"
-              value={form.receiverAddress}
-              onChange={handleChange}
-            />
+          <div>
+            <label>Route</label>
+            <select
+              name="routeCategory"
+              value={globalInfo.routeCategory}
+              onChange={handleGlobalChange}
+            >
+              <option value="Air">Air Cargo</option>
+              <option value="Sea">Sea Cargo</option>
+              <option value="Hand Carry">Hand Carry</option>
+            </select>
           </div>
-
-          {/* ✅ Section 3: Route & Port Selection (New Conditional UI) */}
-          <div className="form-section highlight-section">
-            <h3>✈️ Route & Port Selection</h3>
-            <div className="grid-2">
-              <div>
-                <label>Route Category (শিপমেন্টের মাধ্যম)</label>
-                <select
-                  name="shipmentType"
-                  value={form.shipmentType}
-                  onChange={(e) => {
-                    setForm({
-                      ...form,
-                      shipmentType: e.target.value,
-                      originPort: "",
-                    });
-                  }}
-                >
-                  <option value="Air">🚀 Air Cargo</option>
-                  <option value="Sea">🚢 Sea Cargo</option>
-                  <option value="Road">🚛 Road / Hand Carry</option>
-                </select>
-              </div>
-              <div>
-                <label>{form.shipmentType} Origin Port (লোকেশন)</label>
-                <select
-                  name="originPort"
-                  value={form.originPort}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">-- Select Port/Location --</option>
-                  {originPorts[form.shipmentType]?.map((port) => (
-                    <option key={port} value={port}>
-                      {port}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 4: Cargo & Packing Details */}
-          <div className="form-section">
-            <h3>⚖️ Cargo & Packing Details</h3>
-
-            <div style={{ marginBottom: "15px" }}>
-              <label style={{ color: "#007bff" }}>
-                Assign to Flight/Batch (চালান সিলেক্ট করুন)
-              </label>
-              <select name="batch" value={form.batch} onChange={handleChange}>
-                <option value="">
-                  কোনো ব্যাচ ছাড়াই বুকিং দিন (Later Assign)
+          <div>
+            <label>Origin Port</label>
+            <select
+              name="originPort"
+              value={globalInfo.originPort}
+              onChange={handleGlobalChange}
+            >
+              <option value="">-- পোর্ট বেছে নিন --</option>
+              {originPorts[globalInfo.routeCategory]?.map((p) => (
+                <option key={p} value={p}>
+                  {p}
                 </option>
-                {batches.map((b) => (
-                  <option key={b._id} value={b._id}>
-                    {b.batchName} -{" "}
-                    {new Date(b.flightDate).toLocaleDateString("bn-BD")}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid-3" style={{ marginBottom: "15px" }}>
-              <div>
-                <label>China Tracking No</label>
-                <input
-                  type="text"
-                  name="chinaTrackingNo"
-                  value={form.chinaTrackingNo}
-                  onChange={handleChange}
-                  placeholder="যেমন: SF123456"
-                  className="highlight-input"
-                />
-              </div>
-              <div>
-                <label>Carton No (বক্স নং)</label>
-                <input
-                  type="text"
-                  name="cartonNo"
-                  value={form.cartonNo}
-                  onChange={handleChange}
-                  placeholder="যেমন: 5"
-                />
-              </div>
-              <div>
-                <label>Shipping Mark</label>
-                <input
-                  type="text"
-                  name="shippingMark"
-                  value={form.shippingMark}
-                  onChange={(e) => {
-                    // শিপিং মার্ক লিখলে অটোমেটিক কাস্টমার নামেও বসে যাবে যদি নাম ফাঁকা থাকে
-                    setForm({
-                      ...form,
-                      shippingMark: e.target.value,
-                      customerName:
-                        form.customerName === ""
-                          ? e.target.value
-                          : form.customerName,
-                    });
-                  }}
-                  placeholder="যেমন: SKL/RONY"
-                />
-              </div>
-            </div>
-
-            <div className="grid-2">
-              <div>
-                <label>Product Name</label>
-                <input
-                  type="text"
-                  name="productName"
-                  value={form.productName}
-                  onChange={handleChange}
-                  placeholder="যেমন: phone case"
-                />
-              </div>
-              <div>
-                <label>Quantity (পিস)</label>
-                <input
-                  type="number"
-                  name="quantity"
-                  value={form.quantity}
-                  onChange={handleChange}
-                  className="no-spin"
-                />
-              </div>
-            </div>
-
-            <div className="grid-4" style={{ marginTop: "15px" }}>
-              <div>
-                <label>Length (cm)</label>
-                <input
-                  type="number"
-                  name="length"
-                  value={form.length}
-                  onChange={handleChange}
-                  className="no-spin"
-                  placeholder="L"
-                />
-              </div>
-              <div>
-                <label>Width (cm)</label>
-                <input
-                  type="number"
-                  name="width"
-                  value={form.width}
-                  onChange={handleChange}
-                  className="no-spin"
-                  placeholder="W"
-                />
-              </div>
-              <div>
-                <label>Height (cm)</label>
-                <input
-                  type="number"
-                  name="height"
-                  value={form.height}
-                  onChange={handleChange}
-                  className="no-spin"
-                  placeholder="H"
-                />
-              </div>
-              <div>
-                <label style={{ color: "#d35400" }}>Total CBM</label>
-                <input
-                  type="number"
-                  name="cbm"
-                  value={form.cbm}
-                  onChange={handleChange}
-                  className="cbm-input no-spin"
-                  placeholder="0.000"
-                  step="0.001"
-                />
-              </div>
-            </div>
-
-            <div className="grid-2" style={{ marginTop: "15px" }}>
-              <div>
-                <label>Gross Weight (KG)</label>
-                <input
-                  type="number"
-                  name="grossWeight"
-                  className="no-spin"
-                  value={form.grossWeight}
-                  onChange={handleChange}
-                  step="0.01"
-                />
-              </div>
-              <div>
-                <label>Total Boxes</label>
-                <input
-                  type="number"
-                  name="boxCount"
-                  className="no-spin"
-                  value={form.boxCount}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            <div className="grid-2" style={{ marginTop: "15px" }}>
-              <div>
-                <label>Status</label>
-                <select
-                  name="status"
-                  value={form.status}
-                  onChange={handleChange}
-                >
-                  <option value="Booked">Booked</option>
-                  <option value="In-Transit">In-Transit</option>
-                  <option value="Delivered">Delivered</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
-              </div>
-              <div>
-                <label>Total Charge (Amount) *</label>
-                <input
-                  type="number"
-                  name="totalCharge"
-                  className="total-input no-spin"
-                  value={form.totalCharge}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
+              ))}
+            </select>
           </div>
-
-          <button type="submit" className="btn-save" disabled={loading}>
-            {loading
-              ? "Processing..."
-              : id
-                ? "Update Shipment"
-                : "Confirm Booking"}
-          </button>
-        </form>
+        </div>
       </div>
 
+      <form onSubmit={handleSubmit}>
+        <div className="table-wrapper">
+          <table className="bulk-table">
+            <thead>
+              <tr>
+                <th>Shipping Mark *</th>
+                <th>Product Name *</th>
+                <th>Tracking (China)</th>
+                <th>Box No</th>
+                <th>Weight (KG)</th>
+                <th>Recv. Date</th>
+                <th>L</th>
+                <th>W</th>
+                <th>H</th>
+                <th>CBM</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr key={index}>
+                  <td>
+                    <input
+                      type="text"
+                      required
+                      className="mark-input"
+                      value={row.shippingMark}
+                      onChange={(e) =>
+                        handleInputChange(index, "shippingMark", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      required
+                      value={row.productName}
+                      onChange={(e) =>
+                        handleInputChange(index, "productName", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      value={row.chinaTrackingNo}
+                      onChange={(e) =>
+                        handleInputChange(
+                          index,
+                          "chinaTrackingNo",
+                          e.target.value,
+                        )
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      className="small-input"
+                      value={row.cartonNo}
+                      onChange={(e) =>
+                        handleInputChange(index, "cartonNo", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="small-input"
+                      value={row.grossWeight}
+                      onChange={(e) =>
+                        handleInputChange(index, "grossWeight", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="date"
+                      value={row.receivedDate}
+                      onChange={(e) =>
+                        handleInputChange(index, "receivedDate", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      className="dim-input"
+                      onChange={(e) =>
+                        handleInputChange(index, "length", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      className="dim-input"
+                      onChange={(e) =>
+                        handleInputChange(index, "width", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      className="dim-input"
+                      onChange={(e) =>
+                        handleInputChange(index, "height", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td className="cbm-text">{row.cbm}</td>
+                  <td>
+                    {rows.length > 1 && (
+                      <button
+                        type="button"
+                        className="btn-remove"
+                        onClick={() => removeRow(index)}
+                      >
+                        ✖
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="form-footer">
+          <button type="button" className="btn-add-row" onClick={addRow}>
+            + Add More Row
+          </button>
+          <button type="submit" className="btn-save-all" disabled={loading}>
+            {loading ? "Saving..." : `✅ Save All ${rows.length} Shipments`}
+          </button>
+        </div>
+      </form>
+
       <style>{`
-        .shipment-form-container { background: #f0f2f5; padding: 30px; min-height: 100vh; display: flex; justify-content: center; }
-
-        .form-card { background: #fff; padding: 25px; border-radius: 12px; width: 100%; max-width: 800px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .form-section { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #007bff; }
+        .bulk-add-container { padding: 20px; background: #fff; border-radius: 12px; }
+        .global-settings { background: #f1f5f9; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
         
-        /* ✅ নতুন হাইলাইট সেকশনের ডিজাইন */
-        .highlight-section { border-left: 4px solid #f39c12 !important; background: #fffdf5 !important; }
-        .highlight-section h3 { color: #d35400 !important; }
-
-        h2 { color: #333; margin-bottom: 20px; text-align: center; }
-        h3 { font-size: 16px; color: #007bff; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        .table-wrapper { overflow-x: auto; margin-bottom: 20px; }
+        .bulk-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .bulk-table th { background: #003580; color: white; padding: 10px; text-align: left; }
+        .bulk-table td { border: 1px solid #ddd; padding: 5px; }
         
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
-        .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; }
+        .bulk-table input { width: 100%; border: 1px solid #ccc; padding: 8px; border-radius: 4px; outline: none; }
+        .mark-input { font-weight: bold; color: #d35400; text-transform: uppercase; }
+        .small-input { width: 60px !important; }
+        .dim-input { width: 45px !important; }
+        .cbm-text { font-weight: bold; color: #003580; text-align: center; }
         
-        label { display: block; margin-top: 10px; font-weight: 600; font-size: 13px; color: #555; }
-        input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        select:focus { border-color: #007bff; box-shadow: 0 0 8px rgba(0, 123, 255, 0.2); }
-        
-        .total-input { border: 2px solid #007bff; font-weight: bold; font-size: 18px; color: #007bff; }
-        .highlight-input { border: 1px solid #e67e22; background: #fffdfa; }
-        .cbm-input { border: 2px solid #e67e22; font-weight: bold; color: #d35400; background: #fffaf0; }
-        
-        .btn-save { margin-top: 25px; padding: 15px; width: 100%; background: #007bff; color: #fff; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .btn-save:hover { background: #0056b3; }
-        .btn-save:disabled { background: #ccc; }
-        .no-spin::-webkit-outer-spin-button, .no-spin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-
-        @media (max-width: 600px) {
-          .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-        }
+        .form-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+        .btn-add-row { background: #34495e; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
+        .btn-save-all { background: #27ae60; color: white; border: none; padding: 15px 40px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .btn-remove { background: #ff4757; color: white; border: none; border-radius: 4px; cursor: pointer; padding: 5px 10px; }
       `}</style>
     </div>
   );

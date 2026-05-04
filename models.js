@@ -76,7 +76,7 @@ const shipmentSchema = new mongoose.Schema(
     agency: { type: mongoose.Schema.Types.ObjectId, ref: "Agency" }, // অপশনাল রাখা হয়েছে
     batch: { type: mongoose.Schema.Types.ObjectId, ref: "Batch" },
 
-    status: { type: String, default: "Booked" },
+    status: { type: String, default: "Warehouse Received" },
     totalCharge: { type: Number, default: 0 },
     paidAmount: { type: Number, default: 0 },
     notes: { type: String },
