@@ -336,7 +336,7 @@ export default function BatchDetails() {
             body { font-family: 'Arial', sans-serif; text-align: center; margin: 0; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
             .sticker { padding: 20px; border: 2px dashed #000; border-radius: 10px; page-break-inside: avoid; background: white; }
             h1 { font-size: 40px; margin: 0 0 10px; color: black; font-weight: 900; }
-            h2 { font-size: 25px; margin: 15px 0 0; color: black; font-weight: bold; }
+            h2 { font-size: 55px; margin: 15px 0 0; color: black; font-weight: bold; }
             img { width: 220px; height: 220px; }
             @media print { 
               @page { margin: 10mm; } 

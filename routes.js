@@ -555,7 +555,7 @@ router.put("/shipments/edit/:id", async (req, res) => {
 });
 
 // QR Code স্ক্যান করলে বক্স এবং সাব-বক্সের ডিটেইলস বের করার API
-router.get("/qr-details/:id", async (req, res) => {
+router.get("/shipments/qr-details/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
