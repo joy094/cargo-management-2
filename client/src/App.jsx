@@ -21,6 +21,7 @@ import BatchList from "./components/BatchList";
 
 import BatchDetails from "./components/BatchDetails";
 import BulkImport from "./components/BulkImport";
+import BoxDetails from "./components/BoxDetails"; // ফোল্ডার পাথ আপনার অনুযায়ী ঠিক করে নেবেন
 // Layout Component
 export const Layout = () => {
   const navigate = useNavigate();
@@ -195,6 +196,8 @@ const App = () => (
 
       {/* Payment System */}
       <Route path="/payment-allocation" element={<PaymentAllocation />} />
+      <Route path="/box-details/:id" element={<BoxDetails />} />
+      
 
       {/* 404 */}
       <Route

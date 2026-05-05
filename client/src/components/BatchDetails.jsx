@@ -7,6 +7,8 @@ import SubItemModal from "./SubItemModal";
 import EditShipmentModal from "./EditShipmentModal";
 import BatchSummary from "./BatchSummary";
 import Search from "./Search";
+import { QRCodeCanvas } from "qrcode.react";
+import "./BatchDetails.css";
 
 export default function BatchDetails() {
   const { id } = useParams();
@@ -15,6 +17,8 @@ export default function BatchDetails() {
   const [shipments, setShipments] = useState([]);
 
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [qrData, setQrData] = useState(null);
   const [selectedMaster, setSelectedMaster] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [shipmentToEdit, setShipmentToEdit] = useState(null);
@@ -168,7 +172,6 @@ export default function BatchDetails() {
     }
   };
 
-
   // ✅ ১. স্মার্ট সার্চ লজিক (null ভ্যালু থাকলেও ক্র্যাশ করবে না)
   const safeLower = (str) => (str ? String(str).toLowerCase() : "");
   const lowerSearch = searchTerm.toLowerCase();
@@ -317,6 +320,62 @@ export default function BatchDetails() {
     XLSX.writeFile(workbook, `Batch_${batch?.batchName || "Data"}.xlsx`);
   };
 
+  // ✅ Bulk QR Print Logic
+  const handleBulkQRPrint = () => {
+    // শুধু মাস্টার বক্স এবং সাধারণ বক্সগুলো (যাদের প্যারেন্ট নেই) ফিল্টার করছি
+    const itemsToPrint = displayList.filter((s) => !s.parentId);
+    if (itemsToPrint.length === 0) {
+      return alert("প্রিন্ট করার মতো কোনো বক্স নেই!");
+    }
+
+    let printHtml = `
+      <html>
+        <head>
+          <title>Bulk Print QR Codes</title>
+          <style>
+            body { font-family: 'Arial', sans-serif; text-align: center; margin: 0; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+            .sticker { padding: 20px; border: 2px dashed #000; border-radius: 10px; page-break-inside: avoid; background: white; }
+            h1 { font-size: 40px; margin: 0 0 10px; color: black; font-weight: 900; }
+            h2 { font-size: 25px; margin: 15px 0 0; color: black; font-weight: bold; }
+            img { width: 220px; height: 220px; }
+            @media print { 
+              @page { margin: 10mm; } 
+              .sticker { border: 1px solid #ccc; break-inside: avoid; } 
+            }
+          </style>
+        </head>
+        <body>
+    `;
+
+    itemsToPrint.forEach((item) => {
+      const qrLink = `${window.location.origin}/box-details/${item._id}`;
+      // Canvas রেন্ডারিং ঝামেলা এড়াতে আমরা সরাসরি লাইভ QR API ব্যবহার করছি
+      const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrLink)}`;
+
+      printHtml += `
+        <div class="sticker">
+          <h1>${item.shippingMark}</h1>
+          <img src="${qrImageUrl}" alt="QR Code" crossorigin="anonymous" />
+          <h2>Carton: ${item.cartonNo || "-"}</h2>
+        </div>
+      `;
+    });
+
+    printHtml += `
+          <script>
+            // সব ছবি লোড হওয়ার জন্য ২ সেকেন্ড সময় দিচ্ছি
+            setTimeout(() => { window.print(); }, 2000);
+            window.onafterprint = () => { window.close(); };
+          </script>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(printHtml);
+    printWindow.document.close();
+  };
+
   const isLocked = batch?.status === "Arrived" || batch?.status === "Delivered";
 
   return (
@@ -355,6 +414,10 @@ export default function BatchDetails() {
           {/* ✅ আলাদা করা সার্চ কম্পোনেন্ট */}
           <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
           <div className="action-btns">
+            {/* ✅ নতুন Bulk QR Print বাটন */}
+            <button className="bulk-qr-btn" onClick={handleBulkQRPrint}>
+              🖨️ Bulk Print QR
+            </button>
             <button className="excel-btn" onClick={exportToExcel}>
               📊 Export Excel
             </button>
@@ -386,7 +449,7 @@ export default function BatchDetails() {
                     <th>W</th>
                     <th>H</th>
                     <th>CBM</th>
-                    <th>Date</th>
+                    <th>Received Date</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -636,6 +699,27 @@ export default function BatchDetails() {
                           >
                             🗑️
                           </button>
+
+                          {!s.parentId && (
+                            <button
+                              onClick={() => {
+                                setQrData(s);
+                                setIsQrModalOpen(true);
+                              }}
+                              style={{
+                                background: "#8b5cf6",
+                                color: "white",
+                                border: "none",
+                                padding: "6px 10px",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                                fontSize: "12px",
+                                fontWeight: "bold",
+                              }}
+                            >
+                              🖨️ QR
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -728,6 +812,7 @@ export default function BatchDetails() {
         masterCarton={selectedMaster}
         onSuccess={fetchData}
       />
+
       <EditShipmentModal
         isOpen={isEditModalOpen}
         onClose={() => {
@@ -737,77 +822,90 @@ export default function BatchDetails() {
         shipment={shipmentToEdit}
         onSuccess={fetchData}
       />
+      {/* ✅ QR Code Print Modal */}
+      {isQrModalOpen && qrData && (
+        <div className="fixed-modal-overlay">
+          <div
+            className="fixed-modal-content"
+            style={{ textAlign: "center", width: "320px" }}
+          >
+            <div
+              style={{
+                padding: "20px",
+                border: "2px dashed #cbd5e1",
+                borderRadius: "10px",
+                background: "white",
+              }}
+            >
+              <h2
+                style={{
+                  margin: "0 0 10px",
+                  fontSize: "24px",
+                  color: "#0f172a",
+                }}
+              >
+                {qrData.shippingMark}
+              </h2>
 
-      <style>{`
-        input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none !important; margin: 0 !important; }
-        input[type="number"] { -moz-appearance: textfield !important; }
-        
-        .modern-batch-container { padding: 30px; background: #f4f7fa; min-height: 100vh; font-family: 'Inter', sans-serif; }
-        .dashboard-header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 25px; }
-        .main-card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .batch-tag { background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; }
-        .dashboard-header h1 { margin: 10px 0 5px; font-size: 28px; color: #0f172a; }
-        .status-select-box { padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0; font-weight: bold; width: 220px; outline: none; }
-        
-        .master-row { background-color: #e0f2fe !important; border-left: 4px solid #0284c7 !important; transition: 0.3s; }
-        .sub-item-row { background-color: #f8fafc; }
-        .sub-item-row td { border-left: 2px solid #cbd5e1; font-size: 13px; color: #475569; }
-        .sub-mark { padding-left: 30px !important; font-weight: bold; color: #0369a1; font-style: italic; }
-        
-        .data-table { width: 100%; border-collapse: collapse; white-space: nowrap; }
-        .data-table th { text-align: left; padding: 15px; background: #f8fafc; font-size: 13px; border-bottom: 1px solid #e2e8f0; }
-        .data-table td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; }
-        .mark-cell { color: #0369a1; font-weight: 700; }
-        
-        .expand-btn { background: none; border: none; cursor: pointer; margin-right: 8px; color: #0ea5e9; font-weight: bold; font-size: 14px; transition: 0.2s; }
-        .add-sub-btn { background: #0369a1; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
-        
-        .excel-btn { background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-right: 10px; }
-        .excel-btn:hover { background: #059669; }
-        .edit-btn { background: #f59e0b; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
-        .delete-btn { background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
-        
-        .input-editable { width: 75px; padding: 6px; border: 1px solid #16a34a; border-radius: 6px; text-align: center; font-weight: bold; background: white; }
-        .input-editable-small { width: 60px; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center; font-size: 12px; }
-        
-        .toolbar { display: flex; justify-content: space-between; margin-bottom: 25px; gap: 15px; }
-        .search-wrapper input { padding: 12px 20px; border: 1px solid #e2e8f0; border-radius: 10px; width: 300px; }
-        .bulk-toggle-btn { background: #0f172a; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; }
-        
-        /* ✅ Quick Bulk Entry Panel CSS (আপনার ফাইলে এটি ছিল না) */
-        .bulk-entry-panel { background: #f8fafc; padding: 20px; border-radius: 12px; border: 2px dashed #0ea5e9; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .table-scroll-wrapper { overflow-x: auto; width: 100%; }
-        .bulk-table { width: 100%; border-collapse: collapse; min-width: 1000px; margin-top: 10px; }
-        .bulk-table th { text-align: left; padding: 10px; font-size: 12px; color: #64748b; border-bottom: 2px solid #e2e8f0; }
-        .bulk-table td { padding: 8px 5px; }
-        .bulk-table input { width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 13px; outline: none; }
-        .bulk-table input:focus { border-color: #0ea5e9; }
-        .small-input { width: 100% !important; text-align: center; }
-        .dim-input { width: 100% !important; text-align: center; background: #fffbeb !important; border-color: #fde68a !important; }
-        .cbm-text { font-weight: 800; color: #0284c7; text-align: center; font-size: 14px; }
-        .remove-row-btn { background: #fee2e2; color: #ef4444; border: none; width: 25px; height: 25px; border-radius: 50%; cursor: pointer; font-size: 12px; font-weight: bold; }
-        .bulk-footer { display: flex; justify-content: space-between; margin-top: 15px; }
-        .add-row-btn { background: #fff; border: 2px solid #0f172a; color: #0f172a; padding: 8px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .save-all-btn { background: #16a34a; color: white; border: none; padding: 8px 30px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+              <QRCodeCanvas
+                id="qr-canvas"
+                value={`${window.location.origin}/box-details/${qrData._id}`}
+                size={200}
+                level={"H"}
+              />
 
-        .summary-section { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 30px; }
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; } 
-        .stat-card { background: #fff; padding: 25px; border-radius: 16px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-bottom: 5px solid #eee; }
-        .stat-card.blue { border-color: #3b82f6; }
-        .stat-card.green { border-color: #10b981; }
-        .stat-card.red { border-color: #ef4444; }
-        .stat-card label { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; }
-        .stat-card .value { font-size: 24px; font-weight: 900; margin-top: 10px; color: #0f172a; }
-        .costing-card { background: #0f172a; color: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .cost-inputs { display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 20px; align-items: center; }
-        .cost-box label { display: block; font-size: 11px; opacity: 0.7; margin-bottom: 5px; }
-        .cost-box input { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 10px; border-radius: 8px; width: 100%; }
-        .total-expense { text-align: right; }
-        .total-expense .amt { font-size: 28px; font-weight: 900; color: #22c55e; }
-        .avg-cost-bar { margin-top: 20px; background: rgba(255,255,255,0.05); padding: 12px; border-radius: 10px; text-align: center; font-size: 15px; border: 1px dashed rgba(255,255,255,0.2); }
-        .calculated-weight-box { background: #f1f5f9; padding: 6px; border-radius: 6px; border: 1px dashed #cbd5e1; text-align: center; font-size: 13px; color: #0f172a; }
-        .missing-alert, .sub-missing-alert { color: #ef4444; font-size: 11px; font-weight: bold; display: block; margin-top: 2px; }
-      `}</style>
+              <p
+                style={{
+                  margin: "10px 0 0",
+                  fontSize: "16px",
+                  fontWeight: "bold",
+                  color: "#475569",
+                }}
+              >
+                Carton: {qrData.cartonNo || "-"}
+              </p>
+            </div>
+
+            <div
+              className="modal-footer"
+              style={{ marginTop: "20px", justifyContent: "center" }}
+            >
+              <button
+                className="cancel-btn"
+                onClick={() => setIsQrModalOpen(false)}
+              >
+                ✖ Close
+              </button>
+
+              <button
+                className="save-btn"
+                style={{ background: "#8b5cf6" }}
+                onClick={() => {
+                  const canvas = document.getElementById("qr-canvas");
+                  const pngUrl = canvas.toDataURL("image/png");
+                  const printWindow = window.open("", "_blank");
+                  printWindow.document.write(`
+                    <html>
+                      <head><title>Print QR</title></head>
+                      <body style="text-align: center; font-family: 'Arial', sans-serif; padding-top: 20px;">
+                        <h1 style="font-size: 50px; margin-bottom: 10px; color: black;">${qrData.shippingMark}</h1>
+                        <img src="${pngUrl}" style="width: 300px; height: 300px;" />
+                        <h2 style="font-size: 35px; margin-top: 15px; color: black;">Carton: ${qrData.cartonNo || "-"}</h2>
+                        <script>
+  setTimeout(() => { window.print(); }, 500);
+  window.onafterprint = () => { window.close(); };
+</script>
+                      </body>
+                    </html>
+                  `);
+                }}
+              >
+                🖨️ Print Sticker
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

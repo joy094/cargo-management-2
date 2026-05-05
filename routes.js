@@ -554,4 +554,34 @@ router.put("/shipments/edit/:id", async (req, res) => {
   }
 });
 
+// QR Code স্ক্যান করলে বক্স এবং সাব-বক্সের ডিটেইলস বের করার API
+router.get("/qr-details/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // ১. প্রথমে মূল বক্সটি (মাস্টার বা সাধারণ) খুঁজুন
+    const mainBox = await Shipment.findById(id);
+
+    if (!mainBox) {
+      return res.status(404).json({ message: "বক্সটি খুঁজে পাওয়া যায়নি!" });
+    }
+
+    // ২. যদি এটি মাস্টার বক্স হয়, তবে এর ভেতরের সব সাব-বক্স খুঁজুন
+    let subBoxes = [];
+    if (mainBox.isMasterCarton) {
+      subBoxes = await Shipment.find({ parentId: id });
+    }
+
+    // ৩. মূল বক্স এবং সাব-বক্স একসাথে ফ্রন্টএন্ডে পাঠিয়ে দিন
+    res.status(200).json({
+      success: true,
+      mainBox,
+      subBoxes,
+    });
+  } catch (error) {
+    console.error("QR Details Fetch Error:", error);
+    res.status(500).json({ success: false, message: "সার্ভার এরর!" });
+  }
+});
+
 export default router;
