@@ -42,7 +42,7 @@ const shipmentSchema = new mongoose.Schema(
     // সিস্টেমের নিজস্ব ইউনিক আইডি (Auto-generated)
     trackingNumber: { type: String, unique: true },
 
-    // ক্লায়েন্টের রিকোয়ারমেন্ট অনুযায়ী নতুন ফিল্ডস
+    // ক্লায়েন্টের রিকোয়ারমেন্ট অনুযায়ী ফিল্ডস
     shippingMark: { type: String, required: true },
     cartonNo: { type: String },
     productName: { type: String },
@@ -58,22 +58,29 @@ const shipmentSchema = new mongoose.Schema(
     },
     cbm: { type: Number, default: 0 },
 
-    // ট্র্যাকিং লজিক (চায়না ট্র্যাকিং ডুপ্লিকেট হতে পারবে)
+    // ট্র্যাকিং লজিক
     chinaTrackingNo: { type: String },
 
     receivedDate: { type: Date, default: Date.now },
 
-    // ✅ ক্লায়েন্টের রিকোয়ারমেন্ট অনুযায়ী আপডেট করা হয়েছে
     shipmentType: {
       type: String,
       enum: ["Air", "Sea", "Hand Carry"],
       default: "Air",
     },
-    originPort: { type: String }, // ✅ পোর্টের নাম (যেমন: Guangzhou, Hong Kong)
+    originPort: { type: String },
+
+    // ✅ নতুন যুক্ত করা ফিল্ড: মাস্টার কার্টন ও সাব-কার্টন লজিকের জন্য
+    isMasterCarton: { type: Boolean, default: false }, // এটি কি বড় বক্স?
+    parentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Shipment",
+      default: null,
+    }, // ছোট বক্স হলে এখানে বড় বক্সের আইডি বসবে
 
     // রিলেশনস
     customer: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
-    agency: { type: mongoose.Schema.Types.ObjectId, ref: "Agency" }, // অপশনাল রাখা হয়েছে
+    agency: { type: mongoose.Schema.Types.ObjectId, ref: "Agency" },
     batch: { type: mongoose.Schema.Types.ObjectId, ref: "Batch" },
 
     status: { type: String, default: "Warehouse Received" },

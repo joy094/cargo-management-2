@@ -327,15 +327,20 @@ router.put("/shipments/bulk-assign-agency", async (req, res) => {
   }
 });
 
+// ✅ শিপমেন্ট ডিলিট করার রাউট
 router.delete("/shipments/:id", async (req, res) => {
   try {
-    await Shipment.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: "Shipment deleted." });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const shipmentId = req.params.id;
+    // প্রথমে মূল মালটি ডিলিট করা
+    await Shipment.findByIdAndDelete(shipmentId);
+    // যদি এটি মাস্টার বক্স হয়, তবে এর ভেতরের সব সাব-বক্সও ডিলিট করা
+    await Shipment.deleteMany({ parentId: shipmentId });
+
+    res.json({ success: true, message: "সফলভাবে ডিলিট হয়েছে!" });
+  } catch (error) {
+    res.status(500).json({ error: "ডিলিট করতে সমস্যা হয়েছে।" });
   }
 });
-
 router.get("/shipments", async (req, res) => {
   try {
     const list = await Shipment.find()
@@ -485,6 +490,67 @@ router.put("/batches/:id/status", async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: "স্ট্যাটাস আপডেট করা যায়নি।" });
+  }
+});
+
+// ✅ মাস্টার কার্টনের ভেতরে সাব-আইটেম (পার্সেল) যুক্ত করার রাউট
+// ✅ মাস্টার কার্টনের ভেতরে সাব-আইটেম যুক্ত করার আপডেট করা রাউট
+router.post("/shipments/add-sub-items", async (req, res) => {
+  try {
+    const { items, parentId } = req.body;
+
+    if (!items || !items.length || !parentId) {
+      return res.status(400).json({ error: "তথ্য পাওয়া যায়নি!" });
+    }
+
+    const masterCarton = await Shipment.findById(parentId);
+    if (!masterCarton) {
+      return res.status(404).json({ error: "বক্সটি খুঁজে পাওয়া যায়নি।" });
+    }
+
+    const preparedSubItems = items.map((item) => ({
+      trackingNumber: `MAT-S${Math.floor(100000 + Math.random() * 900000)}`,
+      shippingMark: item.shippingMark || masterCarton.shippingMark,
+      productName: item.productName || "General Item",
+      chinaTrackingNo: item.chinaTrackingNo || "-",
+      quantity: Number(item.quantity) || 1,
+      grossWeight: Number(item.grossWeight) || 0,
+      actualWeight: Number(item.grossWeight) || 0,
+      isMasterCarton: false, // ছোট বক্স সব সময় ফলস
+      parentId: parentId,
+      batch: masterCarton.batch,
+      agency: masterCarton.agency,
+      shipmentType: masterCarton.shipmentType,
+      originPort: masterCarton.originPort,
+      status: masterCarton.status,
+    }));
+
+    // সাব-আইটেম সেভ করা
+    await Shipment.insertMany(preparedSubItems);
+
+    // ✅ ম্যাজিক লাইন: বড় বক্সটিকে অটোমেটিক 'মাস্টার কার্টন' এ রূপান্তর করা
+    await Shipment.findByIdAndUpdate(parentId, { isMasterCarton: true });
+
+    res.status(201).json({
+      success: true,
+      message: "পার্সেল যুক্ত হয়েছে এবং মাস্টার বক্স আপডেট হয়েছে।",
+    });
+  } catch (err) {
+    res.status(500).json({ error: "সার্ভারে সমস্যা হয়েছে।" });
+  }
+});
+
+// ✅ যেকোনো শিপমেন্ট (মাস্টার বা সাব-বক্স) এডিট করার রাউট
+router.put("/shipments/edit/:id", async (req, res) => {
+  try {
+    const updatedShipment = await Shipment.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true }, // আপডেট হওয়ার পর নতুন ডেটা রিটার্ন করবে
+    );
+    res.json({ success: true, shipment: updatedShipment });
+  } catch (error) {
+    res.status(500).json({ error: "ডেটা আপডেট করতে সমস্যা হয়েছে।" });
   }
 });
 
