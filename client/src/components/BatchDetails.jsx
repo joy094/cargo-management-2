@@ -6,6 +6,7 @@ import * as XLSX from "xlsx";
 import SubItemModal from "./SubItemModal";
 import EditShipmentModal from "./EditShipmentModal";
 import BatchSummary from "./BatchSummary";
+import Search from "./Search";
 
 export default function BatchDetails() {
   const { id } = useParams();
@@ -167,16 +168,56 @@ export default function BatchDetails() {
     }
   };
 
-  const filteredList = shipments.filter((s) =>
-    s.shippingMark?.toLowerCase().includes(searchTerm.toLowerCase()),
+
+  // ✅ ১. স্মার্ট সার্চ লজিক (null ভ্যালু থাকলেও ক্র্যাশ করবে না)
+  const safeLower = (str) => (str ? String(str).toLowerCase() : "");
+  const lowerSearch = searchTerm.toLowerCase();
+
+  const matchedShipments = shipments.filter(
+    (s) =>
+      safeLower(s.shippingMark).includes(lowerSearch) ||
+      safeLower(s.chinaTrackingNo).includes(lowerSearch) ||
+      safeLower(s.productName).includes(lowerSearch) ||
+      safeLower(s.cartonNo).includes(lowerSearch),
   );
-  const masterCartons = filteredList.filter((s) => s.isMasterCarton);
-  const subItems = filteredList.filter((s) => !s.isMasterCarton && s.parentId);
-  const standaloneItems = filteredList.filter(
+
+  // সার্চ হওয়া মালের প্যারেন্ট আইডিগুলো বের করা
+  const matchedParentIds = new Set(
+    matchedShipments.filter((s) => s.parentId).map((s) => s.parentId),
+  );
+
+  // ফাইনাল লিস্ট: সরাসরি ম্যাচ হওয়া মাল + ম্যাচ হওয়া সাব-বক্সের মাস্টার বক্স
+  const finalFilteredList = shipments.filter(
+    (s) =>
+      matchedShipments.some((ms) => ms._id === s._id) ||
+      matchedParentIds.has(s._id),
+  );
+
+  const masterCartons = finalFilteredList.filter((s) => s.isMasterCarton);
+  const standaloneItems = finalFilteredList.filter(
     (s) => !s.isMasterCarton && !s.parentId,
   );
+  const subItems = shipments.filter((s) => !s.isMasterCarton && s.parentId);
   const displayList = [...masterCartons, ...standaloneItems];
 
+  // ✅ ২. সার্চ করলে সাব-বক্স অটোমেটিক খোলার লজিক
+  useEffect(() => {
+    if (searchTerm.trim() !== "") {
+      const parentsToExpand = matchedShipments
+        .filter((s) => !s.isMasterCarton && s.parentId)
+        .map((s) => s.parentId);
+
+      if (parentsToExpand.length > 0) {
+        setExpandedRows((prev) => {
+          const newExpanded = { ...prev };
+          parentsToExpand.forEach((pid) => (newExpanded[pid] = true));
+          return newExpanded;
+        });
+      }
+    }
+  }, [searchTerm, shipments]);
+
+  // ✅ ৩. ক্যালকুলেশন লজিক (টোটাল কোয়ান্টিটি সহ)
   const getCalculatedStats = (shipment) => {
     if (shipment.isMasterCarton) {
       const children = subItems.filter((sub) => sub.parentId === shipment._id);
@@ -205,25 +246,23 @@ export default function BatchDetails() {
     }
     const gross = Number(shipment.grossWeight) || 0;
     const actual = Number(shipment.actualWeight) || gross;
-    return {
-      hasChildren: false,
-      qty: shipment.quantity || 1,
-      gross,
-      actual,
-      missing: gross - actual,
-    };
+    const qty = Number(shipment.quantity) || 1;
+    return { hasChildren: false, qty, gross, actual, missing: gross - actual };
   };
 
   let totalGross = 0,
-    totalActual = 0;
+    totalActual = 0,
+    totalQuantity = 0; // ✅ কোয়ান্টিটি ভেরিয়েবল
   const totalCbm = displayList.reduce(
     (sum, s) => sum + (Number(s.cbm) || 0),
     0,
   );
+
   displayList.forEach((s) => {
     const stats = getCalculatedStats(s);
     totalGross += stats.gross;
     totalActual += stats.actual;
+    totalQuantity += stats.qty; // ✅ কোয়ান্টিটি যোগ হচ্ছে
   });
 
   const exportToExcel = () => {
@@ -313,14 +352,8 @@ export default function BatchDetails() {
 
       <div className="main-card">
         <div className="toolbar">
-          <div className="search-wrapper">
-            <input
-              type="text"
-              placeholder="Shipping Mark দিয়ে খুঁজুন..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+          {/* ✅ আলাদা করা সার্চ কম্পোনেন্ট */}
+          <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
           <div className="action-btns">
             <button className="excel-btn" onClick={exportToExcel}>
               📊 Export Excel
@@ -681,6 +714,7 @@ export default function BatchDetails() {
         totalGross={totalGross}
         totalActual={totalActual}
         totalCbm={totalCbm}
+        totalQuantity={totalQuantity} // ✅ Total Quantity পাঠানো হচ্ছে
         bills={bills}
         setBills={setBills}
       />

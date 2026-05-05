@@ -1,9 +1,12 @@
+//src/components/BatchSummary.jsx
+
 import React from "react";
 
 export default function BatchSummary({
   totalGross,
   totalActual,
   totalCbm,
+  totalQuantity,
   bills,
   setBills,
 }) {
@@ -14,15 +17,19 @@ export default function BatchSummary({
 
   return (
     <div className="summary-section">
-      <div className="stats-grid">
+      {/* ✅ কলাম সংখ্যা ৪ থেকে ৫ করা হয়েছে */}
+      <div
+        className="stats-grid"
+        style={{ gridTemplateColumns: "repeat(5, 1fr)" }}
+      >
         <div className="stat-card blue">
-          <label>Total China Weight</label>
+          <label>Total China Wt.</label>
           <div className="value">
             {totalGross.toFixed(2)} <span>KG</span>
           </div>
         </div>
         <div className="stat-card green">
-          <label>Total Office Weight</label>
+          <label>Total Office Wt.</label>
           <div className="value">
             {totalActual.toFixed(2)} <span>KG</span>
           </div>
@@ -37,6 +44,14 @@ export default function BatchSummary({
           <label>Total CBM</label>
           <div className="value">
             {totalCbm.toFixed(3)} <span>CBM</span>
+          </div>
+        </div>
+        {/* ✅ নতুন Total Quantity Card যুক্ত করা হলো */}
+        <div className="stat-card" style={{ borderBottomColor: "#f59e0b" }}>
+          <label>Total Quantity</label>
+
+          <div className="value" style={{ color: "#d97706" }}>
+            {totalQuantity} <span style={{ color: "#fcd34d" }}>PCS</span>
           </div>
         </div>
       </div>
