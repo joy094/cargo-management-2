@@ -14,6 +14,8 @@ import { fileURLToPath } from "url";
 import { authMiddleware } from "./auth.js";
 import routes from "./routes.js";
 import batchRoute from "./batchRoute.js"
+import branchRoute from "./branchRoutes.js";
+import paymentRoute from "./paymentRoute.js";
 
 dotenv.config();
 
@@ -30,7 +32,8 @@ app.use(express.json());
 =========================== */
 app.use("/api", routes);
 app.use("/api/", batchRoute);
-
+app.use("/api/branches", branchRoute);
+app.use("/api/payments", paymentRoute);
 /* ===========================
    MongoDB Connection
 =========================== */

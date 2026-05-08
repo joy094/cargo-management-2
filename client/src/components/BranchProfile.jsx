@@ -1,0 +1,697 @@
+//src/components/BranchProfile.jsx
+
+import React, { useState, useEffect, useMemo } from "react";
+import axios from "axios";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import "./BranchProfile.css"; // Assuming you have a CSS file for styling
+
+export default function BranchProfile() {
+  const [searchParams] = useSearchParams();
+  const markFromUrl = searchParams.get("mark");
+  const navigate = useNavigate();
+
+  // Basic States
+  const [activeMark, setActiveMark] = useState("");
+  const [summary, setSummary] = useState(null);
+  const [allItems, setAllItems] = useState([]); // pendingItems এর বদলে allItems
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Tab & History States
+  const [activeTab, setActiveTab] = useState("pending");
+  const [invoiceHistory, setInvoiceHistory] = useState([]);
+
+  // Pending Actions States
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [globalRate, setGlobalRate] = useState("");
+  const [discount, setDiscount] = useState(0);
+
+  // Modal States
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [invoiceData, setInvoiceData] = useState(null);
+
+
+  // ব্যাচ ফিল্টার করার জন্য
+  const [selectedBatch, setSelectedBatch] = useState(""); 
+
+  useEffect(() => {
+    if (markFromUrl) {
+      fetchBranchData(markFromUrl);
+    }
+  }, [markFromUrl]);
+
+  // Fetch Summary and All Items (Billed + Unbilled)
+  const fetchBranchData = async (mark) => {
+    setLoading(true);
+    try {
+      // শুধু এই একটি এপিআই কল করলেই summary এর ভেতর billed, paid, due সব চলে আসবে
+      const summaryRes = await axios.get(`/api/branches/summary/${mark}`);
+      const itemsRes = await axios.get(`/api/branches/all-items/${mark}`);
+
+      setSummary(summaryRes.data.summary); // ব্যাকএন্ড থেকে আসা সম্পূর্ণ সামারি সেভ
+
+      const itemsWithRate = itemsRes.data.items.map((item) => ({
+        ...item,
+        rate: item.perKgRate || 0,
+        total:
+          (Number(item.actualWeight) || Number(item.grossWeight) || 0) *
+          (item.perKgRate || 0),
+        calcWeight: Number(item.actualWeight) || Number(item.grossWeight) || 0,
+      }));
+
+      setAllItems(itemsWithRate);
+      setActiveMark(mark);
+      setSelectedIds([]);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  
+
+  const fetchInvoiceHistory = async () => {
+    try {
+      const res = await axios.get(
+        `/api/branches/invoice-history/${activeMark}`,
+      );
+      if (res.data.success) {
+        setInvoiceHistory(res.data.history);
+      }
+    } catch (error) {
+      console.error("History fetch error", error);
+    }
+  };
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if (tab === "history") {
+      fetchInvoiceHistory();
+    } else {
+      fetchBranchData(activeMark);
+    }
+  };
+
+  const filteredItems = useMemo(() => {
+    return allItems.filter(
+      (item) =>
+        item.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.chinaTrackingNo?.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+  }, [searchTerm, allItems]);
+
+  // Checkbox Selection (Only for unbilled items)
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    );
+  };
+  const toggleSelectAll = () => {
+    const unbilledFiltered = filteredItems.filter((item) => !item.isBilled);
+    if (
+      selectedIds.length === unbilledFiltered.length &&
+      unbilledFiltered.length > 0
+    ) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(unbilledFiltered.map((item) => item._id));
+    }
+  };
+
+  // Rate Calculations (Only apply to Unbilled)
+  const applyRateToSelected = () => {
+    const rateVal = parseFloat(globalRate);
+    if (!rateVal || rateVal <= 0) return alert("সঠিক রেট লিখুন!");
+    const updatedItems = allItems.map((item) => {
+      if (selectedIds.includes(item._id) && !item.isBilled) {
+        return { ...item, rate: rateVal, total: item.calcWeight * rateVal };
+      }
+      return item;
+    });
+    setAllItems(updatedItems);
+  };
+
+  const handleRateChange = (idx, newRate) => {
+    const updatedItems = [...allItems];
+    const rateVal = parseFloat(newRate) || 0;
+    updatedItems[idx].rate = rateVal;
+    updatedItems[idx].total = updatedItems[idx].calcWeight * rateVal;
+    setAllItems(updatedItems);
+  };
+
+  // ✅ New Feature: Revert (Undo) a billed item
+  const handleRevertItem = async (itemId) => {
+    if (
+      !window.confirm(
+        "আপনি কি নিশ্চিত? এটি ইনভয়েস থেকে বাদ পড়ে আবার আনবিল্ড হয়ে যাবে।",
+      )
+    )
+      return;
+    try {
+      const res = await axios.post("/api/branches/revert-item", { itemId });
+      if (res.data.success) {
+        alert("সফলভাবে রিভার্ট করা হয়েছে!");
+        fetchBranchData(activeMark); // ডেটা রিফ্রেশ
+      }
+    } catch (error) {
+      alert("রিভার্ট করতে সমস্যা হয়েছে!");
+    }
+  };
+
+  // ✅ New Feature: Edit a billed item
+  const handleEditBilledItem = async (item) => {
+    const newRate = prompt(
+      "এই আইটেমের জন্য নতুন রেট দিন (৳):",
+      item.rate || item.perKgRate,
+    );
+    if (newRate === null || newRate === "") return;
+
+    const rateVal = parseFloat(newRate);
+    if (isNaN(rateVal) || rateVal <= 0) return alert("সঠিক রেট ইনপুট দিন!");
+
+    try {
+      const newTotal = rateVal * item.calcWeight;
+      const res = await axios.put(
+        `/api/branches/update-billed-item/${item._id}`,
+        {
+          rate: rateVal,
+          total: newTotal,
+        },
+      );
+      if (res.data.success) {
+        alert("রেট সফলভাবে আপডেট হয়েছে!");
+        fetchBranchData(activeMark);
+      }
+    } catch (error) {
+      alert("আপডেট করতে সমস্যা হয়েছে!");
+    }
+  };
+
+  // Generate Invoice
+  const handleGenerateInvoice = async () => {
+    // শুধুমাত্র আনবিল্ড আইটেমগুলোর ইনভয়েস হবে
+    // ✅ শুধুমাত্র সিলেক্ট করা আইটেমগুলোকে ইনভয়েসের জন্য ফিল্টার করা
+    const itemsToBill = allItems.filter(
+      (item) =>
+        selectedIds.includes(item._id) && !item.isBilled && item.rate > 0,
+    );
+    if (itemsToBill.length === 0)
+      return alert("নতুন কোনো আইটেমে রেট বসানো হয়নি!");
+
+    setSubmitting(true);
+    try {
+      const payload = {
+        shippingMark: activeMark,
+        items: itemsToBill.map((item) => ({
+          id: item._id,
+          rate: item.rate,
+          total: item.total,
+        })),
+        invoiceTotal: totalBillAmount - discount,
+        discount: discount,
+      };
+
+      const res = await axios.post("/api/branches/generate-invoice", payload);
+      if (res.data.success) {
+        setInvoiceData({
+          invoiceId: res.data.invoiceId,
+          date: new Date().toLocaleDateString("en-GB"),
+          customerMark: activeMark,
+          items: itemsToBill,
+          totalWeight: totalWeightSum,
+          subTotal: totalBillAmount,
+          discount: discount,
+          netPayable: totalBillAmount - discount,
+        });
+
+        setIsInvoiceModalOpen(true);
+        fetchBranchData(activeMark);
+        setDiscount(0);
+      }
+    } catch (error) {
+      alert("ইনভয়েস তৈরিতে সমস্যা হয়েছে!");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ১. ফুটার রেন্ডার করার জন্য সব আনবিল্ড আইটেম (যাতে ওই এররটা না আসে)
+  const unbilledItems = allItems.filter((item) => !item.isBilled);
+
+  // ২. শুধুমাত্র সিলেক্ট করা আনবিল্ড আইটেম আলাদা করছি
+  const selectedUnbilledItems = unbilledItems.filter((item) =>
+    selectedIds.includes(item._id),
+  );
+
+  // ৩. এখন টোটাল ওজন এবং বিলের হিসাব শুধু সিলেক্ট করা আইটেমগুলোর উপর ভিত্তি করে হবে
+  const totalWeightSum = selectedUnbilledItems.reduce(
+    (acc, item) => acc + item.calcWeight,
+    0,
+  );
+  const totalBillAmount = selectedUnbilledItems.reduce(
+    (acc, item) => acc + item.total,
+    0,
+  );
+
+  // ব্যাকএন্ড থেকে আসা রেডিমেড ডেটা সরাসরি ব্যবহার করছি
+  const lifetimeBilled = summary?.totalBilled || 0;
+  const lifetimePaid = summary?.totalPaid || 0;
+  const lifetimeDiscount = summary?.totalDiscount || 0;
+  const currentDue = summary?.currentDue || 0;
+
+  return (
+    <div className="profile-container">
+      <div className="header-flex">
+        <button className="back-btn" onClick={() => navigate("/add-branch")}>
+          ⬅ Back
+        </button>
+        <h2>
+          Customer Profile: <span className="mark-tag">{activeMark}</span>
+        </h2>
+      </div>
+
+      <div className="stats-grid">
+        <div className="stat-card blue">
+          <span>Total Billed Amount</span>
+          <h3>৳ {lifetimeBilled.toLocaleString()}</h3>
+        </div>
+        <div className="stat-card green">
+          <span>Total Paid</span>
+          <h3>৳ {lifetimePaid.toLocaleString()}</h3>
+        </div>
+        <div className="stat-card orange">
+          <span>Total Discount</span>
+          <h3>৳ {lifetimeDiscount.toLocaleString()}</h3>
+        </div>
+        <div className={`stat-card ${currentDue > 0 ? "red" : "gray"}`}>
+          <span>Current Due (বকেয়া)</span>
+          <h3>৳ {currentDue.toLocaleString()}</h3>
+        </div>
+      </div>
+
+      <div className="tab-navigation">
+        <button
+          className={`tab-btn ${activeTab === "pending" ? "active" : ""}`}
+          onClick={() => handleTabChange("pending")}
+        >
+          📦 All Shipments / Billing
+        </button>
+        <button
+          className={`tab-btn ${activeTab === "history" ? "active" : ""}`}
+          onClick={() => handleTabChange("history")}
+        >
+          📜 Invoice History
+        </button>
+      </div>
+
+      {activeTab === "pending" && (
+        <div className="tab-content">
+          <div className="controls-bar">
+            <input
+              type="text"
+              placeholder="Search (Name/Tracking)..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="filter-input"
+            />
+            <div className="bulk-side">
+              <input
+                type="number"
+                placeholder="Rate (৳)"
+                value={globalRate}
+                onChange={(e) => setGlobalRate(e.target.value)}
+              />
+              <button onClick={applyRateToSelected}>
+                ⚡ Apply to Selected
+              </button>
+            </div>
+          </div>
+
+          <div className="table-card">
+            <table className="pro-table">
+              <thead>
+                <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      onChange={toggleSelectAll}
+                      checked={
+                        selectedIds.length ===
+                          filteredItems.filter((i) => !i.isBilled).length &&
+                        selectedIds.length > 0
+                      }
+                    />
+                  </th>
+                  <th>SL</th>
+                  <th>Product Name</th>
+                  <th>Tracking/Carton</th>
+                  <th>Weight</th>
+                  <th>Rate (৳)</th>
+                  <th>Total (৳)</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredItems.length > 0 ? (
+                  filteredItems.map((item, idx) => {
+                    const isCompleted = item.isBilled;
+                    return (
+                      <tr
+                        key={item._id}
+                        className={`
+                          ${selectedIds.includes(item._id) ? "row-selected" : ""}
+                          ${isCompleted ? "billed-row-style" : ""}
+                        `}
+                      >
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(item._id)}
+                            onChange={() => toggleSelect(item._id)}
+                            disabled={isCompleted} // বিল হয়ে গেলে চেক করা যাবে না
+                          />
+                        </td>
+                        <td>{idx + 1}</td>
+                        <td>
+                          {item.productName}
+                          {isCompleted && (
+                            <span className="status-badge">
+                              ✅ Billed ({item.invoiceId})
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <small>{item.chinaTrackingNo}</small>
+                        </td>
+                        <td>{item.calcWeight.toFixed(2)} KG</td>
+
+                        {/* Rate Column */}
+                        <td>
+                          {isCompleted ? (
+                            <span className="locked-val">
+                              {item.rate || item.perKgRate} ৳
+                            </span>
+                          ) : (
+                            <input
+                              type="number"
+                              className="inline-rate"
+                              value={item.rate || ""}
+                              onChange={(e) =>
+                                handleRateChange(idx, e.target.value)
+                              }
+                            />
+                          )}
+                        </td>
+
+                        <td className="row-total">
+                          ৳{" "}
+                          {isCompleted
+                            ? item.totalBill?.toLocaleString() || 0
+                            : item.total.toLocaleString()}
+                        </td>
+
+                        {/* Action Column */}
+                        <td>
+                          {isCompleted ? (
+                            <div className="action-group">
+                              <button
+                                className="edit-mini-btn"
+                                onClick={() => handleEditBilledItem(item)}
+                              >
+                                ✏️ Edit
+                              </button>
+                              <button
+                                className="undo-mini-btn"
+                                onClick={() => handleRevertItem(item._id)}
+                              >
+                                ↩️ Undo
+                              </button>
+                            </div>
+                          ) : (
+                            <span
+                              style={{ fontSize: "12px", color: "#64748b" }}
+                            >
+                              Pending
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="8" className="no-data">
+                      কোনো আইটেম নেই
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {unbilledItems.length > 0 && (
+            <div className="billing-footer-card">
+              <div className="f-row">
+                <span>Unbilled Items:</span>
+                <strong>{unbilledItems.length} PCS</strong>
+              </div>
+              <div className="f-row">
+                <span>Unbilled Sub-Total:</span>
+                <strong>৳ {totalBillAmount.toLocaleString()}</strong>
+              </div>
+              <div className="f-row">
+                <span>Discount:</span>
+                <input
+                  type="number"
+                  value={discount}
+                  onChange={(e) => setDiscount(e.target.value)}
+                />
+              </div>
+              <div className="f-row grand">
+                <span>Current Payable:</span>
+                <h3>৳ {(totalBillAmount - discount).toLocaleString()}</h3>
+              </div>
+              <button
+                className="main-invoice-btn"
+                onClick={handleGenerateInvoice}
+                disabled={submitting}
+              >
+                {submitting ? "Processing..." : "📄 Confirm & Generate Invoice"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ================= HISTORY TAB ================= */}
+      {/* ... [আপনার হিস্ট্রি ট্যাব এবং মডালের আগের কোডগুলো হুবহু একই থাকবে, আমি সংক্ষেপ করছি না, পুরোটা দিচ্ছি] ... */}
+      {activeTab === "history" && (
+        <div className="tab-content table-card">
+          <table className="pro-table history-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Invoice ID</th>
+                <th>Total Items</th>
+                <th>Total Weight</th>
+                <th>Total Billed</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoiceHistory.length > 0 ? (
+                invoiceHistory.map((inv) => (
+                  <tr key={inv._id}>
+                    <td>{new Date(inv.date).toLocaleDateString("en-GB")}</td>
+                    <td>
+                      <strong>{inv._id}</strong>
+                    </td>
+                    <td>{inv.items.length} PCS</td>
+                    <td>{inv.totalWeight.toFixed(2)} KG</td>
+                    <td className="row-total">
+                      ৳ {inv.totalAmount.toLocaleString()}
+                    </td>
+                    <td>
+                      <button
+                        className="view-btn"
+                        onClick={() => {
+                          setInvoiceData({
+                            invoiceId: inv._id,
+                            date: new Date(inv.date).toLocaleDateString(
+                              "en-GB",
+                            ),
+                            customerMark: activeMark,
+                            items: inv.items.map((it) => ({
+                              ...it,
+                              calcWeight:
+                                Number(it.actualWeight) ||
+                                Number(it.grossWeight) ||
+                                0,
+                              rate: it.perKgRate,
+                              total: it.totalBill,
+                            })),
+                            totalWeight: inv.totalWeight,
+                            subTotal: inv.totalAmount,
+                            discount: 0,
+                            netPayable: inv.totalAmount,
+                          });
+                          setIsInvoiceModalOpen(true);
+                        }}
+                      >
+                        👁️ View Memo
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" className="no-data">
+                    কোনো ইনভয়েস হিস্ট্রি নেই
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ✅ Invoice View / Print Modal */}
+      {isInvoiceModalOpen && invoiceData && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div id="print-area" className="invoice-box">
+              <div
+                style={{
+                  textAlign: "center",
+                  marginBottom: "20px",
+                  borderBottom: "2px solid #000",
+                  paddingBottom: "10px",
+                }}
+              >
+                <h1 style={{ margin: "0", fontSize: "24px" }}>
+                  SABA & RIHAN ENTERPRISE
+                </h1>
+                <p style={{ margin: "5px 0", fontSize: "14px" }}>
+                  GOVT.AUTHORISED CUSTOMS, CLEARING & FORWARDING (C&F) AGENT
+                </p>
+                <h2 style={{ fontSize: "18px", textDecoration: "underline" }}>
+                  INVOICE / MEMO
+                </h2>
+              </div>
+
+              <div className="inv-meta">
+                <div>
+                  <p>
+                    <strong>Invoice No:</strong> {invoiceData.invoiceId}
+                  </p>
+                  <p>
+                    <strong>Date:</strong> {invoiceData.date}
+                  </p>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <p>
+                    <strong>Customer / Mark:</strong>{" "}
+                    <span
+                      style={{
+                        background: "#e2e8f0",
+                        padding: "4px 8px",
+                        borderRadius: "4px",
+                      }}
+                    >
+                      {invoiceData.customerMark}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <table className="inv-table">
+                <thead>
+                  <tr style={{ background: "#f1f5f9" }}>
+                    <th>Item Description</th>
+                    <th>Weight</th>
+                    <th>Rate</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoiceData.items.map((it, i) => (
+                    <tr key={i}>
+                      <td>{it.productName || "General Item"}</td>
+                      <td>{it.calcWeight.toFixed(2)} KG</td>
+                      <td>{it.rate} ৳</td>
+                      <td>{it.total.toLocaleString()} ৳</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className="inv-summary">
+                <p>
+                  Total Weight:{" "}
+                  <strong>{invoiceData.totalWeight.toFixed(2)} KG</strong>
+                </p>
+                <p>
+                  Subtotal:{" "}
+                  <strong>{invoiceData.subTotal.toLocaleString()} ৳</strong>
+                </p>
+                {invoiceData.discount > 0 && (
+                  <p style={{ color: "red" }}>
+                    Discount:{" "}
+                    <strong>- {invoiceData.discount.toLocaleString()} ৳</strong>
+                  </p>
+                )}
+                <h3 style={{ borderTop: "2px solid #000", paddingTop: "10px" }}>
+                  Net Payable: {invoiceData.netPayable.toLocaleString()} ৳
+                </h3>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginTop: "60px",
+                  fontSize: "14px",
+                }}
+              >
+                <div
+                  style={{
+                    borderTop: "1px dashed #000",
+                    width: "150px",
+                    textAlign: "center",
+                    paddingTop: "5px",
+                  }}
+                >
+                  Customer Signature
+                </div>
+                <div
+                  style={{
+                    borderTop: "1px dashed #000",
+                    width: "150px",
+                    textAlign: "center",
+                    paddingTop: "5px",
+                  }}
+                >
+                  Authority Signature
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-btns">
+              <button onClick={() => window.print()} className="print-btn">
+                🖨️ Print Memo
+              </button>
+              <button
+                onClick={() => setIsInvoiceModalOpen(false)}
+                className="close-btn"
+              >
+                ✖ Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

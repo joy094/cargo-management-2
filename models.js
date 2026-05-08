@@ -18,6 +18,38 @@ const AgencySchema = new Schema(
 );
 export const Agency = model("Agency", AgencySchema);
 
+const branchSchema = new Schema(
+  {
+    branchName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    shippingMark: {
+      type: String,
+      required: true,
+      unique: true, // একই শিপিং মার্ক যেন দুইবার সেভ না হয়
+      uppercase: true, // অটোমেটিক্যালি বড় হাতের অক্ষরে সেভ হবে
+      trim: true,
+    },
+    phone: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    address: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+  },
+  {
+    timestamps: true, // এটি দিলে কখন ব্রাঞ্চ তৈরি হয়েছে বা এডিট হয়েছে তার সময় (createdAt, updatedAt) অটো সেভ হবে
+  },
+);
+
+export const Branch = model("Branch", branchSchema);
+
 /* =====================================================
    2️⃣ Customer Model
 ===================================================== */
@@ -87,6 +119,14 @@ const shipmentSchema = new mongoose.Schema(
     totalCharge: { type: Number, default: 0 },
     paidAmount: { type: Number, default: 0 },
     notes: { type: String },
+
+    // বিলিং সম্পর্কিত ফিল্ডস
+    isBilled: { type: Boolean, default: false },
+    perKgRate: { type: Number, default: 0 },
+    totalBill: { type: Number, default: 0 },
+    discount: { type: Number, default: 0 },
+    billingDate: { type: Date },
+    invoiceId: { type: String },
   },
   { timestamps: true },
 );
@@ -179,6 +219,59 @@ export const GlobalBankStatement = model(
   "GlobalBankStatement",
   GlobalBankStatementSchema,
 );
+
+//* =====================================================
+// 6️⃣ Payment Model (UPDATED)
+//* =====================================================
+
+const PaymentSchema = new Schema(
+  {
+    shippingMark: {
+      type: String,
+      required: true,
+      index: true, // দ্রুত সার্চ করার জন্য ইনডেক্সিং
+    },
+    type: {
+      type: String,
+      enum: ["PAYMENT", "DISCOUNT", "ADJUSTMENT"],
+      required: true,
+      default: "PAYMENT",
+    },
+    amount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["CASH", "BKASH", "NAGAD", "BANK_TRANSFER", "CHECK"],
+      default: "CASH",
+    },
+    transactionId: {
+      type: String,
+      unique: true, // সিকিউরিটি: একই ট্রানজেকশন আইডি দ্বিতীয়বার বসানো যাবে না
+      sparse: true, // ক্যাশ পেমেন্টের ক্ষেত্রে যদি আইডি না থাকে তবে এরর দেবে না
+    },
+    date: {
+      type: Date,
+      default: Date.now,
+    },
+    recordedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // কোন স্টাফ পেমেন্টটি রিসিভ করল তা ট্র্যাক রাখার জন্য
+    },
+    remarks: {
+      type: String,
+      trim: true,
+    },
+  },
+  { timestamps: true },
+);
+
+// ডুপ্লিকেট ফিল্টারিং লজিক (Composite Unique Key)
+// এটি নিশ্চিত করবে যে একই মার্কের অধীনে একই পরিমাণ টাকা এবং একই দিনে ভুল করে দুবার এন্ট্রি না হয়
+PaymentSchema.index({ shippingMark: 1, amount: 1, date: 1 }, { unique: false });
+export const Payment = model("Payment", PaymentSchema);
 
 /* =====================================================
    7️⃣ User Schema

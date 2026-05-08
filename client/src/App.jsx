@@ -5,23 +5,25 @@ import axios from "axios";
 
 // মডিফাইড কম্পোনেন্ট ইম্পোর্ট
 import Dashboard from "./components/Dashboard";
-import AgencyList from "./components/AgencyList";
 import ShipmentList from "./components/ShipmentList"; // HajjiList -> ShipmentList
 import ShipmentProfile from "./components/ShipmentProfile"; // HajjiProfile -> ShipmentProfile
 import PaymentAllocation from "./components/PaymentAllocation"; // Typo fixed
-import AgencyProfile from "./components/AgencyProfile";
-import AddAgency from "./components/AddAgency";
+import AgencyProfile from "./components/BranchProfile";
+import AddBranch from "./components/AddBranch";
 import AddShipment from "./components/AddShipment"; // AddHajji -> AddShipment
 import NotificationSounds from "./components/NotificationSounds";
 import Login from "./components/Login";
 import BottomNav from "./components/BottomNav";
-import CustomerList from "./components/CustomerList";
-import CustomerProfile from "./components/CustomerProfile";
+// import CustomerList from "./components/CustomerList";
+// import CustomerProfile from "./components/CustomerProfile";
 import BatchList from "./components/BatchList";
 
 import BatchDetails from "./components/BatchDetails";
 import BulkImport from "./components/BulkImport";
 import BoxDetails from "./components/BoxDetails"; // ফোল্ডার পাথ আপনার অনুযায়ী ঠিক করে নেবেন
+import BranchDashboard from "./components/BranchProfile";
+import BranchProfile from "./components/BranchProfile";
+
 // Layout Component
 export const Layout = () => {
   const navigate = useNavigate();
@@ -92,7 +94,7 @@ const Header = () => {
           </li>
           <li>
             <NavLink
-              to="/agency-list"
+              to="/branch/new"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               ব্রাঞ্চসমূহ
@@ -103,18 +105,18 @@ const Header = () => {
               to="/shipment-list"
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              শিপমেন্টস
+              শিপমেন্টস 
             </NavLink>
           </li>
 
-          <li>
+          {/* <li>
             <NavLink to="/customers" className="nav-link">
               কাস্টমারস
             </NavLink>
-          </li>
+          </li> */}
           <li>
             <NavLink to="/batches" className="nav-link">
-              শিপমেন্ট লট
+              শিপমেন্ট  ব্যাচেস
             </NavLink>
           </li>
           <li>
@@ -176,10 +178,9 @@ const App = () => (
 
       {/* Agency/Branch Management */}
 
-      <Route path="/agency-list" element={<AgencyList />} />
-      <Route path="/agencies/new" element={<AddAgency />} />
-      <Route path="/agencies/:id/edit" element={<AddAgency />} />
-      <Route path="/agencies/:id" element={<AgencyProfile />} />
+     
+      <Route path="/branch/new" element={<AddBranch />} />
+      <Route path="/branch-profile" element={<BranchProfile/>} />
 
       {/* Shipment Management */}
       <Route path="/shipment-list" element={<ShipmentList />} />
@@ -187,8 +188,8 @@ const App = () => (
       <Route path="/shipment/new" element={<AddShipment />} />
       <Route path="/shipment/:id" element={<AddShipment />} />
       {/* customers mamnagement */}
-      <Route path="/customers" element={<CustomerList />} />
-      <Route path="/customer-profile/:id" element={<CustomerProfile />} />
+      {/* <Route path="/customers" element={<CustomerList />} /> */}
+      {/* <Route path="/customer-profile/:id" element={<CustomerProfile />} /> */}
       {/* নতুন ব্যাচ রাউট */}
       <Route path="/batches" element={<BatchList />} />
       <Route path="/batches/:id" element={<BatchDetails />} />
@@ -197,7 +198,6 @@ const App = () => (
       {/* Payment System */}
       <Route path="/payment-allocation" element={<PaymentAllocation />} />
       <Route path="/box-details/:id" element={<BoxDetails />} />
-      
 
       {/* 404 */}
       <Route

@@ -1,403 +1,410 @@
-//src/PaymentsAllowcations.jsx
-
-import React, { useEffect, useState, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useSearchParams } from "react-router-dom";
 
 export default function PaymentAllocation() {
-  const [paymentType, setPaymentType] = useState("");
-  const [statementNo, setStatementNo] = useState("");
-  const [bankName, setBankName] = useState("");
-  const [transactionId, setTransactionId] = useState("");
-  const [mobileBank, setMobileBank] = useState("");
-  const [receiptNo, setReceiptNo] = useState("");
-  const [amount, setAmount] = useState("");
-  const [shipmentList, setShipmentList] = useState([]);
-  const [allocations, setAllocations] = useState([]);
-  const [selectedShipments, setSelectedShipments] = useState([]);
-  const [receivedDate, setReceivedDate] = useState("");
+  const [searchParams] = useSearchParams();
+  const urlMark = searchParams.get("mark");
 
-  const [agencyList, setAgencyList] = useState([]);
-  const [selectedAgency, setSelectedAgency] = useState("");
+  // States
+  const [allBranches, setAllBranches] = useState([]); // ড্রপডাউনের জন্য সব ব্রাঞ্চ
+  const [activeMark, setActiveMark] = useState(urlMark || "");
+  const [totalBilled, setTotalBilled] = useState(0);
+  const [ledgerHistory, setLedgerHistory] = useState([]);
+  const [customerInvoices, setCustomerInvoices] = useState([]); // নির্দিষ্ট ইনভয়েসে পেমেন্ট করার জন্য
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  // ✅ ব্যাচের জন্য নতুন স্টেট
-  const [batches, setBatches] = useState([]);
-  const [selectedBatch, setSelectedBatch] = useState("");
-
-  // App source updated for Cargo
-  const APP_SOURCE = "CARGO";
-
-  const errorAudioRef = useRef(null);
-
-  // ১. রেফারেন্স নম্বর নরমালাইজ করা
-  const normalizeRef = (value = "") => {
-    return value
-      .toString()
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, "")
-      .trim();
-  };
-
-  // ২. শিপমেন্ট লিস্ট লোড করা
-  useEffect(() => {
-    axios
-      .get("/api/shipments")
-      .then((res) => {
-        setShipmentList(Array.isArray(res.data) ? res.data : []);
-      })
-      .catch((err) => console.error("Error fetching Shipment list:", err));
-  }, []);
-
-  // ৩. ব্রাঞ্চ/এজেন্সি লিস্ট লোড করা
-  useEffect(() => {
-    axios
-      .get("/api/agencies")
-      .then((res) => {
-        setAgencyList(Array.isArray(res.data) ? res.data : []);
-      })
-      .catch((err) => console.error("Error fetching agencies:", err));
-  }, []);
-
-  // ✅ ৪. ব্যাচ লিস্ট লোড করা
-  useEffect(() => {
-    axios
-      .get("/api/batches")
-      .then((res) => {
-        setBatches(Array.isArray(res.data) ? res.data : []);
-      })
-      .catch((err) => console.error("Error fetching batches:", err));
-  }, []);
-
-  // ৫. শিপমেন্ট সিলেকশন হ্যান্ডলার
-  const handleShipmentSelect = (shipmentId) => {
-    setSelectedShipments((prev) =>
-      prev.includes(shipmentId)
-        ? prev.filter((id) => id !== shipmentId)
-        : [...prev, shipmentId],
-    );
-    setAllocations((prev) => {
-      if (!prev.find((a) => a.shipmentId === shipmentId)) {
-        return [...prev, { shipmentId, amount: "" }];
-      }
-      return prev;
-    });
-  };
-
-  // ৬. ইন্ডিভিজুয়াল পেমেন্ট ইনপুট হ্যান্ডলার
-  const handleAmountChange = (shipmentId, value) => {
-    setAllocations((prev) =>
-      prev.map((a) =>
-        a.shipmentId === shipmentId
-          ? { ...a, amount: value === "" ? "" : parseFloat(value) || 0 }
-          : a,
-      ),
-    );
-  };
-
-  // ৭. সাবমিট লজিক
-  const handleSubmit = async () => {
-    if (!paymentType || !receivedDate || !amount) {
-      alert("Please fill all basic payment info!");
-      return;
-    }
-
-    if (selectedShipments.length === 0) {
-      alert("Select at least one Shipment to allocate money");
-      return;
-    }
-
-    const totalAllocated = allocations
-      .filter((a) => selectedShipments.includes(a.shipmentId))
-      .reduce((s, a) => s + (parseFloat(a.amount) || 0), 0);
-
-    if (totalAllocated !== parseFloat(amount)) {
-      alert(
-        `Error: Allocated sum (৳${totalAllocated}) doesn't match Total Amount (৳${amount})`,
-      );
-      return;
-    }
-
-    const payload = {
-      paymentType,
-      receivedDate,
-      totalAmount: Number(amount),
-      appSource: APP_SOURCE,
-      allocations: allocations
-        .filter((a) => selectedShipments.includes(a.shipmentId))
-        .map((a) => ({
-          shipmentId: a.shipmentId,
-          amount: Number(a.amount),
-        })),
-    };
-
-    if (paymentType === "bank") {
-      if (!statementNo || !bankName) return alert("Bank details required");
-      payload.statementNo = normalizeRef(statementNo);
-      payload.bankName = bankName;
-    } else if (paymentType === "mobile") {
-      if (!transactionId || !mobileBank)
-        return alert("Mobile banking details required");
-      payload.statementNo = normalizeRef(transactionId);
-      payload.mobileBank = mobileBank;
-    } else {
-      if (!receiptNo) return alert("Receipt Number required");
-      payload.statementNo = normalizeRef(receiptNo);
-    }
-
-    try {
-      const res = await axios.post("/api/payments/allocate", payload);
-      alert(res.data.message || "Payment allocated successfully!");
-      window.location.reload();
-    } catch (err) {
-      const msg = err.response?.data?.error || "Error in allocation";
-      // ✅ এখন মেসেজের ভেতর বাংলা শব্দ খুঁজবে
-      if (msg.includes("ইতিমধ্যে") || msg.includes("ব্যবহার করা হয়েছে")) {
-        // সাউন্ড প্লে করা
-        const errorSound = new Audio("/sounds/error.mp3");
-        errorSound.play().catch((e) => console.log("Audio Error:", e));
-
-        // আধা সেকেন্ড ডিলে করে অ্যালার্ট দেখানো
-        setTimeout(() => {
-          alert(msg);
-        }, 500);
-      } else {
-        alert(msg);
-      }
-    }
-  };
-
-  // ✅ ৮. মাল্টিপল ফিল্টার লজিক (ব্রাঞ্চ এবং ব্যাচ)
-  const filteredShipments = shipmentList.filter((s) => {
-    const matchAgency = selectedAgency
-      ? s.agency?._id === selectedAgency
-      : true;
-    const matchBatch = selectedBatch
-      ? (s.batch?._id || s.batch) === selectedBatch
-      : true;
-    return matchAgency && matchBatch;
+  // Form States
+  const [formData, setFormData] = useState({
+    amount: "",
+    type: "PAYMENT",
+    paymentMethod: "CASH",
+    transactionId: "",
+    allocatedInvoice: "", // নতুন: কোন ইনভয়েসের পেমেন্ট
+    remarks: "",
   });
 
+  // পেজ লোড হলে সব ব্রাঞ্চের লিস্ট নিয়ে আসবে
+  useEffect(() => {
+    fetchAllBranches();
+    if (urlMark) {
+      loadCustomerLedger(urlMark);
+    }
+  }, [urlMark]);
+
+  const fetchAllBranches = async () => {
+    try {
+      const res = await axios.get("/api/branches");
+      if (res.data.success) setAllBranches(res.data.branches);
+    } catch (error) {
+      console.error("Failed to fetch branches");
+    }
+  };
+
+  const playWarningSound = () => {
+    try {
+      const audio = new Audio("/sounds/warning.mp3");
+      audio.play();
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  const loadCustomerLedger = async (mark) => {
+    if (!mark) return;
+    setLoading(true);
+    setActiveMark(mark);
+    try {
+      // 1. Branch Summary
+      const summaryRes = await axios.get(`/api/branches/summary/${mark}`);
+      setTotalBilled(summaryRes.data.summary?.totalBilled || 0);
+
+      // 2. Payment History
+      const paymentRes = await axios.get(`/api/payments/history/${mark}`);
+      if (paymentRes.data.success) setLedgerHistory(paymentRes.data.payments);
+
+      // 3. Invoice List (ড্রপডাউনের জন্য)
+      const invoiceRes = await axios.get(
+        `/api/branches/invoice-history/${mark}`,
+      );
+      if (invoiceRes.data.success) setCustomerInvoices(invoiceRes.data.history);
+    } catch (error) {
+      alert("ডেটা লোড করতে সমস্যা হয়েছে!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ড্রপডাউন থেকে কাস্টমার পরিবর্তন করলে
+  const handleCustomerChange = (e) => {
+    const mark = e.target.value;
+    setActiveMark(mark);
+    if (mark) loadCustomerLedger(mark);
+  };
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const amountVal = parseFloat(formData.amount);
+    if (!amountVal || amountVal <= 0) return alert("সঠিক টাকার পরিমাণ দিন!");
+
+    // Duplicate Check
+    if (formData.transactionId) {
+      const isDuplicate = ledgerHistory.some(
+        (txn) =>
+          txn.transactionId?.toLowerCase() ===
+          formData.transactionId.toLowerCase(),
+      );
+      if (isDuplicate) {
+        playWarningSound();
+        return alert(
+          `⚠️ ডুপ্লিকেট এন্ট্রি! "${formData.transactionId}" রিসিটটি ইতিমধ্যে এন্ট্রি করা হয়েছে।`,
+        );
+      }
+    }
+
+    setSubmitting(true);
+    try {
+      const payload = {
+        ...formData,
+        shippingMark: activeMark,
+        amount: amountVal,
+      };
+
+      const res = await axios.post("/api/payments/add-payment", payload);
+
+      if (res.data.success) {
+        alert("পেমেন্ট সফলভাবে এন্ট্রি হয়েছে!");
+        setFormData({
+          amount: "",
+          type: "PAYMENT",
+          paymentMethod: "CASH",
+          transactionId: "",
+          allocatedInvoice: "",
+          remarks: "",
+        });
+        loadCustomerLedger(activeMark);
+      }
+    } catch (error) {
+      playWarningSound();
+      alert(
+        error.response?.data?.message || "ট্রানজেকশন সেভ করতে সমস্যা হয়েছে!",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const totalPaid = ledgerHistory
+    .filter((txn) => txn.type === "PAYMENT")
+    .reduce((acc, curr) => acc + curr.amount, 0);
+
+  const totalDiscount = ledgerHistory
+    .filter((txn) => txn.type === "DISCOUNT" || txn.type === "ADJUSTMENT")
+    .reduce((acc, curr) => acc + curr.amount, 0);
+
+  const currentDue = totalBilled - totalPaid - totalDiscount;
+
   return (
-    <div className="payment-allocation">
-      <div className="header-flex">
-        <h2>💳 Payment Allocation (Cargo)</h2>
-        <span className="source-tag">{APP_SOURCE} SYSTEM</span>
+    <div className="payment-allocation-container">
+      <div className="header-section">
+        <h2>💰 Payment Allocation & Ledger</h2>
+        <p>
+          কাস্টমার সিলেক্ট করুন এবং তাদের নির্দিষ্ট ইনভয়েসের বিপরীতে পেমেন্ট
+          রিসিভ করুন
+        </p>
       </div>
 
-      <div className="form-grid">
-        <div className="form-group">
-          <label>Payment Method:</label>
-          <select
-            value={paymentType}
-            onChange={(e) => setPaymentType(e.target.value)}
-          >
-            <option value="">-- Choose --</option>
-            <option value="bank">🏦 Bank Transfer</option>
-            <option value="mobile">📱 Mobile Banking (Bkash/Nagad)</option>
-            <option value="cash">💵 Cash / Receipt</option>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label>Received Date:</label>
-          <input
-            type="date"
-            value={receivedDate}
-            onChange={(e) => setReceivedDate(e.target.value)}
-            max={new Date().toISOString().split("T")[0]}
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Total Amount to Allocate:</label>
-          <input
-            type="number"
-            className="total-amt-input"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="৳ 0.00"
-          />
-        </div>
+      {/* ✅ Smart Search / Dropdown Section */}
+      <div className="search-card">
+        <label>Select Customer / Shipping Mark:</label>
+        <select
+          value={activeMark}
+          onChange={handleCustomerChange}
+          className="smart-select"
+        >
+          <option value="">-- কাস্টমার সিলেক্ট করুন --</option>
+          {allBranches.map((branch) => (
+            <option key={branch._id} value={branch.shippingMark}>
+              {branch.shippingMark} - {branch.branchName}
+            </option>
+          ))}
+        </select>
       </div>
 
-      <div className="dynamic-fields">
-        {paymentType === "bank" && (
-          <div className="grid-2">
-            <input
-              placeholder="Statement / Check No"
-              value={statementNo}
-              onChange={(e) => setStatementNo(e.target.value)}
-            />
-            <input
-              placeholder="Bank Name"
-              value={bankName}
-              onChange={(e) => setBankName(e.target.value)}
-            />
+      {loading && <div className="loading-text">ডেটা লোড হচ্ছে...</div>}
+
+      {activeMark && !loading && (
+        <>
+          <div className="ledger-stats-grid">
+            <div className="stat-card blue">
+              <span>Total Billed</span>
+              <h3>৳ {totalBilled.toLocaleString()}</h3>
+            </div>
+            <div className="stat-card green">
+              <span>Total Paid</span>
+              <h3>৳ {totalPaid.toLocaleString()}</h3>
+            </div>
+            <div className="stat-card orange">
+              <span>Total Discount</span>
+              <h3>৳ {totalDiscount.toLocaleString()}</h3>
+            </div>
+            <div className={`stat-card ${currentDue > 0 ? "red" : "gray"}`}>
+              <span>Current Due</span>
+              <h3>৳ {currentDue.toLocaleString()}</h3>
+            </div>
           </div>
-        )}
-        {paymentType === "mobile" && (
-          <div className="grid-2">
-            <input
-              placeholder="Transaction ID (TrxID)"
-              value={transactionId}
-              onChange={(e) => setTransactionId(e.target.value)}
-            />
-            <input
-              placeholder="Mobile Bank (e.g. Bkash)"
-              value={mobileBank}
-              onChange={(e) => setMobileBank(e.target.value)}
-            />
+
+          <div className="main-grid">
+            {/* Add Transaction Form */}
+            <div className="form-card">
+              <h3>➕ Add New Transaction</h3>
+              <form onSubmit={handleSubmit}>
+                {/* ✅ Invoice Allocation Dropdown */}
+                <div className="form-group highlight-group">
+                  <label>Allocate to Specific Invoice (Optional)</label>
+                  <select
+                    name="allocatedInvoice"
+                    value={formData.allocatedInvoice}
+                    onChange={handleInputChange}
+                  >
+                    <option value="">
+                      General Payment / Advance (কোনো নির্দিষ্ট ইনভয়েস নয়)
+                    </option>
+                    {customerInvoices.map((inv) => (
+                      <option key={inv._id} value={inv._id}>
+                        {inv._id} (Bill: ৳ {inv.totalAmount.toLocaleString()})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Amount (৳) *</label>
+                  <input
+                    type="number"
+                    name="amount"
+                    value={formData.amount}
+                    onChange={handleInputChange}
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+
+                <div className="form-flex-row">
+                  <div className="form-group w-50">
+                    <label>Transaction Type</label>
+                    <select
+                      name="type"
+                      value={formData.type}
+                      onChange={handleInputChange}
+                    >
+                      <option value="PAYMENT">Payment Receipt</option>
+                      <option value="DISCOUNT">Discount (ছাড়)</option>
+                      <option value="ADJUSTMENT">Adjustment</option>
+                    </select>
+                  </div>
+                  <div className="form-group w-50">
+                    <label>Payment Method</label>
+                    <select
+                      name="paymentMethod"
+                      value={formData.paymentMethod}
+                      onChange={handleInputChange}
+                    >
+                      <option value="CASH">Cash</option>
+                      <option value="BANK_TRANSFER">Bank</option>
+                      <option value="BKASH">bKash</option>
+                      <option value="NAGAD">Nagad</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Receipt / Ref ID (For filtering duplicates)</label>
+                  <input
+                    type="text"
+                    name="transactionId"
+                    value={formData.transactionId}
+                    onChange={handleInputChange}
+                    placeholder="e.g. BKS-789456"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Remarks / Note</label>
+                  <input
+                    type="text"
+                    name="remarks"
+                    value={formData.remarks}
+                    onChange={handleInputChange}
+                    placeholder="Write note here..."
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="submit-btn"
+                  disabled={submitting}
+                >
+                  {submitting ? "Saving..." : "💾 Save Transaction"}
+                </button>
+              </form>
+            </div>
+
+            {/* Ledger Statement Table */}
+            <div className="table-card">
+              <h3>📜 Account Statement / Ledger</h3>
+              <div className="table-responsive">
+                <table className="ledger-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Type/Inv.</th>
+                      <th>Ref ID</th>
+                      <th>Remarks</th>
+                      <th className="text-right">Amount (৳)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ledgerHistory.length > 0 ? (
+                      ledgerHistory.map((txn) => (
+                        <tr key={txn._id}>
+                          <td>
+                            {new Date(txn.date).toLocaleDateString("en-GB")}
+                          </td>
+                          <td>
+                            <span
+                              className={`type-badge ${txn.type.toLowerCase()}`}
+                            >
+                              {txn.type}
+                            </span>
+                            {txn.allocatedInvoice && (
+                              <div className="inv-badge">
+                                Inv: {txn.allocatedInvoice}
+                              </div>
+                            )}
+                          </td>
+                          <td>
+                            <strong>{txn.transactionId || "-"}</strong>
+                          </td>
+                          <td>
+                            <small>{txn.remarks || "-"}</small>
+                          </td>
+                          <td className="text-right fw-bold text-green">
+                            + {txn.amount.toLocaleString()}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="5" className="no-data">
+                          কোনো ট্রানজেকশন পাওয়া যায়নি।
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
-        )}
-        {paymentType === "cash" && (
-          <input
-            placeholder="Voucher / Receipt Number"
-            value={receiptNo}
-            onChange={(e) => setReceiptNo(e.target.value)}
-          />
-        )}
-      </div>
+        </>
+      )}
 
-      <hr />
-
-      <div className="shipment-selection-area">
-        <h3>📦 Select Shipments for Allocation</h3>
-
-        {/* ✅ ফিল্টার অপশনগুলো (ব্রাঞ্চ এবং ব্যাচ) */}
-        <div className="filter-row">
-          <select
-            value={selectedBatch}
-            onChange={(e) => setSelectedBatch(e.target.value)}
-          >
-            <option value="">All Batches / Flights</option>
-            {batches.map((b) => (
-              <option key={b._id} value={b._id}>
-                {b.batchName}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={selectedAgency}
-            onChange={(e) => setSelectedAgency(e.target.value)}
-          >
-            <option value="">All Branches / Agencies</option>
-            {agencyList.map((a) => (
-              <option key={a._id} value={a._id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="table-wrapper">
-          <table className="cargo-table">
-            <thead>
-              <tr>
-                <th>Select</th>
-                <th>Tracking No</th>
-                <th>Sender / Customer</th>
-                <th>Branch</th>
-                <th>Charge</th>
-                <th>Due</th>
-                <th>Allocate</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredShipments.map((s) => {
-                const due = s.totalCharge - s.paidAmount;
-                return (
-                  <tr
-                    key={s._id}
-                    className={
-                      selectedShipments.includes(s._id) ? "selected-row" : ""
-                    }
-                  >
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={selectedShipments.includes(s._id)}
-                        onChange={() => handleShipmentSelect(s._id)}
-                      />
-                    </td>
-                    <td className="trk-no">{s.trackingNumber}</td>
-                    <td>
-                      {s.shipmentLabel || s.customer?.fullName || "Unknown"}
-                    </td>
-                    <td>{s.agency?.name}</td>
-                    <td>৳ {s.totalCharge}</td>
-                    <td className="due-text">৳ {due}</td>
-                    <td>
-                      <input
-                        type="number"
-                        className="cell-input"
-                        placeholder="0"
-                        disabled={!selectedShipments.includes(s._id)}
-                        value={
-                          allocations.find((a) => a.shipmentId === s._id)
-                            ?.amount || ""
-                        }
-                        onChange={(e) =>
-                          handleAmountChange(s._id, e.target.value)
-                        }
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {filteredShipments.length === 0 && (
-                <tr>
-                  <td
-                    colSpan="7"
-                    style={{ textAlign: "center", padding: "15px" }}
-                  >
-                    No unpaid shipments found for the selected criteria.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <button className="submit-btn" onClick={handleSubmit}>
-        ✅ Finalize Allocation
-      </button>
-      <audio ref={errorAudioRef} src="/sounds/error.mp3" preload="auto" />
-
+      {/* CSS Styles */}
       <style>{`
-        .payment-allocation { max-width: 1000px; margin: auto; padding: 25px; background: #fff; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        .header-flex { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
-        .source-tag { background: #6c5ce7; color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .payment-allocation-container { padding: 30px; background: #f4f7fa; min-height: 100vh; font-family: 'Inter', sans-serif; }
+        .header-section { margin-bottom: 25px; }
+        .header-section h2 { margin: 0; color: #0f172a; font-size: 26px; }
+        .header-section p { margin: 5px 0 0; color: #64748b; font-size: 14px; }
+
+        .search-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 25px; max-width: 600px; }
+        .search-card label { font-weight: bold; color: #475569; display: block; margin-bottom: 10px; }
+        .smart-select { width: 100%; padding: 12px 15px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px; font-weight: bold; outline: none; cursor: pointer; }
+        .smart-select:focus { border-color: #0ea5e9; }
+
+        .ledger-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 25px; }
+        .stat-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border-left: 5px solid; }
+        .stat-card span { font-size: 13px; font-weight: bold; color: #64748b; }
+        .stat-card h3 { margin: 10px 0 0; font-size: 24px; color: #0f172a; }
+        .stat-card.blue { border-color: #3b82f6; }
+        .stat-card.green { border-color: #10b981; }
+        .stat-card.orange { border-color: #f59e0b; }
+        .stat-card.red { border-color: #ef4444; }
+        .stat-card.gray { border-color: #94a3b8; }
+
+        .main-grid { display: grid; grid-template-columns: 400px 1fr; gap: 25px; align-items: start; }
+        .form-card, .table-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+        .form-card h3, .table-card h3 { margin: 0 0 20px; padding-bottom: 15px; border-bottom: 2px solid #f1f5f9; color: #0f172a; }
+
+        .form-group { margin-bottom: 15px; }
+        .highlight-group { background: #f0f9ff; padding: 15px; border-radius: 8px; border: 1px solid #bae6fd; }
+        .form-group label { display: block; font-weight: bold; font-size: 13px; color: #475569; margin-bottom: 5px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 14px; outline: none; }
+        .form-group input:focus, .form-group select:focus { border-color: #0ea5e9; }
+        .form-flex-row { display: flex; gap: 15px; }
+        .w-50 { width: 50%; }
+        .submit-btn { width: 100%; background: #10b981; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        .submit-btn:hover { background: #059669; }
+
+        .table-responsive { overflow-x: auto; max-height: 550px; overflow-y: auto; }
+        .ledger-table { width: 100%; border-collapse: collapse; }
+        .ledger-table th { background: #f8fafc; padding: 12px; text-align: left; font-size: 13px; color: #475569; border-bottom: 2px solid #e2e8f0; position: sticky; top: 0; }
+        .ledger-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155; }
         
-        .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #444; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
+        .type-badge { font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 12px; }
+        .type-badge.payment { background: #dcfce7; color: #166534; }
+        .type-badge.discount { background: #fef3c7; color: #d97706; }
+        .type-badge.adjustment { background: #e0f2fe; color: #0369a1; }
+        .inv-badge { font-size: 11px; color: #3b82f6; margin-top: 4px; font-weight: bold; }
         
-        .total-amt-input { border: 2px solid #6c5ce7; font-size: 18px; font-weight: bold; color: #6c5ce7; }
-        .dynamic-fields { margin: 20px 0; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-
-        .filter-row { display: flex; gap: 15px; margin-bottom: 15px; }
-        .filter-row select { flex: 1; }
-
-        .table-wrapper { max-height: 400px; overflow-y: auto; margin-top: 15px; border: 1px solid #eee; border-radius: 10px; }
-        .cargo-table { width: 100%; border-collapse: collapse; }
-        .cargo-table th { background: #f8f9fa; position: sticky; top: 0; padding: 12px; text-align: left; font-size: 13px; z-index: 10; }
-        .cargo-table td { padding: 12px; border-bottom: 1px solid #f1f1f1; font-size: 14px; }
-        
-        .selected-row { background: #f0f7ff; }
-        .trk-no { font-weight: bold; color: #0d6efd; }
-        .due-text { color: #e74c3c; font-weight: bold; }
-        .cell-input { width: 100px; border: 1px solid #6c5ce7; }
-
-        .submit-btn { width: 100%; padding: 15px; margin-top: 25px; background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: #fff; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .submit-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(108, 92, 231, 0.3); }
-
-        @media (max-width: 600px) {
-          .filter-row { flex-direction: column; }
-          .form-grid { grid-template-columns: 1fr; }
-        }
+        .text-right { text-align: right; }
+        .fw-bold { font-weight: bold; }
+        .text-green { color: #10b981; }
+        .no-data { text-align: center; color: #94a3b8; padding: 30px !important; }
       `}</style>
     </div>
   );
