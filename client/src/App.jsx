@@ -194,6 +194,7 @@ const App = () => (
       <Route path="/batches" element={<BatchList />} />
       <Route path="/batches/:id" element={<BatchDetails />} />
       <Route path="/bulk-import" element={<BulkImport />} />
+      
 
       {/* Payment System */}
       <Route path="/payment-allocation" element={<PaymentAllocation />} />

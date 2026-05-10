@@ -67,7 +67,7 @@ const CustomerSchema = new Schema(
 export const Customer = model("Customer", CustomerSchema);
 
 /* =====================================================
-   3️⃣ Shipment Model
+   3️⃣ Shipment Model (Updated with Exception Handling)
 ===================================================== */
 const shipmentSchema = new mongoose.Schema(
   {
@@ -92,7 +92,6 @@ const shipmentSchema = new mongoose.Schema(
 
     // ট্র্যাকিং লজিক
     chinaTrackingNo: { type: String },
-
     receivedDate: { type: Date, default: Date.now },
 
     shipmentType: {
@@ -102,20 +101,30 @@ const shipmentSchema = new mongoose.Schema(
     },
     originPort: { type: String },
 
-    // ✅ নতুন যুক্ত করা ফিল্ড: মাস্টার কার্টন ও সাব-কার্টন লজিকের জন্য
-    isMasterCarton: { type: Boolean, default: false }, // এটি কি বড় বক্স?
+    // মাস্টার কার্টন ও সাব-কার্টন লজিক
+    isMasterCarton: { type: Boolean, default: false },
     parentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Shipment",
       default: null,
-    }, // ছোট বক্স হলে এখানে বড় বক্সের আইডি বসবে
+    },
 
     // রিলেশনস
     customer: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
     agency: { type: mongoose.Schema.Types.ObjectId, ref: "Agency" },
     batch: { type: mongoose.Schema.Types.ObjectId, ref: "Batch" },
 
+    // 🔴 স্ট্যাটাস এবং নতুন এক্সেপশন (Hold) লজিক
     status: { type: String, default: "Warehouse Received" },
+
+    // ✅ নতুন যুক্ত করা ফিল্ড: Hybrid Exception Handling এর জন্য
+    isHeld: { type: Boolean, default: false }, // ট্রু থাকলে ব্যাচ স্ট্যাটাসের সাথে এটি পরিবর্তন হবে না
+    exceptionStatus: {
+      type: String,
+      enum: ["Normal", "Customs Hold", "Flight Offload", "Missing", "Damaged"],
+      default: "Normal",
+    },
+
     totalCharge: { type: Number, default: 0 },
     paidAmount: { type: Number, default: 0 },
     notes: { type: String },

@@ -33,7 +33,64 @@ export default function BatchDetails() {
     customs: 0,
     otherCost: 0,
   });
+  // ✅ Exception Handling States
+  const [selectedBoxIds, setSelectedBoxIds] = useState([]);
+  const [isExceptionModalOpen, setIsExceptionModalOpen] = useState(false);
+  const [allBatches, setAllBatches] = useState([]);
+  const [exceptionData, setExceptionData] = useState({
+    action: "HOLD",
+    reason: "Customs Hold",
+    targetBatchId: "",
+  });
 
+  // ✅ Checkbox Select Logic
+  const handleSelectBox = (id) => {
+    setSelectedBoxIds((prev) =>
+      prev.includes(id) ? prev.filter((boxId) => boxId !== id) : [...prev, id],
+    );
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allIds = displayList.map((s) => s._id);
+      setSelectedBoxIds(allIds);
+    } else {
+      setSelectedBoxIds([]);
+    }
+  };
+
+  // ✅ Exception Modal Open ও Data Fetch
+  const openExceptionModal = async () => {
+    try {
+      const res = await axios.get("/api/batches");
+      // বর্তমান ব্যাচ বাদে বাকিগুলো ফিল্টার করা
+      setAllBatches(res.data.filter((b) => b._id !== id));
+      setIsExceptionModalOpen(true);
+    } catch (err) {
+      alert("ব্যাচ লিস্ট লোড করতে সমস্যা হয়েছে।");
+    }
+  };
+
+  // ✅ Exception Submit Logic
+  const handleExceptionSubmit = async () => {
+    if (exceptionData.action === "MOVE" && !exceptionData.targetBatchId) {
+      return alert("অনুগ্রহ করে একটি টার্গেট ব্যাচ সিলেক্ট করুন!");
+    }
+    try {
+      await axios.put("/api/batches/manage-exception", {
+        shipmentIds: selectedBoxIds,
+        action: exceptionData.action,
+        reason: exceptionData.reason,
+        targetBatchId: exceptionData.targetBatchId,
+      });
+      alert("অ্যাকশন সফলভাবে সম্পন্ন হয়েছে!");
+      setIsExceptionModalOpen(false);
+      setSelectedBoxIds([]);
+      fetchData(); // ডেটা রিফ্রেশ
+    } catch (err) {
+      alert("সমস্যা হয়েছে! আবার চেষ্টা করুন।");
+    }
+  };
   const toggleRow = (rowId) =>
     setExpandedRows((prev) => ({ ...prev, [rowId]: !prev[rowId] }));
 
@@ -414,10 +471,21 @@ export default function BatchDetails() {
           {/* ✅ আলাদা করা সার্চ কম্পোনেন্ট */}
           <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
           <div className="action-btns">
+            {/* ✅ নতুন Manage Exception বাটন (যখন বক্স সিলেক্ট করা হবে তখন দেখাবে) */}
+            {selectedBoxIds.length > 0 && (
+              <button
+                className="bulk-toggle-btn"
+                style={{ background: "#ef4444", color: "white" }}
+                onClick={openExceptionModal}
+              >
+                ⚠️ Manage Exceptions ({selectedBoxIds.length})
+              </button>
+            )}
             {/* ✅ নতুন Bulk QR Print বাটন */}
             <button className="bulk-qr-btn" onClick={handleBulkQRPrint}>
               🖨️ Bulk Print QR
             </button>
+
             <button className="excel-btn" onClick={exportToExcel}>
               📊 Export Excel
             </button>
@@ -604,7 +672,14 @@ export default function BatchDetails() {
             <thead>
               <tr>
                 <th>
-                  <input type="checkbox" />
+                  <input
+                    type="checkbox"
+                    onChange={handleSelectAll}
+                    checked={
+                      displayList.length > 0 &&
+                      selectedBoxIds.length === displayList.length
+                    }
+                  />
                 </th>
                 <th>SL</th>
                 <th>Tracking (China)</th>
@@ -623,9 +698,15 @@ export default function BatchDetails() {
                 const stats = getCalculatedStats(s);
                 return (
                   <React.Fragment key={s._id}>
-                    <tr className={s.isMasterCarton ? "master-row" : ""}>
+                    <tr
+                      className={`${s.isMasterCarton ? "master-row" : ""} ${s.isHeld ? "held-row" : ""}`}
+                    >
                       <td>
-                        <input type="checkbox" />
+                        <input
+                          type="checkbox"
+                          checked={selectedBoxIds.includes(s._id)}
+                          onChange={() => handleSelectBox(s._id)}
+                        />
                       </td>
                       <td>{idx + 1}</td>
                       <td>{s.chinaTrackingNo || "-"}</td>
@@ -639,6 +720,21 @@ export default function BatchDetails() {
                           </button>
                         )}
                         {s.shippingMark}
+                        {s.isHeld && (
+                          <span
+                            style={{
+                              background: "#ef4444",
+                              color: "white",
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                              fontSize: "10px",
+                              marginLeft: "5px",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            🛑 {s.exceptionStatus}
+                          </span>
+                        )}
                       </td>
                       <td>{s.productName || "-"}</td>
                       <td>{s.cartonNo || "-"}</td>
@@ -901,6 +997,139 @@ export default function BatchDetails() {
                 }}
               >
                 🖨️ Print Sticker
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ Exception Management Modal */}
+      {isExceptionModalOpen && (
+        <div className="fixed-modal-overlay">
+          <div className="fixed-modal-content" style={{ width: "400px" }}>
+            <h2 style={{ marginBottom: "15px", color: "#0f172a" }}>
+              ⚠️ Manage Exception
+            </h2>
+            <p
+              style={{
+                fontSize: "14px",
+                color: "#64748b",
+                marginBottom: "20px",
+              }}
+            >
+              Total Selected Boxes: <strong>{selectedBoxIds.length}</strong>
+            </p>
+
+            <div style={{ marginBottom: "15px" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontWeight: "bold",
+                  marginBottom: "5px",
+                }}
+              >
+                Action Type:
+              </label>
+              <select
+                value={exceptionData.action}
+                onChange={(e) =>
+                  setExceptionData({ ...exceptionData, action: e.target.value })
+                }
+                className="filter-input"
+                style={{ width: "100%", padding: "10px" }}
+              >
+                <option value="HOLD">
+                  ⏸️ Hold Box (কাস্টমস বা অন্য কারণে)
+                </option>
+                <option value="RELEASE">
+                  ▶️ Release Box (হোল্ড থেকে মুক্ত করা)
+                </option>
+                <option value="MOVE">
+                  🚚 Move to Another Batch (ফ্লাইট মিস হলে)
+                </option>
+              </select>
+            </div>
+
+            {exceptionData.action === "HOLD" && (
+              <div style={{ marginBottom: "15px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontWeight: "bold",
+                    marginBottom: "5px",
+                  }}
+                >
+                  Hold Reason:
+                </label>
+                <input
+                  type="text"
+                  value={exceptionData.reason}
+                  onChange={(e) =>
+                    setExceptionData({
+                      ...exceptionData,
+                      reason: e.target.value,
+                    })
+                  }
+                  className="filter-input"
+                  style={{ width: "100%", padding: "10px" }}
+                  placeholder="e.g. Customs Hold, Damaged..."
+                />
+              </div>
+            )}
+
+            {exceptionData.action === "MOVE" && (
+              <div style={{ marginBottom: "15px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontWeight: "bold",
+                    marginBottom: "5px",
+                  }}
+                >
+                  Select Target Batch:
+                </label>
+                <select
+                  value={exceptionData.targetBatchId}
+                  onChange={(e) =>
+                    setExceptionData({
+                      ...exceptionData,
+                      targetBatchId: e.target.value,
+                    })
+                  }
+                  className="filter-input"
+                  style={{ width: "100%", padding: "10px" }}
+                >
+                  <option value="">-- ব্যাচ সিলেক্ট করুন --</option>
+                  {allBatches.map((b) => (
+                    <option key={b._id} value={b._id}>
+                      {b.batchName} ({b.status})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div
+              className="modal-footer"
+              style={{
+                marginTop: "25px",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+              }}
+            >
+              <button
+                className="cancel-btn"
+                onClick={() => setIsExceptionModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="save-btn"
+                style={{ background: "#ef4444" }}
+                onClick={handleExceptionSubmit}
+              >
+                Confirm Action
               </button>
             </div>
           </div>

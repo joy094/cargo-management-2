@@ -8,6 +8,11 @@ import "./BatchList.css";
 export default function BatchList() {
   const [batches, setBatches] = useState([]);
   const [showModal, setShowModal] = useState(false);
+
+  // ✅ Edit Modal States
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingBatch, setEditingBatch] = useState(null);
+
   const navigate = useNavigate();
 
   // ✅ পোর্টের অপশনসমূহ
@@ -21,8 +26,8 @@ export default function BatchList() {
     batchName: "",
     flightNumber: "",
     flightDate: "",
-    shipmentType: "Air", // ডিফল্ট রুট
-    originPort: "Guangzhou (CAN)", // ডিফল্ট পোর্ট
+    shipmentType: "Air",
+    originPort: "Guangzhou (CAN)",
   });
 
   useEffect(() => {
@@ -32,22 +37,43 @@ export default function BatchList() {
   const fetchBatches = async () => {
     try {
       const res = await axios.get("/api/batches");
+      // 🔥 এই লাইনটি বসান:
+      console.log("Backend Data:", res.data);
+
+      // 🔥 চেক করা হচ্ছে ব্যাকএন্ড থেকে সঠিক ডাটা (Array) আসছে কি না
+      if (!Array.isArray(res.data)) {
+        console.error("Backend Error:", res.data);
+        alert("ব্যাকএন্ড এরর: " + (res.data.error || "Unknown Error"));
+        return;
+      }
+
       const sortedData = res.data.sort(
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
       );
       setBatches(sortedData);
     } catch (err) {
       console.error("Error fetching batches:", err);
+      alert("সার্ভারের সাথে কানেক্ট করা যাচ্ছে না বা সার্ভার বন্ধ আছে!");
     }
   };
 
-  // ✅ রুট পরিবর্তন হলে পোর্ট অটোমেটিক আপডেট করার লজিক
+  // ✅ রুট পরিবর্তন (Create)
   const handleRouteSelect = (e) => {
     const selectedRoute = e.target.value;
     setNewBatch({
       ...newBatch,
       shipmentType: selectedRoute,
-      originPort: portOptions[selectedRoute][0], // ওই রুটের প্রথম পোর্ট সিলেক্ট হবে
+      originPort: portOptions[selectedRoute][0],
+    });
+  };
+
+  // ✅ রুট পরিবর্তন (Edit)
+  const handleEditRouteSelect = (e) => {
+    const selectedRoute = e.target.value;
+    setEditingBatch({
+      ...editingBatch,
+      shipmentType: selectedRoute,
+      originPort: portOptions[selectedRoute][0],
     });
   };
 
@@ -66,6 +92,19 @@ export default function BatchList() {
       fetchBatches();
     } catch (err) {
       alert("ব্যাচ তৈরি করতে সমস্যা হয়েছে।");
+    }
+  };
+
+  // ✅ এডিট সেভ করার ফাংশন
+  const handleUpdateBatch = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.put(`/api/batches/${editingBatch._id}`, editingBatch);
+      setShowEditModal(false);
+      setEditingBatch(null);
+      fetchBatches();
+    } catch (err) {
+      alert("ব্যাচ আপডেট করতে সমস্যা হয়েছে।");
     }
   };
 
@@ -107,9 +146,19 @@ export default function BatchList() {
           </thead>
           <tbody>
             {batches.map((b) => (
-              <tr key={b._id} className="table-row">
+              // 🔥 যদি heldCount > 0 হয়, তাহলে রো-এর ব্যাকগ্রাউন্ড হালকা লাল হবে
+              <tr
+                key={b._id}
+                className={`table-row ${b.heldCount > 0 ? "has-held-items" : ""}`}
+              >
                 <td>
                   <span className="batch-name-highlight">📦 {b.batchName}</span>
+                  {/* 🔥 হোল্ড করা বক্স থাকলে লাল ব্যাজ দেখাবে */}
+                  {b.heldCount > 0 && (
+                    <div className="held-badge">
+                      ⚠️ {b.heldCount} Boxes Held
+                    </div>
+                  )}
                 </td>
                 <td>
                   <div className="route-info">
@@ -119,16 +168,22 @@ export default function BatchList() {
                   </div>
                 </td>
                 <td className="flight-no">{b.flightNumber || "N/A"}</td>
+
+                {/* ✅ ফ্লাইট তারিখ ইংরেজিতে কনভার্ট করা হয়েছে */}
                 <td className="date-text">
                   {b.flightDate
-                    ? new Date(b.flightDate).toLocaleDateString("bn-BD")
+                    ? new Date(b.flightDate).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })
                     : "-"}
                 </td>
+
                 <td>
                   <span className="count-badge">{b.shipmentCount || 0} টি</span>
                 </td>
                 <td>
-                  {/* ✅ স্ট্যাটাসের স্পেস হাইফেনে কনভার্ট করা হয়েছে যাতে CSS কাজ করে */}
                   <span
                     className={`status-badge ${
                       b.status
@@ -145,7 +200,21 @@ export default function BatchList() {
                       className="btn-view"
                       onClick={() => navigate(`/batches/${b._id}`)}
                     >
-                      📂 বিস্তারিত
+                      📂
+                    </button>
+                    {/* ✅ এডিট বাটন */}
+                    <button
+                      className="btn-edit"
+                      onClick={() => {
+                        // তারিখটাকে input type="date" এর ফরম্যাটে (YYYY-MM-DD) সাজানো হচ্ছে
+                        const formattedDate = b.flightDate
+                          ? new Date(b.flightDate).toISOString().split("T")[0]
+                          : "";
+                        setEditingBatch({ ...b, flightDate: formattedDate });
+                        setShowEditModal(true);
+                      }}
+                    >
+                      ✏️
                     </button>
                     <button
                       className="btn-delete"
@@ -161,6 +230,7 @@ export default function BatchList() {
         </table>
       </div>
 
+      {/* ✅ Create New Batch Modal */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -178,7 +248,6 @@ export default function BatchList() {
                 />
               </div>
 
-              {/* ✅ রুট এবং পোর্টের জন্য ড্রপডাউন */}
               <div className="grid-2">
                 <div className="input-group">
                   <label>Route (রুট) *</label>
@@ -252,6 +321,116 @@ export default function BatchList() {
         </div>
       )}
 
+      {/* ✅ Edit Batch Modal */}
+      {showEditModal && editingBatch && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>ব্যাচ আপডেট করুন</h2>
+            <form onSubmit={handleUpdateBatch}>
+              <div className="input-group">
+                <label>ব্যাচের নাম *</label>
+                <input
+                  required
+                  value={editingBatch.batchName}
+                  onChange={(e) =>
+                    setEditingBatch({
+                      ...editingBatch,
+                      batchName: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="grid-2">
+                <div className="input-group">
+                  <label>Route (রুট) *</label>
+                  <select
+                    value={editingBatch.shipmentType || "Air"}
+                    onChange={handleEditRouteSelect}
+                    required
+                  >
+                    <option value="Air">🚀 Air Cargo</option>
+                    <option value="Sea">🚢 Sea Cargo</option>
+                    <option value="Hand Carry">💼 Hand Carry</option>
+                  </select>
+                </div>
+
+                <div className="input-group">
+                  <label>Origin Port (পোর্ট) *</label>
+                  <select
+                    value={editingBatch.originPort}
+                    onChange={(e) =>
+                      setEditingBatch({
+                        ...editingBatch,
+                        originPort: e.target.value,
+                      })
+                    }
+                    required
+                  >
+                    {portOptions[editingBatch.shipmentType || "Air"].map(
+                      (p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid-2">
+                <div className="input-group">
+                  <label>ফ্লাইট নম্বর</label>
+                  <input
+                    value={editingBatch.flightNumber}
+                    onChange={(e) =>
+                      setEditingBatch({
+                        ...editingBatch,
+                        flightNumber: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="input-group">
+                  <label>ফ্লাইট তারিখ *</label>
+                  <input
+                    type="date"
+                    required
+                    value={editingBatch.flightDate}
+                    onChange={(e) =>
+                      setEditingBatch({
+                        ...editingBatch,
+                        flightDate: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="cancel-btn"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingBatch(null);
+                  }}
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  className="save-btn"
+                  style={{ background: "#eab308" }}
+                >
+                  আপডেট করুন
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .modern-table-container { background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden; margin-top: 20px; border: 1px solid #eee; }
         .beautiful-table { width: 100%; border-collapse: collapse; white-space: nowrap; }
@@ -259,7 +438,11 @@ export default function BatchList() {
         .beautiful-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
         .table-row:hover { background-color: #f8fbff; }
         
-        .batch-name-highlight { font-weight: bold; color: #003580; }
+        /* 🔥 Hold Warning CSS */
+        .has-held-items { background-color: #fef2f2 !important; }
+        .held-badge { background: #ef4444; color: white; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; margin-top: 5px; display: inline-block; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2); }
+        
+        .batch-name-highlight { font-weight: bold; color: #003580; font-size: 15px; }
         .route-info { line-height: 1.4; }
         .route-info strong { color: #0284c7; font-size: 13px; }
         .port-text { font-size: 11px; color: #64748b; }
@@ -271,9 +454,14 @@ export default function BatchList() {
         
         .count-badge { background: #f1f5f9; padding: 4px 10px; border-radius: 6px; font-weight: bold; color: #475569; }
         
-        .action-buttons { display: flex; gap: 10px; }
-        .btn-view { background: #003580; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .btn-delete { background: #fee2e2; color: #ef4444; border: none; padding: 8px; border-radius: 6px; cursor: pointer; }
+        .action-buttons { display: flex; gap: 8px; }
+        .btn-view { background: #003580; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-edit { background: #eab308; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-delete { background: #fee2e2; color: #ef4444; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+
+        .btn-view:hover { background: #002255; }
+        .btn-edit:hover { background: #ca8a04; }
+        .btn-delete:hover { background: #fca5a5; }
 
         /* Modal Styles Updates */
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }

@@ -1,177 +1,197 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
 
 export default function Dashboard() {
-  const [agencies, setAgencies] = useState([]);
-  const [shipments, setShipments] = useState([]); // Hajjis -> Shipments
-  const [payments, setPayments] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // ব্রাঞ্চ বা এজেন্সি সামারি লোড করা
-    axios
-      .get("/api/agencies")
-      .then((res) => setAgencies(res.data))
-      .catch((err) => console.error(err));
-
-    // সকল শিপমেন্ট ডাটা লোড করা
-    axios
-      .get("/api/shipments")
-      .then((res) => setShipments(res.data))
-      .catch((err) => console.error(err));
-
-    // সাম্প্রতিক পেমেন্টগুলো লোড করা
-    axios
-      .get("/api/payments/recent")
-      .then((res) => setPayments(res.data))
-      .catch((err) => console.error(err));
+    fetchDashboardData();
   }, []);
 
-  // ক্যালকুলেশনস
-  const totalShipments = shipments.length;
-  const totalBranches = agencies.length;
-  const totalWeight = shipments.reduce((s, ship) => s + (ship.weight || 0), 0);
-  const totalPaid = shipments.reduce(
-    (s, ship) => s + (ship.paidAmount || 0),
-    0,
-  );
-  const totalDue = shipments.reduce(
-    (s, ship) => s + (ship.totalCharge - ship.paidAmount),
-    0,
-  );
+  const fetchDashboardData = async () => {
+    try {
+      const res = await axios.get("/api/dashboard/summary");
+      if (res.data.success) {
+        setStats(res.data.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch dashboard stats", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="loading-screen">ড্যাশবোর্ড লোড হচ্ছে...</div>;
+  }
 
   return (
-    <div className="dashboard">
-      <div className="header-bar">
-        <h1>📊 Cargo Business Overview</h1>
-        <p>ব্যবসায়িক কার্যক্রমের রিয়েল-টাইম আপডেট</p>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="summary-cards">
-        <div className="card agencies">
-          <h3>BRANCH</h3>
-          <p>{totalBranches}</p>
+    <div className="dashboard-container">
+      {/* Header */}
+      <div className="dashboard-header">
+        <div>
+          <h2>🚀 System Dashboard</h2>
+          <p>কার্গো এবং এজেন্সি ম্যানেজমেন্ট ওভারভিউ</p>
         </div>
-        <div className="card shipments">
-          <h3>Total Shipments</h3>
-          <p>{totalShipments}</p>
-        </div>
-        <div className="card weight">
-          <h3>Total Weight</h3>
-          <p>{totalWeight.toFixed(2)} KG</p>
-        </div>
-        <div className="card paid">
-          <h3>Total Collected</h3>
-          <p>৳ {totalPaid.toLocaleString()}</p>
-        </div>
-        <div className="card due">
-          <h3>Total Outstanding</h3>
-          <p>৳ {totalDue.toLocaleString()}</p>
+        <div className="header-actions">
+          <Link to="/branch/new" className="btn-primary">
+            🏢 Manage Branches
+          </Link>
+          <Link to="/payment-allocation" className="btn-success">
+            💰 Receive Payment
+          </Link>
         </div>
       </div>
 
-      <div className="grid-tables">
-        {/* Recent Shipments */}
-        <div className="table-container">
-          <h2>📦 Recent Bookings</h2>
-          <table className="recent-table">
+      {/* Top Value Cards (Financials) */}
+      <div className="stats-grid top-grid">
+        <div className="stat-card blue-gradient">
+          <div className="icon">🧾</div>
+          <div className="info">
+            <span>Total Billed Amount</span>
+            <h3>৳ {stats?.totalBilledAmount?.toLocaleString() || 0}</h3>
+          </div>
+        </div>
+        <div className="stat-card green-gradient">
+          <div className="icon">💵</div>
+          <div className="info">
+            <span>Total Collected</span>
+            <h3>৳ {stats?.totalCollected?.toLocaleString() || 0}</h3>
+          </div>
+        </div>
+        <div className="stat-card red-gradient">
+          <div className="icon">⚠️</div>
+          <div className="info">
+            <span>Total Market Due</span>
+            <h3>৳ {stats?.totalDue?.toLocaleString() || 0}</h3>
+          </div>
+        </div>
+      </div>
+
+      {/* Secondary Metrics (Operations) */}
+      <div className="stats-grid secondary-grid">
+        <div className="stat-box">
+          <h4>📦 Total Shipments (Boxes)</h4>
+          <h2>{stats?.totalBoxes?.toLocaleString() || 0} PCS</h2>
+        </div>
+        <div className="stat-box">
+          <h4>⚖️ Total Processed Weight</h4>
+          <h2>{stats?.totalWeight?.toFixed(2) || 0} KG</h2>
+        </div>
+        <div className="stat-box">
+          <h4>🏢 Active Branches/Agencies</h4>
+          <h2>{stats?.totalBranches || 0}</h2>
+        </div>
+        <div className="stat-box">
+          <h4>🎁 Total Discount Given</h4>
+          <h2>৳ {stats?.totalDiscount?.toLocaleString() || 0}</h2>
+        </div>
+      </div>
+
+      {/* Recent Activity Table */}
+      <div className="recent-activity-section">
+        <div className="section-title">
+          <h3>⚡ Recent Financial Transactions</h3>
+          <Link to="/payment-allocation">View All</Link>
+        </div>
+
+        <div className="table-card">
+          <table className="pro-table">
             <thead>
               <tr>
-                <th>Tracking</th>
-                <th>Sender</th>
-                <th>Weight</th>
-                <th>Charge</th>
-                <th>Status</th>
+                <th>Date</th>
+                <th>Shipping Mark</th>
+                <th>Type</th>
+                <th>Method / Ref</th>
+                <th className="text-right">Amount (৳)</th>
               </tr>
             </thead>
             <tbody>
-              {shipments
-                .slice(-5)
-                .reverse()
-                .map((s) => (
-                  <tr key={s._id}>
+              {stats?.recentPayments?.length > 0 ? (
+                stats.recentPayments.map((txn) => (
+                  <tr key={txn._id}>
+                    <td>{new Date(txn.date).toLocaleDateString("en-GB")}</td>
                     <td>
-                      <strong>{s.trackingNumber}</strong>
+                      <strong>{txn.shippingMark}</strong>
                     </td>
-                    <td>{s.customer?.fullName || "N/A"}</td>
-                    <td>{s.weight} KG</td>
-                    <td>৳ {s.totalCharge}</td>
                     <td>
-                      <span className={`status-pill ${s.status}`}>
-                        {s.status}
+                      <span className={`badge ${txn.type.toLowerCase()}`}>
+                        {txn.type}
                       </span>
                     </td>
+                    <td>
+                      {txn.paymentMethod}{" "}
+                      {txn.transactionId ? `(${txn.transactionId})` : ""}
+                    </td>
+                    <td className="text-right amount-cell text-green">
+                      + {txn.amount.toLocaleString()}
+                    </td>
                   </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Recent Payments */}
-        <div className="table-container">
-          <h2>💳 Recent Transactions</h2>
-          <table className="recent-table">
-            <thead>
-              <tr>
-                <th>Statement No</th>
-                <th>Party</th>
-                <th>Amount</th>
-                <th>Method</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments
-                .slice(-5)
-                .reverse()
-                .map((p) => (
-                  <tr key={p._id}>
-                    <td>{p.statement?.statementNo || "N/A"}</td>
-                    <td>{p.agency?.name || "-"}</td>
-                    <td>৳ {p.amount}</td>
-                    <td>{p.statement?.paymentType}</td>
-                  </tr>
-                ))}
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="no-data">
+                    কোনো ট্রানজেকশন পাওয়া যায়নি
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* CSS STYLES */}
+      {/* CSS Styles */}
       <style>{`
-        .dashboard { max-width: 1200px; margin: 20px auto; padding: 20px; font-family: "Tiro Bangla", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; }
-        .header-bar { margin-bottom: 25px; border-left: 5px solid #0d6efd; padding-left: 15px; }
-        .header-bar h1 { margin: 0; font-size: 28px; color: #2c3e50; }
-        .header-bar p { margin: 5px 0 0; color: #7f8c8d; }
-
-        .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px; }
-        .card { padding: 25px; border-radius: 12px; color: #fff; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: 0.3s; }
-        .card:hover { transform: translateY(-5px); }
+        .dashboard-container { padding: 30px; background: #f4f7fa; min-height: 100vh; font-family: 'Inter', sans-serif; }
         
-        .card.agencies { background: linear-gradient(135deg, #3498db, #2980b9); }
-        .card.shipments { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
-        .card.weight { background: linear-gradient(135deg, #f1c40f, #f39c12); }
-        .card.paid { background: linear-gradient(135deg, #2ecc71, #27ae60); }
-        .card.due { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .dashboard-header h2 { margin: 0; color: #0f172a; font-size: 28px; font-weight: 800; }
+        .dashboard-header p { margin: 5px 0 0; color: #64748b; font-size: 15px; }
+        .header-actions { display: flex; gap: 15px; }
+        .btn-primary { background: #0f172a; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; transition: 0.2s; }
+        .btn-primary:hover { background: #1e293b; }
+        .btn-success { background: #10b981; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; transition: 0.2s; }
+        .btn-success:hover { background: #059669; }
 
-        .card h3 { margin: 0; font-size: 14px; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px; }
-        .card p { margin: 10px 0 0; font-size: 26px; font-weight: bold; }
+        .stats-grid { display: grid; gap: 20px; margin-bottom: 30px; }
+        .top-grid { grid-template-columns: repeat(3, 1fr); }
+        .secondary-grid { grid-template-columns: repeat(4, 1fr); }
 
-        .grid-tables { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-        .table-container { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        h2 { font-size: 18px; color: #34495e; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-
-        .recent-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        .recent-table th, .recent-table td { padding: 12px; text-align: left; border-bottom: 1px solid #f1f1f1; }
-        .recent-table th { color: #7f8c8d; font-weight: 600; }
+        .stat-card { display: flex; align-items: center; padding: 25px; border-radius: 16px; color: white; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .stat-card .icon { font-size: 40px; margin-right: 20px; background: rgba(255,255,255,0.2); width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+        .stat-card .info span { font-size: 14px; font-weight: 600; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card .info h3 { margin: 5px 0 0; font-size: 32px; font-weight: 800; }
         
-        .status-pill { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
-        .status-pill.Booked { background: #fff3cd; color: #856404; }
-        .status-pill.Delivered { background: #d4edda; color: #155724; }
-        .status-pill.In-Transit { background: #d1ecf1; color: #0c5460; }
+        .blue-gradient { background: linear-gradient(135deg, #2563eb, #3b82f6); }
+        .green-gradient { background: linear-gradient(135deg, #059669, #10b981); }
+        .red-gradient { background: linear-gradient(135deg, #dc2626, #ef4444); }
 
-        @media (max-width: 900px) {
-          .grid-tables { grid-template-columns: 1fr; }
-        }
+        .stat-box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }
+        .stat-box h4 { margin: 0 0 10px; color: #64748b; font-size: 14px; font-weight: 600; }
+        .stat-box h2 { margin: 0; color: #0f172a; font-size: 24px; font-weight: 800; }
+
+        .recent-activity-section { margin-top: 40px; }
+        .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .section-title h3 { margin: 0; color: #0f172a; }
+        .section-title a { color: #3b82f6; text-decoration: none; font-weight: bold; }
+
+        .table-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); overflow-x: auto; }
+        .pro-table { width: 100%; border-collapse: collapse; }
+        .pro-table th { background: #f8fafc; padding: 15px; text-align: left; font-size: 13px; color: #475569; border-bottom: 2px solid #e2e8f0; text-transform: uppercase; }
+        .pro-table td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155; }
+        
+        .badge { font-size: 11px; font-weight: bold; padding: 5px 10px; border-radius: 20px; }
+        .badge.payment { background: #dcfce7; color: #166534; }
+        .badge.discount { background: #fef3c7; color: #d97706; }
+        .badge.adjustment { background: #e0f2fe; color: #0369a1; }
+        
+        .text-right { text-align: right; }
+        .amount-cell { font-weight: 800; font-size: 15px; }
+        .text-green { color: #10b981; }
+        .no-data { text-align: center; color: #94a3b8; padding: 30px !important; }
+        .loading-screen { display: flex; justify-content: center; align-items: center; height: 100vh; font-size: 20px; font-weight: bold; color: #3b82f6; }
       `}</style>
     </div>
   );

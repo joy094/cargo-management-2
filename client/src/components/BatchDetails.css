@@ -435,3 +435,7 @@ input[type="number"] {
 .bulk-qr-btn:hover {
   background: #7c3aed;
 }
+.held-row {
+  background-color: #fee2e2 !important; /* হালকা লাল */
+  opacity: 0.9;
+}

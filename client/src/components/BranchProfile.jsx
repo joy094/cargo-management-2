@@ -23,6 +23,8 @@ export default function BranchProfile() {
 
   // Pending Actions States
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedBatch, setSelectedBatch] = useState(""); // ✅ ব্যাচ ফিল্টার করার জন্য স্টেট
+  const [invoiceSearchTerm, setInvoiceSearchTerm] = useState(""); // ✅ ইনভয়েস হিস্ট্রি ফিল্টার করার জন্য স্টেট
   const [selectedIds, setSelectedIds] = useState([]);
   const [globalRate, setGlobalRate] = useState("");
   const [discount, setDiscount] = useState(0);
@@ -30,10 +32,6 @@ export default function BranchProfile() {
   // Modal States
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [invoiceData, setInvoiceData] = useState(null);
-
-
-  // ব্যাচ ফিল্টার করার জন্য
-  const [selectedBatch, setSelectedBatch] = useState(""); 
 
   useEffect(() => {
     if (markFromUrl) {
@@ -70,8 +68,6 @@ export default function BranchProfile() {
     }
   };
 
-  
-
   const fetchInvoiceHistory = async () => {
     try {
       const res = await axios.get(
@@ -94,13 +90,76 @@ export default function BranchProfile() {
     }
   };
 
+  // ✅ ডাইনামিকভাবে ব্যাচের আসল নাম বের করা
+  const uniqueBatches = useMemo(() => {
+    const batches = allItems.map((item) => {
+      // populate হয়ে আসলে এখান থেকে নামটা নেবে
+      if (item.batchId && item.batchId.batchName) return item.batchId.batchName;
+      if (item.batch && item.batch.batchName) return item.batch.batchName;
+
+      // যদি populate না হয় বা সরাসরি আইডি/স্ট্রিং থাকে
+      return item.batchName || item.batchId || item.batch;
+    });
+    return [...new Set(batches)].filter(Boolean); // ফাঁকা ডাটা রিমুভ করবে
+  }, [allItems]);
+
+  // ✅ ফিল্টার লজিক
   const filteredItems = useMemo(() => {
-    return allItems.filter(
-      (item) =>
+    return allItems.filter((item) => {
+      // আইটেমের ব্যাচ নাম সঠিকভাবে ধরা
+      let itemBatch = "";
+      if (item.batchId && item.batchId.batchName)
+        itemBatch = item.batchId.batchName;
+      else if (item.batch && item.batch.batchName)
+        itemBatch = item.batch.batchName;
+      else itemBatch = item.batchName || item.batchId || item.batch;
+
+      const batchMatch = selectedBatch ? itemBatch === selectedBatch : true;
+
+      const searchMatch =
         item.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.chinaTrackingNo?.toLowerCase().includes(searchTerm.toLowerCase()),
-    );
-  }, [searchTerm, allItems]);
+        item.chinaTrackingNo?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      return batchMatch && searchMatch;
+    });
+  }, [searchTerm, selectedBatch, allItems]);
+
+  // ✅ ৩. ইনভয়েস হিস্ট্রি ফিল্টার করা (Batch, Invoice ID বা Tracking Number দিয়ে)
+  const filteredHistory = useMemo(() => {
+    return invoiceHistory.filter((inv) => {
+      // ১. ব্যাচ ফিল্টার: চেক করা হচ্ছে ইনভয়েসের ভেতরের কোনো আইটেম সিলেক্টেড ব্যাচের কি না
+      let batchMatch = true;
+      if (selectedBatch) {
+        batchMatch = inv.items.some((item) => {
+          let itemBatch = "";
+          // populate হয়ে আসলে অবজেক্ট থেকে নাম নেবে, নাহলে সরাসরি ফিল্ড থেকে নেবে
+          if (item.batchId && item.batchId.batchName)
+            itemBatch = item.batchId.batchName;
+          else if (item.batch && item.batch.batchName)
+            itemBatch = item.batch.batchName;
+          else itemBatch = item.batchName || item.batchId || item.batch;
+
+          return itemBatch === selectedBatch;
+        });
+      }
+
+      // ২. টেক্সট সার্চ ফিল্টার: Invoice ID বা Tracking Number
+      let searchMatch = true;
+      if (invoiceSearchTerm) {
+        const term = invoiceSearchTerm.toLowerCase();
+        const idMatch = inv._id.toLowerCase().includes(term);
+        const itemMatch = inv.items.some(
+          (item) =>
+            item.productName?.toLowerCase().includes(term) ||
+            item.chinaTrackingNo?.toLowerCase().includes(term),
+        );
+        searchMatch = idMatch || itemMatch;
+      }
+
+      // দুটো শর্ত (ব্যাচ এবং সার্চ) পূরণ হলেই ইনভয়েসটি দেখাবে
+      return batchMatch && searchMatch;
+    });
+  }, [invoiceHistory, invoiceSearchTerm, selectedBatch]); // ⚠️ selectedBatch ডিপেন্ডেন্সিতে যোগ করা হয়েছে
 
   // Checkbox Selection (Only for unbilled items)
   const toggleSelect = (id) => {
@@ -108,6 +167,7 @@ export default function BranchProfile() {
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   };
+
   const toggleSelectAll = () => {
     const unbilledFiltered = filteredItems.filter((item) => !item.isBilled);
     if (
@@ -141,26 +201,26 @@ export default function BranchProfile() {
     setAllItems(updatedItems);
   };
 
-  // ✅ New Feature: Revert (Undo) a billed item
+  // Revert (Undo) a billed item
   const handleRevertItem = async (itemId) => {
     if (
       !window.confirm(
-        "আপনি কি নিশ্চিত? এটি ইনভয়েস থেকে বাদ পড়ে আবার আনবিল্ড হয়ে যাবে।",
+        "আপনি কি নিশ্চিত? এটি ইনভয়েস থেকে বাদ পড়ে আবার আনবিল্ড হয়ে যাবে।",
       )
     )
       return;
     try {
       const res = await axios.post("/api/branches/revert-item", { itemId });
       if (res.data.success) {
-        alert("সফলভাবে রিভার্ট করা হয়েছে!");
+        alert("সফলভাবে রিভার্ট করা হয়েছে!");
         fetchBranchData(activeMark); // ডেটা রিফ্রেশ
       }
     } catch (error) {
-      alert("রিভার্ট করতে সমস্যা হয়েছে!");
+      alert("রিভার্ট করতে সমস্যা হয়েছে!");
     }
   };
 
-  // ✅ New Feature: Edit a billed item
+  // Edit a billed item
   const handleEditBilledItem = async (item) => {
     const newRate = prompt(
       "এই আইটেমের জন্য নতুন রেট দিন (৳):",
@@ -181,18 +241,16 @@ export default function BranchProfile() {
         },
       );
       if (res.data.success) {
-        alert("রেট সফলভাবে আপডেট হয়েছে!");
+        alert("রেট সফলভাবে আপডেট হয়েছে!");
         fetchBranchData(activeMark);
       }
     } catch (error) {
-      alert("আপডেট করতে সমস্যা হয়েছে!");
+      alert("আপডেট করতে সমস্যা হয়েছে!");
     }
   };
 
   // Generate Invoice
   const handleGenerateInvoice = async () => {
-    // শুধুমাত্র আনবিল্ড আইটেমগুলোর ইনভয়েস হবে
-    // ✅ শুধুমাত্র সিলেক্ট করা আইটেমগুলোকে ইনভয়েসের জন্য ফিল্টার করা
     const itemsToBill = allItems.filter(
       (item) =>
         selectedIds.includes(item._id) && !item.isBilled && item.rate > 0,
@@ -237,15 +295,11 @@ export default function BranchProfile() {
     }
   };
 
-  // ১. ফুটার রেন্ডার করার জন্য সব আনবিল্ড আইটেম (যাতে ওই এররটা না আসে)
   const unbilledItems = allItems.filter((item) => !item.isBilled);
-
-  // ২. শুধুমাত্র সিলেক্ট করা আনবিল্ড আইটেম আলাদা করছি
   const selectedUnbilledItems = unbilledItems.filter((item) =>
     selectedIds.includes(item._id),
   );
 
-  // ৩. এখন টোটাল ওজন এবং বিলের হিসাব শুধু সিলেক্ট করা আইটেমগুলোর উপর ভিত্তি করে হবে
   const totalWeightSum = selectedUnbilledItems.reduce(
     (acc, item) => acc + item.calcWeight,
     0,
@@ -255,7 +309,6 @@ export default function BranchProfile() {
     0,
   );
 
-  // ব্যাকএন্ড থেকে আসা রেডিমেড ডেটা সরাসরি ব্যবহার করছি
   const lifetimeBilled = summary?.totalBilled || 0;
   const lifetimePaid = summary?.totalPaid || 0;
   const lifetimeDiscount = summary?.totalDiscount || 0;
@@ -264,7 +317,7 @@ export default function BranchProfile() {
   return (
     <div className="profile-container">
       <div className="header-flex">
-        <button className="back-btn" onClick={() => navigate("/add-branch")}>
+        <button className="back-btn" onClick={() => navigate("/branch/new")}>
           ⬅ Back
         </button>
         <h2>
@@ -309,13 +362,31 @@ export default function BranchProfile() {
       {activeTab === "pending" && (
         <div className="tab-content">
           <div className="controls-bar">
-            <input
-              type="text"
-              placeholder="Search (Name/Tracking)..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="filter-input"
-            />
+            {/* ✅ ব্যাচ ড্রপডাউন এবং সার্চ বক্স */}
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              <select
+                value={selectedBatch}
+                onChange={(e) => setSelectedBatch(e.target.value)}
+                className="filter-input"
+                style={{ width: "200px", fontWeight: "bold" }}
+              >
+                <option value="">📦 All Batches</option>
+                {uniqueBatches.map((batch) => (
+                  <option key={batch} value={batch}>
+                    Batch: {batch}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                type="text"
+                placeholder="Search (Name/Tracking)..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="filter-input"
+              />
+            </div>
+
             <div className="bulk-side">
               <input
                 type="number"
@@ -370,14 +441,30 @@ export default function BranchProfile() {
                             type="checkbox"
                             checked={selectedIds.includes(item._id)}
                             onChange={() => toggleSelect(item._id)}
-                            disabled={isCompleted} // বিল হয়ে গেলে চেক করা যাবে না
+                            disabled={isCompleted}
                           />
                         </td>
                         <td>{idx + 1}</td>
                         <td>
                           {item.productName}
+                          {/* ✅ ব্যাচ ব্যাজ */}
+                          {item.batchName && (
+                            <div
+                              style={{
+                                fontSize: "10px",
+                                color: "#8b5cf6",
+                                marginTop: "4px",
+                                fontWeight: "bold",
+                              }}
+                            >
+                              📦 {item.batchName}
+                            </div>
+                          )}
                           {isCompleted && (
-                            <span className="status-badge">
+                            <span
+                              className="status-badge"
+                              style={{ marginLeft: 0, marginTop: "4px" }}
+                            >
                               ✅ Billed ({item.invoiceId})
                             </span>
                           )}
@@ -455,7 +542,7 @@ export default function BranchProfile() {
             <div className="billing-footer-card">
               <div className="f-row">
                 <span>Unbilled Items:</span>
-                <strong>{unbilledItems.length} PCS</strong>
+                <strong>{selectedUnbilledItems.length} PCS</strong>
               </div>
               <div className="f-row">
                 <span>Unbilled Sub-Total:</span>
@@ -486,77 +573,108 @@ export default function BranchProfile() {
       )}
 
       {/* ================= HISTORY TAB ================= */}
-      {/* ... [আপনার হিস্ট্রি ট্যাব এবং মডালের আগের কোডগুলো হুবহু একই থাকবে, আমি সংক্ষেপ করছি না, পুরোটা দিচ্ছি] ... */}
       {activeTab === "history" && (
-        <div className="tab-content table-card">
-          <table className="pro-table history-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Invoice ID</th>
-                <th>Total Items</th>
-                <th>Total Weight</th>
-                <th>Total Billed</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoiceHistory.length > 0 ? (
-                invoiceHistory.map((inv) => (
-                  <tr key={inv._id}>
-                    <td>{new Date(inv.date).toLocaleDateString("en-GB")}</td>
-                    <td>
-                      <strong>{inv._id}</strong>
-                    </td>
-                    <td>{inv.items.length} PCS</td>
-                    <td>{inv.totalWeight.toFixed(2)} KG</td>
-                    <td className="row-total">
-                      ৳ {inv.totalAmount.toLocaleString()}
-                    </td>
-                    <td>
-                      <button
-                        className="view-btn"
-                        onClick={() => {
-                          setInvoiceData({
-                            invoiceId: inv._id,
-                            date: new Date(inv.date).toLocaleDateString(
-                              "en-GB",
-                            ),
-                            customerMark: activeMark,
-                            items: inv.items.map((it) => ({
-                              ...it,
-                              calcWeight:
-                                Number(it.actualWeight) ||
-                                Number(it.grossWeight) ||
-                                0,
-                              rate: it.perKgRate,
-                              total: it.totalBill,
-                            })),
-                            totalWeight: inv.totalWeight,
-                            subTotal: inv.totalAmount,
-                            discount: 0,
-                            netPayable: inv.totalAmount,
-                          });
-                          setIsInvoiceModalOpen(true);
-                        }}
-                      >
-                        👁️ View Memo
-                      </button>
+        <div className="tab-content">
+          {/* ✅ ইনভয়েস হিস্ট্রি সার্চ বার এবং ব্যাচ ফিল্টার */}
+          <div
+            className="controls-bar"
+            style={{ marginBottom: "20px", display: "flex", gap: "15px" }}
+          >
+            {/* ✅ হিস্ট্রির জন্য ব্যাচ ড্রপডাউন */}
+            <select
+              value={selectedBatch}
+              onChange={(e) => setSelectedBatch(e.target.value)}
+              className="filter-input"
+              style={{ width: "220px", fontWeight: "bold" }}
+            >
+              <option value="">📦 All Batches</option>
+              {uniqueBatches.map((batch) => (
+                <option key={batch} value={batch}>
+                  Batch: {batch}
+                </option>
+              ))}
+            </select>
+
+            {/* টেক্সট সার্চ */}
+            <input
+              type="text"
+              placeholder="Search by Invoice ID or Tracking No..."
+              value={invoiceSearchTerm}
+              onChange={(e) => setInvoiceSearchTerm(e.target.value)}
+              className="filter-input"
+              style={{ width: "100%", maxWidth: "400px" }}
+            />
+          </div>
+
+          <div className="table-card">
+            <table className="pro-table history-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Invoice ID</th>
+                  <th>Total Items</th>
+                  <th>Total Weight</th>
+                  <th>Total Billed</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredHistory.length > 0 ? (
+                  filteredHistory.map((inv) => (
+                    <tr key={inv._id}>
+                      <td>{new Date(inv.date).toLocaleDateString("en-GB")}</td>
+                      <td>
+                        <strong>{inv._id}</strong>
+                      </td>
+                      <td>{inv.items.length} PCS</td>
+                      <td>{inv.totalWeight.toFixed(2)} KG</td>
+                      <td className="row-total">
+                        ৳ {inv.totalAmount.toLocaleString()}
+                      </td>
+                      <td>
+                        <button
+                          className="view-btn"
+                          onClick={() => {
+                            setInvoiceData({
+                              invoiceId: inv._id,
+                              date: new Date(inv.date).toLocaleDateString(
+                                "en-GB",
+                              ),
+                              customerMark: activeMark,
+                              items: inv.items.map((it) => ({
+                                ...it,
+                                calcWeight:
+                                  Number(it.actualWeight) ||
+                                  Number(it.grossWeight) ||
+                                  0,
+                                rate: it.perKgRate,
+                                total: it.totalBill,
+                              })),
+                              totalWeight: inv.totalWeight,
+                              subTotal: inv.totalAmount,
+                              discount: 0,
+                              netPayable: inv.totalAmount,
+                            });
+                            setIsInvoiceModalOpen(true);
+                          }}
+                        >
+                          👁️ View Memo
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="no-data">
+                      কোনো ইনভয়েস হিস্ট্রি পাওয়া যায়নি
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="6" className="no-data">
-                    কোনো ইনভয়েস হিস্ট্রি নেই
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
-
       {/* ✅ Invoice View / Print Modal */}
       {isInvoiceModalOpen && invoiceData && (
         <div className="modal-overlay">
@@ -618,7 +736,15 @@ export default function BranchProfile() {
                 <tbody>
                   {invoiceData.items.map((it, i) => (
                     <tr key={i}>
-                      <td>{it.productName || "General Item"}</td>
+                      <td>
+                        {it.productName || "General Item"}
+                        {/* প্রিন্ট মেমোতেও ব্যাচ নাম দেখালে ভালো হয় */}
+                        {it.batchName && (
+                          <div style={{ fontSize: "11px", color: "#666" }}>
+                            Batch: {it.batchName}
+                          </div>
+                        )}
+                      </td>
                       <td>{it.calcWeight.toFixed(2)} KG</td>
                       <td>{it.rate} ৳</td>
                       <td>{it.total.toLocaleString()} ৳</td>

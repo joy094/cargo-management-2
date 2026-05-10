@@ -16,6 +16,7 @@ import routes from "./routes.js";
 import batchRoute from "./batchRoute.js"
 import branchRoute from "./branchRoutes.js";
 import paymentRoute from "./paymentRoute.js";
+import dashboardRoute from "./dashboardRoute.js";
 
 dotenv.config();
 
@@ -31,9 +32,10 @@ app.use(express.json());
    Routes
 =========================== */
 app.use("/api", routes);
-app.use("/api/", batchRoute);
+app.use("/api/batches", batchRoute);
 app.use("/api/branches", branchRoute);
 app.use("/api/payments", paymentRoute);
+app.use("/api/dashboard", dashboardRoute);
 /* ===========================
    MongoDB Connection
 =========================== */

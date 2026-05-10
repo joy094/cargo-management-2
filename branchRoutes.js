@@ -160,12 +160,10 @@ router.post("/", async (req, res) => {
     });
   } catch (error) {
     console.error("Branch Create Error:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "সার্ভার এরর, ব্রাঞ্চ সেভ করা যায়নি!",
-      });
+    res.status(500).json({
+      success: false,
+      message: "সার্ভার এরর, ব্রাঞ্চ সেভ করা যায়নি!",
+    });
   }
 });
 
@@ -194,12 +192,10 @@ router.put("/:id", async (req, res) => {
     });
   } catch (error) {
     console.error("Branch Update Error:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "সার্ভার এরর, ব্রাঞ্চ আপডেট করা যায়নি!",
-      });
+    res.status(500).json({
+      success: false,
+      message: "সার্ভার এরর, ব্রাঞ্চ আপডেট করা যায়নি!",
+    });
   }
 });
 
@@ -210,12 +206,10 @@ router.get("/", async (req, res) => {
     res.status(200).json({ success: true, branches });
   } catch (error) {
     console.error("Fetch Branches Error:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "ব্রাঞ্চ লিস্ট লোড করতে সমস্যা হয়েছে!",
-      });
+    res.status(500).json({
+      success: false,
+      message: "ব্রাঞ্চ লিস্ট লোড করতে সমস্যা হয়েছে!",
+    });
   }
 });
 
@@ -246,41 +240,74 @@ router.delete("/:id", async (req, res) => {
 // 📦 Shipment & Invoice API Routes
 // ==========================================
 
-// ✅ ইনভয়েস হিস্ট্রি ফেচ করা
+
+// ✅ ইনভয়েস হিস্ট্রি ফেচ করা (Batch Lookup ফিক্স সহ)
 router.get("/invoice-history/:shippingMark", async (req, res) => {
   try {
     const { shippingMark } = req.params;
 
     const history = await Shipment.aggregate([
       { $match: { shippingMark: shippingMark, isBilled: true } },
+
+      // 🔥 Aggregation-এর ভেতরে Populate করার জন্য $lookup ব্যবহার করা হলো
+      {
+        $lookup: {
+          from: "batches", // ডাটাবেসে Batch মডেলের কালেকশনের নাম (MongoDB অটোমেটিক s যোগ করে)
+          localField: "batch", // Shipment মডেলে ব্যাচের রেফারেন্স ফিল্ড
+          foreignField: "_id",
+          as: "batchDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$batchDetails",
+          preserveNullAndEmptyArrays: true, // যদি কোনো আইটেমে ব্যাচ না থাকে, তবুও যেন এরর না দেয়
+        },
+      },
+
+      // এরপর গ্রুপিং করা হচ্ছে
       {
         $group: {
           _id: "$invoiceId",
           date: { $first: "$billingDate" },
           totalAmount: { $sum: "$totalBill" },
           totalWeight: { $sum: { $toDouble: "$grossWeight" } },
-          items: { $push: "$$ROOT" },
+
+          // 🔥 items এর ভেতরে ব্যাচের আসল নাম (batchName) সরাসরি ঢুকিয়ে দেওয়া হচ্ছে
+          items: {
+            $push: {
+              $mergeObjects: [
+                "$$ROOT",
+                { batchName: "$batchDetails.batchName" },
+              ],
+            },
+          },
         },
       },
-      { $sort: { date: -1 } },
+      { $sort: { date: -1 } }, // লেটেস্ট ইনভয়েস উপরে থাকবে
     ]);
 
     res.status(200).json({ success: true, history });
   } catch (error) {
+    console.error(error);
     res
       .status(500)
       .json({ success: false, message: "হিস্ট্রি লোড করতে সমস্যা হয়েছে" });
   }
 });
 
-// ✅ সব আইটেম আনার রাউট (যাতে বিল্ড এবং আনবিল্ড সবই দেখায়)
+// ✅ সব আইটেম আনার রাউট (Populate সহ, যাতে ব্যাচের আসল নাম আসে)
 router.get("/all-items/:shippingMark", async (req, res) => {
   try {
     const items = await Shipment.find({
       shippingMark: req.params.shippingMark,
-    }).sort({ createdAt: -1 });
+    })
+      .populate("batch", "batchName") // 🔥 ম্যাজিক লাইন: এই লাইনটিই আইডির বদলে আসল ব্যাচ নেম (MAY 20 GU) নিয়ে আসবে!
+      .sort({ createdAt: -1 });
+
     res.status(200).json({ success: true, items });
   } catch (error) {
+    console.error("Fetch all items error:", error);
     res.status(500).json({ success: false });
   }
 });

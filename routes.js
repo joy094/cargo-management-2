@@ -156,46 +156,10 @@ router.delete("/agencies/:id", async (req, res) => {
   }
 });
 
-/* =====================================================
-   ✈️ BATCH / FLIGHT CONTROLLERS
-===================================================== */
 
-router.get("/batches", async (req, res) => {
-  try {
-    const batches = await Batch.find().sort({ createdAt: -1 });
-    // প্রতিটি ব্যাচে কয়টি শিপমেন্ট আছে তা গুনে পাঠানো
-    const result = await Promise.all(
-      batches.map(async (b) => {
-        const count = await Shipment.countDocuments({ batch: b._id });
-        return { ...b.toObject(), shipmentCount: count };
-      }),
-    );
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
-router.get("/batches/:id", async (req, res) => {
-  try {
-    const batch = await Batch.findById(req.params.id);
-    const shipments = await Shipment.find({ batch: req.params.id })
-      .populate("agency")
-      .populate("customer");
-    res.json({ batch, shipments });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
-router.post("/batches", async (req, res) => {
-  try {
-    const batch = await Batch.create(req.body);
-    res.json(batch);
-  } catch (err) {
-    res.status(400).json({ error: "এই নামে ব্যাচ ইতিমধ্যে আছে!" });
-  }
-});
+
 
 /* =====================================================
    📦 SHIPMENT MANAGEMENT
@@ -583,5 +547,10 @@ router.get("/shipments/qr-details/:id", async (req, res) => {
     res.status(500).json({ success: false, message: "সার্ভার এরর!" });
   }
 });
+
+
+// অন্যান্য রাউটস (যেমন ড্যাশবোর্ড, কাস্টমার ম্যানেজমেন্ট ইত্যাদি) এখানে যুক্ত হবে
+
+
 
 export default router;
