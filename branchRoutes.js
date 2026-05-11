@@ -240,7 +240,6 @@ router.delete("/:id", async (req, res) => {
 // 📦 Shipment & Invoice API Routes
 // ==========================================
 
-
 // ✅ ইনভয়েস হিস্ট্রি ফেচ করা (Batch Lookup ফিক্স সহ)
 router.get("/invoice-history/:shippingMark", async (req, res) => {
   try {
@@ -338,6 +337,25 @@ router.put("/update-billed-item/:id", async (req, res) => {
     res.status(200).json({ success: true, item: updatedItem });
   } catch (error) {
     res.status(500).json({ success: false });
+  }
+});
+
+// --- আন-অ্যাসাইনড শিপমেন্ট তালিকা (যেগুলোর ব্রাঞ্চ নেই) ---
+router.get("/unassigned-shipments", async (req, res) => {
+  try {
+    // ১. সব ব্রাঞ্চের শিপিং মার্কগুলো খুঁজে বের করা
+    const branches = await Branch.find({}, "shippingMark");
+    const activeShippingMarks = branches.map((b) => b.shippingMark);
+
+    // ২. এমন শিপমেন্ট খোঁজা যেগুলো Arrived বা Delivered হয়েছে, কিন্তু শিপিং মার্ক কোনো ব্রাঞ্চের সাথে মেলে না
+    const unassignedShipments = await Shipment.find({
+      status: { $in: ["Arrived", "Delivered"] },
+      shippingMark: { $nin: activeShippingMarks }, // $nin মানে "Not In" (লিস্টে নেই)
+    }).sort({ receivedDate: -1 });
+
+    res.json(unassignedShipments);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

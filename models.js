@@ -53,18 +53,18 @@ export const Branch = model("Branch", branchSchema);
 /* =====================================================
    2️⃣ Customer Model
 ===================================================== */
-const CustomerSchema = new Schema(
-  {
-    agency: { type: Schema.Types.ObjectId, ref: "Agency", required: true },
-    fullName: { type: String, required: true, trim: true },
-    phoneNumber: { type: String, required: false, unique: true },
-    address: String,
-    nidOrPassport: String,
-    notes: String,
-  },
-  { timestamps: true },
-);
-export const Customer = model("Customer", CustomerSchema);
+// const CustomerSchema = new Schema(
+//   {
+//     agency: { type: Schema.Types.ObjectId, ref: "Agency", required: true },
+//     fullName: { type: String, required: true, trim: true },
+//     phoneNumber: { type: String, required: false, unique: true },
+//     address: String,
+//     nidOrPassport: String,
+//     notes: String,
+//   },
+//   { timestamps: true },
+// );
+// export const Customer = model("Customer", CustomerSchema);
 
 /* =====================================================
    3️⃣ Shipment Model (Updated with Exception Handling)

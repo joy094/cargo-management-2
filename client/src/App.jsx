@@ -23,6 +23,7 @@ import BulkImport from "./components/BulkImport";
 import BoxDetails from "./components/BoxDetails"; // ফোল্ডার পাথ আপনার অনুযায়ী ঠিক করে নেবেন
 import BranchDashboard from "./components/BranchProfile";
 import BranchProfile from "./components/BranchProfile";
+import UnassignedShipments from "./components/UnassignedShipments";
 
 // Layout Component
 export const Layout = () => {
@@ -115,6 +116,12 @@ const Header = () => {
             </NavLink>
           </li> */}
           <li>
+            <NavLink to="/unassigned" className="nav-link">
+              মিসিং শিপিং মার্ক
+            </NavLink>
+          </li>
+          
+          <li>
             <NavLink to="/batches" className="nav-link">
               শিপমেন্ট  ব্যাচেস
             </NavLink>
@@ -194,7 +201,8 @@ const App = () => (
       <Route path="/batches" element={<BatchList />} />
       <Route path="/batches/:id" element={<BatchDetails />} />
       <Route path="/bulk-import" element={<BulkImport />} />
-      
+      //unassigned shipments-branch
+      <Route path="/unassigned" element={<UnassignedShipments />} />
 
       {/* Payment System */}
       <Route path="/payment-allocation" element={<PaymentAllocation />} />
