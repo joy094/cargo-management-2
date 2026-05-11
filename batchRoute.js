@@ -8,20 +8,23 @@ const router = express.Router();
 // --- ১. সকল ব্যাচ দেখা (Get All Batches) ---
 router.get("/", async (req, res) => {
   console.log("✅ ব্যাচ লিস্টের নতুন এপিআই কল হয়েছে!"); // টার্মিনালে চেক করার জন্য
-  
+
   try {
     const batches = await Batch.find().sort({ createdAt: -1 });
 
     const batchData = await Promise.all(
       batches.map(async (b) => {
         const count = await Shipment.countDocuments({ batch: b._id });
-        const heldCount = await Shipment.countDocuments({ batch: b._id, isHeld: true });
+        const heldCount = await Shipment.countDocuments({
+          batch: b._id,
+          isHeld: true,
+        });
 
-        return { 
-          ...b.toObject(), 
-          shipmentCount: count, 
+        return {
+          ...b.toObject(),
+          shipmentCount: count,
           heldCount: heldCount,
-          isBackendUpdated: "YES" // 🔥 এটি শুধু টেস্ট করার জন্য দিলাম!
+          isBackendUpdated: "YES", // 🔥 এটি শুধু টেস্ট করার জন্য দিলাম!
         };
       }),
     );
@@ -42,41 +45,45 @@ router.post("/", async (req, res) => {
   }
 });
 
-// --- ৬. হাইব্রিড এক্সেপশন ম্যানেজমেন্ট (বক্স হোল্ড বা মুভ করা) ---
-// এই নতুন রাউটটি দিয়ে আপনি ফ্রন্টএন্ড থেকে এক বা একাধিক বক্সকে হোল্ড বা ব্যাচ মুভ করতে পারবেন
+/* =====================================================
+   ৩. বক্স হোল্ড বা অন্য ব্যাচে মুভ করা (Manage Exception)
+   ⚠️ ক্যাসকেড লজিক: মাস্টার বক্স হোল্ড/মুভ করলে ভেতরের মালও আপডেট হবে
+===================================================== */
 router.put("/manage-exception", async (req, res) => {
   try {
     const { shipmentIds, action, reason, targetBatchId } = req.body;
 
     if (action === "HOLD") {
-      // কাস্টমস বা অন্য কারণে হোল্ড করা
       await Shipment.updateMany(
-        { _id: { $in: shipmentIds } },
         {
-          $set: {
-            isHeld: true,
-            exceptionStatus: reason || "Customs Hold",
-          },
+          $or: [
+            { _id: { $in: shipmentIds } }, // আপনি যে বক্সগুলো সিলেক্ট করেছেন
+            { parentId: { $in: shipmentIds } }, // 🔥 যদি সিলেক্ট করা কোনো আইডি মাস্টার বক্সের হয়, তবে তার ভেতরের চাইল্ড বক্সগুলো
+          ],
         },
+        { $set: { isHeld: true, exceptionStatus: reason || "Customs Hold" } },
       );
     } else if (action === "RELEASE") {
-      // হোল্ড থেকে মুক্তি দেওয়া
       await Shipment.updateMany(
-        { _id: { $in: shipmentIds } },
         {
-          $set: {
-            isHeld: false,
-            exceptionStatus: "Normal",
-          },
+          $or: [
+            { _id: { $in: shipmentIds } },
+            { parentId: { $in: shipmentIds } },
+          ],
         },
+        { $set: { isHeld: false, exceptionStatus: "Normal" } },
       );
     } else if (action === "MOVE") {
-      // ফ্লাইট অফলোড বা অন্য কারণে অন্য ব্যাচে পাঠিয়ে দেওয়া
       if (!targetBatchId)
         return res.status(400).json({ error: "টার্গেট ব্যাচ আইডি প্রয়োজন।" });
 
       await Shipment.updateMany(
-        { _id: { $in: shipmentIds } },
+        {
+          $or: [
+            { _id: { $in: shipmentIds } },
+            { parentId: { $in: shipmentIds } }, // 🔥 মাস্টার বক্স অন্য ফ্লাইটে দিলে ভেতরের বক্সগুলোও অটো চলে যাবে
+          ],
+        },
         {
           $set: {
             batch: targetBatchId,
@@ -87,12 +94,11 @@ router.put("/manage-exception", async (req, res) => {
       );
     }
 
-    res.json({ success: true, message: "অ্যাকশন সফলভাবে সম্পন্ন হয়েছে।" });
+    res.json({ success: true, message: "অ্যাকশন সফল হয়েছে।" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
 // --- ৩. একটি নির্দিষ্ট ব্যাচের বিস্তারিত ও তার শিপমেন্টগুলো দেখা ---
 router.get("/:id", async (req, res) => {
   try {

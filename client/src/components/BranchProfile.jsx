@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import "./BranchProfile.css"; // Assuming you have a CSS file for styling
+import "./BranchProfile.css";
 
 export default function BranchProfile() {
   const [searchParams] = useSearchParams();
@@ -13,7 +13,7 @@ export default function BranchProfile() {
   // Basic States
   const [activeMark, setActiveMark] = useState("");
   const [summary, setSummary] = useState(null);
-  const [allItems, setAllItems] = useState([]); // pendingItems এর বদলে allItems
+  const [allItems, setAllItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -23,8 +23,8 @@ export default function BranchProfile() {
 
   // Pending Actions States
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedBatch, setSelectedBatch] = useState(""); // ✅ ব্যাচ ফিল্টার করার জন্য স্টেট
-  const [invoiceSearchTerm, setInvoiceSearchTerm] = useState(""); // ✅ ইনভয়েস হিস্ট্রি ফিল্টার করার জন্য স্টেট
+  const [selectedBatch, setSelectedBatch] = useState("");
+  const [invoiceSearchTerm, setInvoiceSearchTerm] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
   const [globalRate, setGlobalRate] = useState("");
   const [discount, setDiscount] = useState(0);
@@ -43,13 +43,19 @@ export default function BranchProfile() {
   const fetchBranchData = async (mark) => {
     setLoading(true);
     try {
-      // শুধু এই একটি এপিআই কল করলেই summary এর ভেতর billed, paid, due সব চলে আসবে
       const summaryRes = await axios.get(`/api/branches/summary/${mark}`);
       const itemsRes = await axios.get(`/api/branches/all-items/${mark}`);
 
-      setSummary(summaryRes.data.summary); // ব্যাকএন্ড থেকে আসা সম্পূর্ণ সামারি সেভ
+      setSummary(summaryRes.data.summary);
 
-      const itemsWithRate = itemsRes.data.items.map((item) => ({
+      // 🔥 স্মার্ট ফিল্টার: শুধু দেশে পৌঁছানো মালগুলো ফিল্টার করা হচ্ছে
+      // "Warehouse Received" এবং "In-Transit" বাদে বাকি সব (Arrived থেকে Delivered পর্যন্ত) দেখাবে
+      const arrivedItems = itemsRes.data.items.filter(
+        (item) =>
+          item.status !== "Warehouse Received" && item.status !== "In-Transit" && item.isMasterCarton !== true && item.isHeld !== true,
+      );
+
+      const itemsWithRate = arrivedItems.map((item) => ({
         ...item,
         rate: item.perKgRate || 0,
         total:
@@ -93,20 +99,16 @@ export default function BranchProfile() {
   // ✅ ডাইনামিকভাবে ব্যাচের আসল নাম বের করা
   const uniqueBatches = useMemo(() => {
     const batches = allItems.map((item) => {
-      // populate হয়ে আসলে এখান থেকে নামটা নেবে
       if (item.batchId && item.batchId.batchName) return item.batchId.batchName;
       if (item.batch && item.batch.batchName) return item.batch.batchName;
-
-      // যদি populate না হয় বা সরাসরি আইডি/স্ট্রিং থাকে
       return item.batchName || item.batchId || item.batch;
     });
-    return [...new Set(batches)].filter(Boolean); // ফাঁকা ডাটা রিমুভ করবে
+    return [...new Set(batches)].filter(Boolean);
   }, [allItems]);
 
   // ✅ ফিল্টার লজিক
   const filteredItems = useMemo(() => {
     return allItems.filter((item) => {
-      // আইটেমের ব্যাচ নাম সঠিকভাবে ধরা
       let itemBatch = "";
       if (item.batchId && item.batchId.batchName)
         itemBatch = item.batchId.batchName;
@@ -124,15 +126,13 @@ export default function BranchProfile() {
     });
   }, [searchTerm, selectedBatch, allItems]);
 
-  // ✅ ৩. ইনভয়েস হিস্ট্রি ফিল্টার করা (Batch, Invoice ID বা Tracking Number দিয়ে)
+  // ✅ ইনভয়েস হিস্ট্রি ফিল্টার করা
   const filteredHistory = useMemo(() => {
     return invoiceHistory.filter((inv) => {
-      // ১. ব্যাচ ফিল্টার: চেক করা হচ্ছে ইনভয়েসের ভেতরের কোনো আইটেম সিলেক্টেড ব্যাচের কি না
       let batchMatch = true;
       if (selectedBatch) {
         batchMatch = inv.items.some((item) => {
           let itemBatch = "";
-          // populate হয়ে আসলে অবজেক্ট থেকে নাম নেবে, নাহলে সরাসরি ফিল্ড থেকে নেবে
           if (item.batchId && item.batchId.batchName)
             itemBatch = item.batchId.batchName;
           else if (item.batch && item.batch.batchName)
@@ -143,7 +143,6 @@ export default function BranchProfile() {
         });
       }
 
-      // ২. টেক্সট সার্চ ফিল্টার: Invoice ID বা Tracking Number
       let searchMatch = true;
       if (invoiceSearchTerm) {
         const term = invoiceSearchTerm.toLowerCase();
@@ -156,12 +155,10 @@ export default function BranchProfile() {
         searchMatch = idMatch || itemMatch;
       }
 
-      // দুটো শর্ত (ব্যাচ এবং সার্চ) পূরণ হলেই ইনভয়েসটি দেখাবে
       return batchMatch && searchMatch;
     });
-  }, [invoiceHistory, invoiceSearchTerm, selectedBatch]); // ⚠️ selectedBatch ডিপেন্ডেন্সিতে যোগ করা হয়েছে
+  }, [invoiceHistory, invoiceSearchTerm, selectedBatch]);
 
-  // Checkbox Selection (Only for unbilled items)
   const toggleSelect = (id) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
@@ -180,7 +177,6 @@ export default function BranchProfile() {
     }
   };
 
-  // Rate Calculations (Only apply to Unbilled)
   const applyRateToSelected = () => {
     const rateVal = parseFloat(globalRate);
     if (!rateVal || rateVal <= 0) return alert("সঠিক রেট লিখুন!");
@@ -201,7 +197,6 @@ export default function BranchProfile() {
     setAllItems(updatedItems);
   };
 
-  // Revert (Undo) a billed item
   const handleRevertItem = async (itemId) => {
     if (
       !window.confirm(
@@ -213,14 +208,13 @@ export default function BranchProfile() {
       const res = await axios.post("/api/branches/revert-item", { itemId });
       if (res.data.success) {
         alert("সফলভাবে রিভার্ট করা হয়েছে!");
-        fetchBranchData(activeMark); // ডেটা রিফ্রেশ
+        fetchBranchData(activeMark);
       }
     } catch (error) {
       alert("রিভার্ট করতে সমস্যা হয়েছে!");
     }
   };
 
-  // Edit a billed item
   const handleEditBilledItem = async (item) => {
     const newRate = prompt(
       "এই আইটেমের জন্য নতুন রেট দিন (৳):",
@@ -249,7 +243,6 @@ export default function BranchProfile() {
     }
   };
 
-  // Generate Invoice
   const handleGenerateInvoice = async () => {
     const itemsToBill = allItems.filter(
       (item) =>
@@ -362,7 +355,6 @@ export default function BranchProfile() {
       {activeTab === "pending" && (
         <div className="tab-content">
           <div className="controls-bar">
-            {/* ✅ ব্যাচ ড্রপডাউন এবং সার্চ বক্স */}
             <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
               <select
                 value={selectedBatch}
@@ -419,6 +411,8 @@ export default function BranchProfile() {
                   <th>Product Name</th>
                   <th>Tracking/Carton</th>
                   <th>Weight</th>
+                  {/* 🔥 নতুন স্ট্যাটাস কলাম */}
+                  <th>Status</th>
                   <th>Rate (৳)</th>
                   <th>Total (৳)</th>
                   <th>Actions</th>
@@ -447,7 +441,6 @@ export default function BranchProfile() {
                         <td>{idx + 1}</td>
                         <td>
                           {item.productName}
-                          {/* ✅ ব্যাচ ব্যাজ */}
                           {item.batchName && (
                             <div
                               style={{
@@ -474,7 +467,29 @@ export default function BranchProfile() {
                         </td>
                         <td>{item.calcWeight.toFixed(2)} KG</td>
 
-                        {/* Rate Column */}
+                        {/* 🔥 স্ট্যাটাস ব্যাজ দেখানো হচ্ছে */}
+                        <td>
+                          <span
+                            style={{
+                              padding: "4px 8px",
+                              borderRadius: "12px",
+                              fontSize: "11px",
+                              fontWeight: "bold",
+                              backgroundColor:
+                                item.status === "Delivered"
+                                  ? "#dcfce7"
+                                  : "#e0f2fe",
+                              color:
+                                item.status === "Delivered"
+                                  ? "#15803d"
+                                  : "#0369a1",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            {item.status || "Arrived"}
+                          </span>
+                        </td>
+
                         <td>
                           {isCompleted ? (
                             <span className="locked-val">
@@ -499,7 +514,6 @@ export default function BranchProfile() {
                             : item.total.toLocaleString()}
                         </td>
 
-                        {/* Action Column */}
                         <td>
                           {isCompleted ? (
                             <div className="action-group">
@@ -529,7 +543,7 @@ export default function BranchProfile() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan="8" className="no-data">
+                    <td colSpan="9" className="no-data">
                       কোনো আইটেম নেই
                     </td>
                   </tr>
@@ -575,12 +589,10 @@ export default function BranchProfile() {
       {/* ================= HISTORY TAB ================= */}
       {activeTab === "history" && (
         <div className="tab-content">
-          {/* ✅ ইনভয়েস হিস্ট্রি সার্চ বার এবং ব্যাচ ফিল্টার */}
           <div
             className="controls-bar"
             style={{ marginBottom: "20px", display: "flex", gap: "15px" }}
           >
-            {/* ✅ হিস্ট্রির জন্য ব্যাচ ড্রপডাউন */}
             <select
               value={selectedBatch}
               onChange={(e) => setSelectedBatch(e.target.value)}
@@ -595,7 +607,6 @@ export default function BranchProfile() {
               ))}
             </select>
 
-            {/* টেক্সট সার্চ */}
             <input
               type="text"
               placeholder="Search by Invoice ID or Tracking No..."
@@ -675,6 +686,7 @@ export default function BranchProfile() {
           </div>
         </div>
       )}
+
       {/* ✅ Invoice View / Print Modal */}
       {isInvoiceModalOpen && invoiceData && (
         <div className="modal-overlay">
@@ -738,7 +750,6 @@ export default function BranchProfile() {
                     <tr key={i}>
                       <td>
                         {it.productName || "General Item"}
-                        {/* প্রিন্ট মেমোতেও ব্যাচ নাম দেখালে ভালো হয় */}
                         {it.batchName && (
                           <div style={{ fontSize: "11px", color: "#666" }}>
                             Batch: {it.batchName}

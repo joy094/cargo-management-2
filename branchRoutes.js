@@ -351,6 +351,8 @@ router.get("/unassigned-shipments", async (req, res) => {
     const unassignedShipments = await Shipment.find({
       status: { $in: ["Arrived", "Delivered"] },
       shippingMark: { $nin: activeShippingMarks }, // $nin মানে "Not In" (লিস্টে নেই)
+
+      isMasterCarton: { $ne: true }, // 🔥 শুধু সাব-বক্স বা সাধারণ বক্স আনবে
     }).sort({ receivedDate: -1 });
 
     res.json(unassignedShipments);
