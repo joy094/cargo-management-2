@@ -1,43 +1,48 @@
+// App.jsx - মডিফাইড উইথ RBAC (Role-Based Access Control)
+
 import "./App.css";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { Routes, Route, Outlet, useNavigate, NavLink } from "react-router-dom";
 import axios from "axios";
 
 // মডিফাইড কম্পোনেন্ট ইম্পোর্ট
 import Dashboard from "./components/Dashboard";
-import ShipmentList from "./components/ShipmentList"; // HajjiList -> ShipmentList
-import ShipmentProfile from "./components/ShipmentProfile"; // HajjiProfile -> ShipmentProfile
-import PaymentAllocation from "./components/PaymentAllocation"; // Typo fixed
-import AgencyProfile from "./components/BranchProfile";
+import ShipmentList from "./components/ShipmentList";
+import ShipmentProfile from "./components/ShipmentProfile";
+import PaymentAllocation from "./components/PaymentAllocation";
 import AddBranch from "./components/AddBranch";
-import AddShipment from "./components/AddShipment"; // AddHajji -> AddShipment
+import AddShipment from "./components/AddShipment";
 import NotificationSounds from "./components/NotificationSounds";
 import Login from "./components/Login";
 import BottomNav from "./components/BottomNav";
-// import CustomerList from "./components/CustomerList";
-// import CustomerProfile from "./components/CustomerProfile";
 import BatchList from "./components/BatchList";
-
 import BatchDetails from "./components/BatchDetails";
 import BulkImport from "./components/BulkImport";
-import BoxDetails from "./components/BoxDetails"; // ফোল্ডার পাথ আপনার অনুযায়ী ঠিক করে নেবেন
-import BranchDashboard from "./components/BranchProfile";
+import BoxDetails from "./components/BoxDetails";
 import BranchProfile from "./components/BranchProfile";
 import UnassignedShipments from "./components/UnassignedShipments";
 
-// Layout Component
+import RoleManagement from "./components/RoleManagement";
+import UserManagement from "./components/UserManagement";
+import { AuthContext } from "./context/AuthContext"; // 🔥 AuthContext ইম্পোর্ট
+import CanAccess from "./components/CanAccess";
+import ProtectedRoute from "./ProtectedRoute"; // ⚠️ পাথ ঠিক আছে কি না চেক করে নেবেন
+
+// ==========================================
+// 1. Layout Component
+// ==========================================
 export const Layout = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useContext(AuthContext); // Context থেকে ডাটা নিচ্ছি
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token =
+      localStorage.getItem("cargo_token") || localStorage.getItem("token");
     if (!token) {
       navigate("/login");
     } else {
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     }
-    setLoading(false);
   }, [navigate]);
 
   if (loading) return <div className="loading-screen">Loading System...</div>;
@@ -55,29 +60,27 @@ export const Layout = () => {
   );
 };
 
-// Header Component (মডিফাইড ফর কারগো)
-
+// ==========================================
+// 2. Header Component (Menu Security)
+// ==========================================
 const Header = () => {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const token = localStorage.getItem("token");
-
-  const logout = () => {
-    localStorage.clear();
-    navigate("/login");
-  };
+  const { user, logout } = useContext(AuthContext); // Context থেকে user ও logout ফাংশন
 
   const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
   return (
     <header className="main-header">
-      <nav className="nav-container">
+      <nav
+        className="nav-container"
+        style={{ maxWidth: "100%", margin: "0 auto" }}
+      >
         {/* Logo Section */}
         <div className="logo" onClick={() => navigate("/")}>
           <span className="logo-icon">📦</span>
           <div className="logo-text">
             <h1>SABA & RIHAN </h1>
-            <span className="sub-logo">কারগো ম্যানেজমেন্ট সিস্টেম</span>
           </div>
         </div>
 
@@ -93,48 +96,90 @@ const Header = () => {
               ড্যাশবোর্ড
             </NavLink>
           </li>
-          <li>
-            <NavLink
-              to="/branch/new"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              ব্রাঞ্চসমূহ
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/shipment-list"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              শিপমেন্টস 
-            </NavLink>
-          </li>
 
-          {/* <li>
-            <NavLink to="/customers" className="nav-link">
-              কাস্টমারস
-            </NavLink>
-          </li> */}
-          <li>
-            <NavLink to="/unassigned" className="nav-link">
-              মিসিং শিপিং মার্ক
-            </NavLink>
-          </li>
-          
-          <li>
-            <NavLink to="/batches" className="nav-link">
-              শিপমেন্ট  ব্যাচেস
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/payment-allocation"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              পেমেন্ট
-            </NavLink>
-          </li>
-          {token && (
+          {/* 🔥 Branch Access */}
+          <CanAccess module="branch" action="view">
+            <li>
+              <NavLink
+                to="/branch/new"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                ব্রাঞ্চ/কাস্টমার
+              </NavLink>
+            </li>
+          </CanAccess>
+
+          {/* 🔥 Shipment Access */}
+          <CanAccess module="shipment" action="view">
+            <li>
+              <NavLink
+                to="/shipment-list"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                শিপমেন্টস
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/unassigned"
+                className="nav-link"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                মিসিং শিপিং মার্ক
+              </NavLink>
+            </li>
+          </CanAccess>
+
+          {/* 🔥 Batch Access */}
+          <CanAccess module="batch" action="view">
+            <li>
+              <NavLink
+                to="/batches"
+                className="nav-link"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                শিপমেন্ট ব্যাচেস
+              </NavLink>
+            </li>
+          </CanAccess>
+
+          {/* 🔥 Billing & Payment Access */}
+          <CanAccess module="billing" action="view">
+            <li>
+              <NavLink
+                to="/payment-allocation"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                পেমেন্ট
+              </NavLink>
+            </li>
+          </CanAccess>
+
+          {/* 🔥 শুধুমাত্র সুপার অ্যাডমিনের মেনু */}
+          {user?.isSuperAdmin && (
+            <>
+              <li>
+                <NavLink
+                  to="/admin/roles"
+                  className="nav-link"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  রোল এবং পারমিশন
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/admin/users"
+                  className="nav-link"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  ইউজার ম্যানেজমেন্ট
+                </NavLink>
+              </li>
+            </>
+          )}
+
+          {user && (
             <li className="mobile-only">
               <button onClick={logout} className="logout-btn">
                 লগআউট
@@ -144,7 +189,7 @@ const Header = () => {
         </ul>
 
         {/* Desktop Logout */}
-        {token && (
+        {user && (
           <div className="desktop-only">
             <button onClick={logout} className="logout-btn-3d">
               লগআউট
@@ -156,15 +201,18 @@ const Header = () => {
   );
 };
 
+// ==========================================
+// 3. Footer Component
+// ==========================================
 const Footer = () => (
   <footer className="main-footer">
     <div className="footer-content">
       <div className="footer-section">
-        <h4>Masum Air Travels & Cargo</h4>
+        <h4>Saba & Rihan Enterprise</h4>
         <p>নির্ভরযোগ্য কারগো এবং লজিস্টিক সেবা</p>
       </div>
       <div className="footer-bottom">
-        <p>© ২০২৬ সর্বস্বত্ব সংরক্ষিত | ডিজাইন ও ডেভেলপমেন্ট: এমডি জাকারিয়া</p>
+        <p>© ২০২৬ সর্বস্বত্ব সংরক্ষিত | ডিজাইন ও ডেভেলপমেন্ট: এমডি জাকারিয়া</p>
       </div>
     </div>
   </footer>
@@ -172,48 +220,160 @@ const Footer = () => (
 
 export { Header, Footer };
 
-// Main App Component with Routes
+// ==========================================
+// 4. Main App Routes (Route Security)
+// ==========================================
 const App = () => (
   <Routes>
     {/* Public Route */}
     <Route path="/login" element={<Login />} />
 
-    {/* Protected Routes */}
+    {/* Protected Routes Wrapper */}
     <Route path="/" element={<Layout />}>
-      {/* Dashboard */}
-      <Route path="/" element={<Dashboard />} />
+      {/* 🏠 সবার জন্য ড্যাশবোর্ড (লগইন থাকলেই হবে) */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* Agency/Branch Management */}
+      {/* 🏢 Branch Routes (ব্রাঞ্চ পারমিশন) */}
+      <Route
+        path="/branch/new"
+        element={
+          <ProtectedRoute module="branch" action="view">
+            <AddBranch />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/branch-profile"
+        element={
+          <ProtectedRoute module="branch" action="view">
+            <BranchProfile />
+          </ProtectedRoute>
+        }
+      />
 
-     
-      <Route path="/branch/new" element={<AddBranch />} />
-      <Route path="/branch-profile" element={<BranchProfile/>} />
+      {/* 🚚 Shipment Routes (শিপমেন্ট পারমিশন) */}
+      <Route
+        path="/shipment-list"
+        element={
+          <ProtectedRoute module="shipment" action="view">
+            <ShipmentList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/shipment-profile/:id"
+        element={
+          <ProtectedRoute module="shipment" action="view">
+            <ShipmentProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/shipment/new"
+        element={
+          <ProtectedRoute module="shipment" action="create">
+            <AddShipment />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/shipment/:id"
+        element={
+          <ProtectedRoute module="shipment" action="edit">
+            <AddShipment />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/unassigned"
+        element={
+          <ProtectedRoute module="shipment" action="view">
+            <UnassignedShipments />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/box-details/:id"
+        element={
+          <ProtectedRoute module="shipment" action="view">
+            <BoxDetails />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* Shipment Management */}
-      <Route path="/shipment-list" element={<ShipmentList />} />
-      <Route path="/shipment-profile/:id" element={<ShipmentProfile />} />
-      <Route path="/shipment/new" element={<AddShipment />} />
-      <Route path="/shipment/:id" element={<AddShipment />} />
-      {/* customers mamnagement */}
-      {/* <Route path="/customers" element={<CustomerList />} /> */}
-      {/* <Route path="/customer-profile/:id" element={<CustomerProfile />} /> */}
-      {/* নতুন ব্যাচ রাউট */}
-      <Route path="/batches" element={<BatchList />} />
-      <Route path="/batches/:id" element={<BatchDetails />} />
-      <Route path="/bulk-import" element={<BulkImport />} />
-      //unassigned shipments-branch
-      <Route path="/unassigned" element={<UnassignedShipments />} />
+      {/* 📦 Batch Routes (ব্যাচ পারমিশন) */}
+      <Route
+        path="/batches"
+        element={
+          <ProtectedRoute module="batch" action="view">
+            <BatchList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/batches/:id"
+        element={
+          <ProtectedRoute module="batch" action="view">
+            <BatchDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/bulk-import"
+        element={
+          <ProtectedRoute module="batch" action="create">
+            <BulkImport />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* Payment System */}
-      <Route path="/payment-allocation" element={<PaymentAllocation />} />
-      <Route path="/box-details/:id" element={<BoxDetails />} />
+      {/* 💵 Payment & Billing Routes (বিলিং পারমিশন) */}
+      <Route
+        path="/payment-allocation"
+        element={
+          <ProtectedRoute module="billing" action="view">
+            <PaymentAllocation />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* 404 */}
+      {/* 🛡️ Super Admin Routes (শুধু সুপার অ্যাডমিন) */}
+      <Route
+        path="admin/roles"
+        element={
+          <ProtectedRoute requireSuperAdmin={true}>
+            <RoleManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="admin/users"
+        element={
+          <ProtectedRoute requireSuperAdmin={true}>
+            <UserManagement />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 🚫 404 Page */}
       <Route
         path="*"
         element={
-          <div className="p-20 text-center">
-            <h1>404 - Page Not Found</h1>
+          <div
+            className="p-20 text-center"
+            style={{ padding: "50px", textAlign: "center" }}
+          >
+            <h1>⚠️ 404 - Page Not Found</h1>
+            <p>
+              আপনি ভুল ঠিকানায় এসেছেন অথবা এই পেজটি দেখার পারমিশন আপনার নেই।
+            </p>
           </div>
         }
       />

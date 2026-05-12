@@ -8,6 +8,7 @@ import EditShipmentModal from "./EditShipmentModal";
 import BatchSummary from "./BatchSummary";
 import Search from "./Search";
 import { QRCodeCanvas } from "qrcode.react";
+import CanAccess from "./CanAccess";
 import "./BatchDetails.css";
 
 export default function BatchDetails() {
@@ -490,12 +491,14 @@ export default function BatchDetails() {
               📊 Export Excel
             </button>
             {!isLocked && (
-              <button
-                className={`bulk-toggle-btn ${showBulkEntry ? "active" : ""}`}
-                onClick={() => setShowBulkEntry(!showBulkEntry)}
-              >
-                {showBulkEntry ? "Close Entry" : "📥 Quick Bulk Entry"}
-              </button>
+              <CanAccess module="shipment" action="create">
+                <button
+                  className={`bulk-toggle-btn ${showBulkEntry ? "active" : ""}`}
+                  onClick={() => setShowBulkEntry(!showBulkEntry)}
+                >
+                  {showBulkEntry ? "Close Entry" : "📥 Quick Bulk Entry"}
+                </button>
+              </CanAccess>
             )}
           </div>
         </div>
@@ -769,32 +772,38 @@ export default function BatchDetails() {
 
                       <td>
                         <div style={{ display: "flex", gap: "5px" }}>
-                          <button
-                            onClick={() => {
-                              setSelectedMaster(s);
-                              setIsSubModalOpen(true);
-                            }}
-                            className="add-sub-btn"
-                          >
-                            📦+Sub
-                          </button>
-                          <button
-                            onClick={() => {
-                              setShipmentToEdit(s);
-                              setIsEditModalOpen(true);
-                            }}
-                            className="edit-btn"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleDelete(s._id, s.isMasterCarton)
-                            }
-                            className="delete-btn"
-                          >
-                            🗑️
-                          </button>
+                          <CanAccess module="shipment" action="create">
+                            <button
+                              onClick={() => {
+                                setSelectedMaster(s);
+                                setIsSubModalOpen(true);
+                              }}
+                              className="add-sub-btn"
+                            >
+                              📦+Sub
+                            </button>
+                          </CanAccess>
+                          <CanAccess module="batch" action="edit">
+                            <button
+                              onClick={() => {
+                                setShipmentToEdit(s);
+                                setIsEditModalOpen(true);
+                              }}
+                              className="edit-btn"
+                            >
+                              ✏️
+                            </button>
+                          </CanAccess>
+                          <CanAccess module="batch" action="delete">
+                            <button
+                              onClick={() =>
+                                handleDelete(s._id, s.isMasterCarton)
+                              }
+                              className="delete-btn"
+                            >
+                              🗑️
+                            </button>
+                          </CanAccess>
 
                           {!s.parentId && (
                             <button
@@ -862,6 +871,8 @@ export default function BatchDetails() {
                               <td>-</td>
                               <td>
                                 <div style={{ display: "flex", gap: "5px" }}>
+
+                                  <CanAccess module="shipment" action="edit">
                                   <button
                                     onClick={() => {
                                       setShipmentToEdit(sub);
@@ -871,12 +882,15 @@ export default function BatchDetails() {
                                   >
                                     ✏️
                                   </button>
+                                  </CanAccess>
+                                  <CanAccess module="batch" action="delete">
                                   <button
                                     onClick={() => handleDelete(sub._id, false)}
                                     className="delete-btn"
                                   >
                                     🗑️
                                   </button>
+                                  </CanAccess>
                                 </div>
                               </td>
                             </tr>

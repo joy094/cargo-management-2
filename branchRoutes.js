@@ -56,10 +56,15 @@ router.post("/generate-invoice", async (req, res) => {
   }
 });
 
-// ✅ ৩. ড্যাশবোর্ড সামারি: Shipping Mark অনুযায়ী টোটাল এবং বকেয়া (Due) হিসাব
+// ✅ ৩. ড্যাশবোর্ড সামারি: Shipping Mark অনুযায়ী টোটাল এবং বকেয়া (Due) হিসাব
 router.get("/summary/:shippingMark", async (req, res) => {
   try {
     const shippingMarkRegex = new RegExp(`^${req.params.shippingMark}$`, "i");
+
+    // 🔥 ম্যাজিক আপডেট: Branch কালেকশন থেকে কাস্টমারের আসল ডাটা (নাম, ফোন, ঠিকানা) নিয়ে আসা
+    const branchInfo = await Branch.findOne({
+      shippingMark: shippingMarkRegex,
+    });
 
     // ১. Shipment থেকে টোটাল বিল, ওজন এবং বক্সের হিসাব
     const stats = await Shipment.aggregate([
@@ -76,7 +81,7 @@ router.get("/summary/:shippingMark", async (req, res) => {
           totalWeight: {
             $sum: { $toDouble: { $ifNull: ["$actualWeight", "$grossWeight"] } },
           },
-          // শুধুমাত্র বিল হওয়া আইটেমগুলোর totalBill যোগ করবে
+          // শুধুমাত্র বিল হওয়া আইটেমগুলোর totalBill যোগ করবে
           totalBilled: {
             $sum: {
               $cond: [{ $eq: ["$isBilled", true] }, "$totalBill", 0],
@@ -105,10 +110,10 @@ router.get("/summary/:shippingMark", async (req, res) => {
       }
     });
 
-    // ৩. বর্তমান বকেয়া (Due) হিসাব
+    // ৩. বর্তমান বকেয়া (Due) হিসাব
     const currentDue = summaryData.totalBilled - totalPaid - totalDiscount;
 
-    // ৪. সব ডেটা একসাথে পাঠানো
+    // ৪. সব ডেটা একসাথে পাঠানো (কাস্টমার ইনফো সহ)
     res.status(200).json({
       success: true,
       summary: {
@@ -116,6 +121,10 @@ router.get("/summary/:shippingMark", async (req, res) => {
         totalPaid,
         totalDiscount,
         currentDue,
+        // 🔥 এই নতুন ৩টি লাইন আপনার ইনভয়েসের নাম-ঠিকানা ঠিক করে দেবে!
+        branchName: branchInfo ? branchInfo.branchName : "",
+        phone: branchInfo ? branchInfo.phone : "",
+        address: branchInfo ? branchInfo.address : "",
       },
     });
   } catch (error) {
@@ -123,7 +132,6 @@ router.get("/summary/:shippingMark", async (req, res) => {
     res.status(500).json({ success: false, message: "সামারি তৈরি করা যায়নি" });
   }
 });
-
 // ==========================================
 // 🏢 Branch Management API Routes
 // ==========================================

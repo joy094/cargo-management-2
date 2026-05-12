@@ -17,6 +17,8 @@ import batchRoute from "./batchRoute.js"
 import branchRoute from "./branchRoutes.js";
 import paymentRoute from "./paymentRoute.js";
 import dashboardRoute from "./dashboardRoute.js";
+import roleRoutes from "./roleRoute.js";
+import userRoutes from "./userRoute.js";
 
 dotenv.config();
 
@@ -36,6 +38,8 @@ app.use("/api/batches", batchRoute);
 app.use("/api/branches", branchRoute);
 app.use("/api/payments", paymentRoute);
 app.use("/api/dashboard", dashboardRoute);
+app.use("/api/roles", roleRoutes);
+app.use("/api/users", userRoutes);
 /* ===========================
    MongoDB Connection
 =========================== */

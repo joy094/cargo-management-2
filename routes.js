@@ -5,8 +5,6 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import {
-  
-  
   Shipment,
   // BankStatement,
   // PaymentAllocation,
@@ -156,11 +154,6 @@ router.delete("/agencies/:id", async (req, res) => {
   }
 });
 
-
-
-
-
-
 /* =====================================================
    📦 SHIPMENT MANAGEMENT
 ===================================================== */
@@ -291,6 +284,18 @@ router.put("/shipments/bulk-assign-agency", async (req, res) => {
   }
 });
 
+router.get("/shipments", async (req, res) => {
+  try {
+    const list = await Shipment.find()
+      .populate("customer")
+      .populate("agency")
+      .sort({ createdAt: -1 });
+    res.json(list);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ✅ শিপমেন্ট ডিলিট করার রাউট
 router.delete("/shipments/:id", async (req, res) => {
   try {
@@ -305,15 +310,53 @@ router.delete("/shipments/:id", async (req, res) => {
     res.status(500).json({ error: "ডিলিট করতে সমস্যা হয়েছে।" });
   }
 });
-router.get("/shipments", async (req, res) => {
+
+// 📥 ডাইরেক্ট/ম্যানুয়াল বাল্ক এন্ট্রি (ব্রাঞ্চ প্রোফাইলের জন্য)
+router.post("/direct-bulk", authMiddleware, async (req, res) => {
   try {
-    const list = await Shipment.find()
-      .populate("customer")
-      .populate("agency")
-      .sort({ createdAt: -1 });
-    res.json(list);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const { items, shippingMark } = req.body; // items হলো টেবিলের ডাটাগুলোর অ্যারে
+
+    if (!items || items.length === 0) {
+      return res.status(400).json({ error: "কোনো ডাটা প্রদান করা হয়নি!" });
+    }
+
+    const savedShipments = [];
+
+    for (const item of items) {
+      // অটোমেটিক ট্র্যাকিং নাম্বার জেনারেট (যদি ক্লায়েন্ট না দেয়)
+      const autoTracking = `DIR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+      const newShipment = new Shipment({
+        trackingNumber: item.trackingNo || autoTracking,
+        chinaTrackingNo: item.chinaTrackingNo || "",
+        shippingMark: shippingMark, // প্রোফাইলের শিপিং মার্ক ফিক্সড থাকবে
+        productName: item.productName || "MIX",
+        cartonNo: item.cartonNo || "",
+        quantity: Number(item.quantity) || 1,
+        grossWeight: Number(item.grossWeight) || 0,
+        actualWeight: Number(item.actualWeight) || 0,
+        dimensions: {
+          length: Number(item.length) || 0,
+          width: Number(item.width) || 0,
+          height: Number(item.height) || 0,
+        },
+        cbm: Number(item.cbm) || 0,
+        batch: null, // 🔥 কোনো ব্যাচ নেই
+        status: "Delivered", // বা আপনার প্রয়োজন অনুযায়ী স্ট্যাটাস
+        isBilled: false,
+      });
+
+      const saved = await newShipment.save();
+      savedShipments.push(saved);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `${savedShipments.length} টি ডাইরেক্ট শিপমেন্ট সফলভাবে যোগ হয়েছে।`,
+    });
+  } catch (error) {
+    console.error("Direct Bulk Entry Error:", error);
+    res.status(500).json({ error: "সার্ভারে সমস্যা হয়েছে!" });
   }
 });
 
@@ -548,9 +591,6 @@ router.get("/shipments/qr-details/:id", async (req, res) => {
   }
 });
 
-
 // অন্যান্য রাউটস (যেমন ড্যাশবোর্ড, কাস্টমার ম্যানেজমেন্ট ইত্যাদি) এখানে যুক্ত হবে
-
-
 
 export default router;

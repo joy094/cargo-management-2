@@ -365,6 +365,413 @@
   font-weight: bold;
 }
 
+/* Manual Shipment Styles */
+.badge-manual {
+  background-color: #ecfdf5;
+  color: #059669;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #10b981;
+}
+
+.row-manual {
+  background-color: #f8fafc;
+}
+
+.manual-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.btn-mini-edit {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+.btn-mini-edit:hover {
+  background: #fde68a;
+}
+
+.btn-mini-delete {
+  background: #fee2e2;
+  border: 1px solid #ef4444;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+.btn-mini-delete:hover {
+  background: #fca5a5;
+}
+
+/* ====================================================
+   🌟 PROFESSIONAL INVOICE TEMPLATE STYLES
+==================================================== */
+.pro-modal-width {
+  max-width: 950px !important;
+  width: 95% !important;
+}
+
+.pro-invoice-wrapper {
+  background: #fff;
+  padding: 40px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: #1e293b;
+}
+
+/* Header & Gradient */
+.pro-inv-header {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  margin-bottom: 20px;
+}
+.pro-logo-placeholder {
+  width: 110px;
+  height: 110px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  border: 2px dashed #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #94a3b8;
+}
+.pro-company-details {
+  flex: 1;
+}
+.gradient-company-name {
+  margin: 0 0 5px 0;
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(90deg, #1e3a8a, #3b82f6, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.pro-tagline {
+  margin: 0 0 5px 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  letter-spacing: 0.5px;
+}
+.pro-address {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* Title Bar */
+.pro-inv-title-bar {
+  text-align: center;
+  border-top: 2px solid #1e3a8a;
+  border-bottom: 2px solid #1e3a8a;
+  padding: 10px 0;
+  margin: 25px 0;
+}
+.pro-inv-title-bar h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  color: #1e3a8a;
+}
+
+/* Customer Info Section */
+.pro-info-section {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 30px;
+}
+.info-title {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  color: #3b82f6;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 5px;
+}
+.info-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+}
+.info-table td {
+  padding: 4px 0;
+  vertical-align: middle;
+}
+.info-table .lbl {
+  width: 110px;
+  color: #64748b;
+  font-weight: 600;
+}
+.meta-table .lbl {
+  width: 80px;
+}
+
+/* Auto Inputs */
+.print-input-auto {
+  border: none;
+  border-bottom: 1px dashed #cbd5e1;
+  outline: none;
+  width: 200px;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 2px 5px;
+  background: transparent;
+  font-weight: 600;
+  color: #0f172a;
+}
+.print-input-auto::placeholder {
+  color: #cbd5e1;
+  font-weight: normal;
+}
+
+/* Item Table */
+.pro-item-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 30px;
+}
+.pro-item-table th {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  padding: 12px;
+  text-align: left;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: #475569;
+}
+.pro-item-table td {
+  border: 1px solid #cbd5e1;
+  padding: 12px;
+  vertical-align: top;
+  font-size: 14px;
+}
+.pro-item-table .center {
+  text-align: center;
+}
+.pro-item-table .right {
+  text-align: right;
+}
+.item-name {
+  display: block;
+  margin-bottom: 4px;
+  color: #0f172a;
+}
+.item-meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.batch-pill {
+  background: #e0e7ff;
+  color: #3730a3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.trk-text {
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* Calculations */
+.pro-calc-section {
+  display: flex;
+  justify-content: space-between;
+  border-top: 2px solid #e2e8f0;
+  padding-top: 20px;
+}
+.amount-in-words {
+  width: 55%;
+  background: #f8fafc;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e1;
+}
+.amount-in-words p {
+  margin: 0 0 5px 0;
+  font-size: 14px;
+}
+.words-text {
+  font-weight: 700;
+  color: #1e3a8a;
+  text-transform: capitalize;
+  font-style: italic;
+}
+
+.pro-totals {
+  width: 40%;
+}
+.totals-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-weight: 600;
+}
+.totals-table td {
+  padding: 6px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.totals-table .right {
+  text-align: right;
+}
+.text-red {
+  color: #ef4444;
+}
+.grand-total-row td {
+  border-top: 2px solid #1e3a8a;
+  border-bottom: 2px solid #1e3a8a;
+  font-size: 18px;
+  font-weight: 800;
+  color: #1e3a8a;
+  padding: 10px 0;
+}
+
+/* Bank Info */
+.pro-bank-info {
+  margin-top: 40px;
+}
+.pro-bank-info h4 {
+  margin: 0 0 15px 0;
+  color: #475569;
+  font-size: 14px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 5px;
+}
+.bank-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.bank-card {
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.5;
+}
+.bank-card strong {
+  display: block;
+  color: #0f172a;
+  margin-bottom: 5px;
+  font-size: 13px;
+}
+.bank-card p {
+  margin: 0;
+}
+
+/* Signatures */
+.pro-signatures {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 70px;
+}
+.sig-line {
+  border-top: 1px solid #0f172a;
+  width: 200px;
+  text-align: center;
+  padding-top: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Footer Note */
+.pro-footer-note {
+  text-align: center;
+  margin-top: 40px;
+  font-size: 12px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* লোগো কন্টেইনার ডিজাইন */
+.pro-logo-container {
+  width: 110px; /* লোগোর সাইজ এখান থেকে ছোট-বড় করতে পারবেন */
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 8px; /* লোগোর চারপাশ একটু রাউন্ড করতে চাইলে */
+}
+
+/* লোগো ইমেজ স্টাইল */
+.pro-main-logo {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain; /* ছবি যাতে চ্যাপ্টা না হয় */
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+@media print {
+  /* প্রিন্ট করার সময় লোগো যাতে উজ্জ্বল থাকে */
+  .pro-main-logo {
+    display: block !important;
+    visibility: visible !important;
+  }
+}
+
+/* ====================================================
+   🖨️ PRINT MEDIA QUERIES
+==================================================== */
+@media print {
+  body * {
+    visibility: hidden;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .modal-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: white;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
+  #print-area,
+  #print-area * {
+    visibility: visible;
+  }
+  #print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0;
+  }
+  .no-print {
+    display: none !important;
+  }
+  /* 🔥 প্রিন্টে কোম্পানির নাম ঠিক করার ম্যাজিক */
+  .gradient-company-name {
+    background: none !important;
+    -webkit-text-fill-color: #1e3a8a !important; /* সলিড গাঢ় নীল রং */
+    color: #1e3a8a !important;
+  }
+  .print-input-auto {
+    border: none !important;
+    padding: 0;
+  }
+  .print-input-auto::placeholder {
+    color: transparent;
+  }
+  .pro-invoice-wrapper {
+    padding: 20px;
+  }
+}
+/* 
 @media print {
   body * {
     visibility: hidden;
@@ -384,4 +791,4 @@
   .modal-btns {
     display: none;
   }
-}
+} */

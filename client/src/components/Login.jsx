@@ -1,8 +1,8 @@
 // client/src/components/Login.jsx
 
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-
+import { AuthContext } from "../context/AuthContext"; // 🔥 AuthContext ইম্পোর্ট করা হলো
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -11,6 +11,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext); // 🔥 Context থেকে login ফাংশন বের করে আনা হলো
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -31,9 +32,8 @@ export default function Login() {
         return;
       }
 
-      // store token and user
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      // 🔥 Context এর মাধ্যমে ইউজার এবং টোকেন সেভ করা হচ্ছে
+      login(data.user, data.token);
 
       // set axios auth header for subsequent requests
       try {
@@ -57,7 +57,8 @@ export default function Login() {
       <div className="login-card">
         <div className="login-brand">
           <h1>Login</h1>
-          <p className="sub">Admin Login</p>
+          <p className="sub">Cargo Management System</p>{" "}
+          {/* একটু পরিবর্তন করেছি */}
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
@@ -79,6 +80,7 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              placeholder="••••••••"
             />
           </label>
 
@@ -126,4 +128,3 @@ export default function Login() {
     </div>
   );
 }
-// End of client/src/components/Login.jsx

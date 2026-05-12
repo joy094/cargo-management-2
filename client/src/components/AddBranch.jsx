@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import CanAccess from "./CanAccess";
 
 export default function AddBranch() {
   const [branches, setBranches] = useState([]);
@@ -160,6 +161,8 @@ export default function AddBranch() {
             </div>
 
             <div className="form-actions">
+
+              <CanAccess module="branch" action={isEditing ? "edit" : "create"}>
               <button
                 type="submit"
                 className={`submit-btn ${isEditing ? "update-btn" : ""}`}
@@ -171,6 +174,7 @@ export default function AddBranch() {
                     ? "💾 Update Data"
                     : "➕ Save Branch"}
               </button>
+              </CanAccess>
               {isEditing && (
                 <button
                   type="button"
@@ -227,20 +231,26 @@ export default function AddBranch() {
                         >
                           👤 Profile
                         </button>
-                        <button
-                          className="action-btn edit-btn"
-                          onClick={() => handleEditClick(branch)}
-                          title="Edit Info"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          className="action-btn delete-btn"
-                          onClick={() => handleDelete(branch._id)}
-                          title="Delete"
-                        >
-                          🗑️
-                        </button>
+
+                        <CanAccess module="branch" action="edit">
+                          <button
+                            className="action-btn edit-btn"
+                            onClick={() => handleEditClick(branch)}
+                            title="Edit Info"
+                          >
+                            ✏️
+                          </button>
+                        </CanAccess>
+
+                        <CanAccess module="branch" action="delete">
+                          <button
+                            className="action-btn delete-btn"
+                            onClick={() => handleDelete(branch._id)}
+                            title="Delete"
+                          >
+                            🗑️
+                          </button>
+                        </CanAccess>
                       </td>
                     </tr>
                   ))

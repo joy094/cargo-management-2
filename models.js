@@ -283,7 +283,29 @@ PaymentSchema.index({ shippingMark: 1, amount: 1, date: 1 }, { unique: false });
 export const Payment = model("Payment", PaymentSchema);
 
 /* =====================================================
-   7️⃣ User Schema
+   ৭ (ক). Role Schema (ক্ষমতা ও পারমিশন)
+===================================================== */
+const RoleSchema = new Schema(
+  {
+    roleName: { type: String, required: true, unique: true, trim: true }, // যেমন: "China Admin", "Cashier"
+    permissions: {
+      batch: { view: Boolean, create: Boolean, edit: Boolean, delete: Boolean },
+      shipment: {
+        view: Boolean,
+        create: Boolean,
+        edit: Boolean,
+        delete: Boolean,
+      },
+      branch: { view: Boolean, manage: Boolean },
+      billing: { view: Boolean, create: Boolean, revert: Boolean },
+    },
+  },
+  { timestamps: true },
+);
+export const Role = model("Role", RoleSchema);
+
+/* =====================================================
+   ৭ (খ). User Schema (কর্মচারী/অ্যাডমিন)
 ===================================================== */
 const UserSchema = new Schema(
   {
@@ -295,7 +317,13 @@ const UserSchema = new Schema(
       trim: true,
     },
     passwordHash: { type: String, required: true },
-    role: { type: String, enum: ["admin", "user"], default: "admin" },
+
+    // 🔥 নতুন RBAC রিলেশন এবং এক্সেস কন্ট্রোল
+    role: { type: Schema.Types.ObjectId, ref: "Role", default: null }, // Role এর সাথে লিংক
+    isSuperAdmin: { type: Boolean, default: false }, // সুপার অ্যাডমিন কি না
+    isActive: { type: Boolean, default: true }, // চাকরি ছাড়লে false করে দেবেন
+
+    // আপনার আগের চমৎকার সিকিউরিটি সিস্টেম
     failedLoginAttempts: { type: Number, default: 0 },
     lockUntil: { type: Date, default: null },
   },

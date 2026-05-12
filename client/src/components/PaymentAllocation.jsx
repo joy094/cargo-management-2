@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
+import CanAccess from "./CanAccess";
 
 export default function PaymentAllocation() {
   const [searchParams] = useSearchParams();
@@ -285,6 +286,8 @@ export default function PaymentAllocation() {
                   />
                 </div>
 
+
+
                 <button
                   type="submit"
                   className="submit-btn"
@@ -292,6 +295,7 @@ export default function PaymentAllocation() {
                 >
                   {submitting ? "Saving..." : "💾 Save Transaction"}
                 </button>
+                
               </form>
             </div>
 

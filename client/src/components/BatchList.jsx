@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./BatchList.css";
+import CanAccess from "./CanAccess"; // 🔥 এই কম্পোনেন্টটি তৈরি করে নিন, যা পারমিশন না থাকলে দেখাবে
 
 export default function BatchList() {
   const [batches, setBatches] = useState([]);
@@ -126,9 +127,11 @@ export default function BatchList() {
           <h1>✈️ ব্যাচ ও ফ্লাইট ম্যানেজমেন্ট</h1>
           <p>নতুন ফ্লাইট গ্রুপ করুন এবং ব্যাচ ভিত্তিক কস্টিং চেক করুন</p>
         </div>
-        <button className="add-batch-btn" onClick={() => setShowModal(true)}>
-          + নতুন ব্যাচ তৈরি করুন
-        </button>
+        <CanAccess module="batch" action="create">
+          <button className="add-batch-btn" onClick={() => setShowModal(true)}>
+            + নতুন ব্যাচ তৈরি করুন
+          </button>
+        </CanAccess>
       </div>
 
       <div className="modern-table-container">
@@ -203,25 +206,31 @@ export default function BatchList() {
                       📂
                     </button>
                     {/* ✅ এডিট বাটন */}
-                    <button
-                      className="btn-edit"
-                      onClick={() => {
-                        // তারিখটাকে input type="date" এর ফরম্যাটে (YYYY-MM-DD) সাজানো হচ্ছে
-                        const formattedDate = b.flightDate
-                          ? new Date(b.flightDate).toISOString().split("T")[0]
-                          : "";
-                        setEditingBatch({ ...b, flightDate: formattedDate });
-                        setShowEditModal(true);
-                      }}
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      className="btn-delete"
-                      onClick={() => deleteBatch(b._id)}
-                    >
-                      🗑️
-                    </button>
+                    <CanAccess module="batch" action="edit">
+                      <button
+                        className="btn-edit"
+                        onClick={() => {
+                          // তারিখটাকে input type="date" এর ফরম্যাটে (YYYY-MM-DD) সাজানো হচ্ছে
+                          const formattedDate = b.flightDate
+                            ? new Date(b.flightDate).toISOString().split("T")[0]
+                            : "";
+                          setEditingBatch({ ...b, flightDate: formattedDate });
+                          setShowEditModal(true);
+                        }}
+                      >
+                        ✏️
+                      </button>
+                    </CanAccess>
+
+                    {/* ✅ ডিলিট বাটন */}
+                    <CanAccess module="batch" action="delete">
+                      <button
+                        className="btn-delete"
+                        onClick={() => deleteBatch(b._id)}
+                      >
+                        🗑️
+                      </button>
+                    </CanAccess>
                   </div>
                 </td>
               </tr>
