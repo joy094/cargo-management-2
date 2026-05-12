@@ -1,18 +1,19 @@
+//src/components/PaymentAllocation.jsx
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
-import CanAccess from "./CanAccess";
 
 export default function PaymentAllocation() {
   const [searchParams] = useSearchParams();
   const urlMark = searchParams.get("mark");
 
   // States
-  const [allBranches, setAllBranches] = useState([]); // ড্রপডাউনের জন্য সব ব্রাঞ্চ
+  const [allBranches, setAllBranches] = useState([]);
   const [activeMark, setActiveMark] = useState(urlMark || "");
   const [totalBilled, setTotalBilled] = useState(0);
   const [ledgerHistory, setLedgerHistory] = useState([]);
-  const [customerInvoices, setCustomerInvoices] = useState([]); // নির্দিষ্ট ইনভয়েসে পেমেন্ট করার জন্য
+  const [customerInvoices, setCustomerInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -22,11 +23,10 @@ export default function PaymentAllocation() {
     type: "PAYMENT",
     paymentMethod: "CASH",
     transactionId: "",
-    allocatedInvoice: "", // নতুন: কোন ইনভয়েসের পেমেন্ট
+    allocatedInvoice: "",
     remarks: "",
   });
 
-  // পেজ লোড হলে সব ব্রাঞ্চের লিস্ট নিয়ে আসবে
   useEffect(() => {
     fetchAllBranches();
     if (urlMark) {
@@ -45,7 +45,7 @@ export default function PaymentAllocation() {
 
   const playWarningSound = () => {
     try {
-      const audio = new Audio("/sounds/warning.mp3");
+      const audio = new Audio("/sounds/error.mp3");
       audio.play();
     } catch (e) {
       console.log(e);
@@ -57,35 +57,74 @@ export default function PaymentAllocation() {
     setLoading(true);
     setActiveMark(mark);
     try {
-      // 1. Branch Summary
       const summaryRes = await axios.get(`/api/branches/summary/${mark}`);
       setTotalBilled(summaryRes.data.summary?.totalBilled || 0);
 
-      // 2. Payment History
       const paymentRes = await axios.get(`/api/payments/history/${mark}`);
       if (paymentRes.data.success) setLedgerHistory(paymentRes.data.payments);
 
-      // 3. Invoice List (ড্রপডাউনের জন্য)
       const invoiceRes = await axios.get(
         `/api/branches/invoice-history/${mark}`,
       );
       if (invoiceRes.data.success) setCustomerInvoices(invoiceRes.data.history);
     } catch (error) {
-      alert("ডেটা লোড করতে সমস্যা হয়েছে!");
+      alert("ডেটা লোড করতে সমস্যা হয়েছে!");
     } finally {
       setLoading(false);
     }
   };
 
-  // ড্রপডাউন থেকে কাস্টমার পরিবর্তন করলে
   const handleCustomerChange = (e) => {
     const mark = e.target.value;
     setActiveMark(mark);
     if (mark) loadCustomerLedger(mark);
   };
 
+  // ✅ স্মার্ট ইনপুট হ্যান্ডলার (ডিসকাউন্টের জন্য অটো-আইডি জেনারেটর)
   const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    if (name === "type") {
+      if (value === "DISCOUNT" || value === "ADJUSTMENT") {
+        // ইউনিক স্টেটমেন্ট আইডি জেনারেট (STMT-তারিখ-র্যান্ডম)
+        const autoId = `STMT-${Date.now().toString().slice(-6)}`;
+        setFormData({ ...formData, type: value, transactionId: autoId });
+      } else {
+        setFormData({ ...formData, type: value, transactionId: "" });
+      }
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
+  };
+
+  // ✅ স্ট্রং ডুপ্লিকেট চেক (Case & Space Insensitive)
+  const checkDuplicate = (id) => {
+    if (!id) return false;
+    const cleanId = id.trim().toLowerCase();
+    return ledgerHistory.some(
+      (txn) =>
+        txn.transactionId && txn.transactionId.trim().toLowerCase() === cleanId,
+    );
+  };
+
+  // ✅ ডিলিট পেমেন্ট ফাংশন
+  const handleDelete = async (id) => {
+    if (
+      !window.confirm(
+        "আপনি কি নিশ্চিত এটি ডিলিট করবেন? এটি ডিলিট করলে কাস্টমারের বকেয়া (Due) আবার বেড়ে যাবে।",
+      )
+    )
+      return;
+
+    try {
+      const res = await axios.delete(`/api/payments/delete/${id}`);
+      if (res.data.success) {
+        alert("রেকর্ডটি ডিলিট করা হয়েছে এবং ব্যালেন্স অ্যাডজাস্ট হয়েছে।");
+        loadCustomerLedger(activeMark);
+      }
+    } catch (error) {
+      alert("ডিলিট করতে সমস্যা হয়েছে!");
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -93,33 +132,30 @@ export default function PaymentAllocation() {
     const amountVal = parseFloat(formData.amount);
     if (!amountVal || amountVal <= 0) return alert("সঠিক টাকার পরিমাণ দিন!");
 
-    // Duplicate Check
-    if (formData.transactionId) {
-      const isDuplicate = ledgerHistory.some(
-        (txn) =>
-          txn.transactionId?.toLowerCase() ===
-          formData.transactionId.toLowerCase(),
+    // ট্রানজেকশন আইডি ট্রিম করা
+    const finalTxnId = formData.transactionId.trim();
+
+    if (finalTxnId && checkDuplicate(finalTxnId)) {
+      playWarningSound();
+      return alert(
+        `⚠️ ডুপ্লিকেট এন্ট্রি! "${finalTxnId}" আইডিটি ইতিমধ্যে ডাটাবেজে আছে।`,
       );
-      if (isDuplicate) {
-        playWarningSound();
-        return alert(
-          `⚠️ ডুপ্লিকেট এন্ট্রি! "${formData.transactionId}" রিসিটটি ইতিমধ্যে এন্ট্রি করা হয়েছে।`,
-        );
-      }
     }
 
     setSubmitting(true);
     try {
       const payload = {
         ...formData,
+        transactionId: finalTxnId,
         shippingMark: activeMark,
         amount: amountVal,
+        
       };
 
       const res = await axios.post("/api/payments/add-payment", payload);
 
       if (res.data.success) {
-        alert("পেমেন্ট সফলভাবে এন্ট্রি হয়েছে!");
+        alert("পেমেন্ট সফলভাবে এন্ট্রি হয়েছে!");
         setFormData({
           amount: "",
           type: "PAYMENT",
@@ -133,7 +169,7 @@ export default function PaymentAllocation() {
     } catch (error) {
       playWarningSound();
       alert(
-        error.response?.data?.message || "ট্রানজেকশন সেভ করতে সমস্যা হয়েছে!",
+        error.response?.data?.message || "ট্রানজেকশন সেভ করতে সমস্যা হয়েছে!",
       );
     } finally {
       setSubmitting(false);
@@ -154,13 +190,9 @@ export default function PaymentAllocation() {
     <div className="payment-allocation-container">
       <div className="header-section">
         <h2>💰 Payment Allocation & Ledger</h2>
-        <p>
-          কাস্টমার সিলেক্ট করুন এবং তাদের নির্দিষ্ট ইনভয়েসের বিপরীতে পেমেন্ট
-          রিসিভ করুন
-        </p>
+        <p>কাস্টমার সিলেক্ট করুন এবং তাদের বকেয়া বা ডিসকাউন্ট ম্যানেজ করুন</p>
       </div>
 
-      {/* ✅ Smart Search / Dropdown Section */}
       <div className="search-card">
         <label>Select Customer / Shipping Mark:</label>
         <select
@@ -201,11 +233,9 @@ export default function PaymentAllocation() {
           </div>
 
           <div className="main-grid">
-            {/* Add Transaction Form */}
             <div className="form-card">
               <h3>➕ Add New Transaction</h3>
               <form onSubmit={handleSubmit}>
-                {/* ✅ Invoice Allocation Dropdown */}
                 <div className="form-group highlight-group">
                   <label>Allocate to Specific Invoice (Optional)</label>
                   <select
@@ -213,9 +243,7 @@ export default function PaymentAllocation() {
                     value={formData.allocatedInvoice}
                     onChange={handleInputChange}
                   >
-                    <option value="">
-                      General Payment / Advance (কোনো নির্দিষ্ট ইনভয়েস নয়)
-                    </option>
+                    <option value="">General Payment / Advance</option>
                     {customerInvoices.map((inv) => (
                       <option key={inv._id} value={inv._id}>
                         {inv._id} (Bill: ৳ {inv.totalAmount.toLocaleString()})
@@ -245,7 +273,7 @@ export default function PaymentAllocation() {
                       onChange={handleInputChange}
                     >
                       <option value="PAYMENT">Payment Receipt</option>
-                      <option value="DISCOUNT">Discount (ছাড়)</option>
+                      <option value="DISCOUNT">Discount (ছাড়)</option>
                       <option value="ADJUSTMENT">Adjustment</option>
                     </select>
                   </div>
@@ -265,14 +293,23 @@ export default function PaymentAllocation() {
                 </div>
 
                 <div className="form-group">
-                  <label>Receipt / Ref ID (For filtering duplicates)</label>
+                  <label>Receipt / Statement ID *</label>
                   <input
                     type="text"
                     name="transactionId"
                     value={formData.transactionId}
                     onChange={handleInputChange}
                     placeholder="e.g. BKS-789456"
+                    className={
+                      formData.type !== "PAYMENT" ? "auto-id-input" : ""
+                    }
+                    required
                   />
+                  {formData.type !== "PAYMENT" && (
+                    <small style={{ color: "#0ea5e9" }}>
+                      ✨ অটো-জেনারেটেড আইডি ব্যবহার করা হচ্ছে
+                    </small>
+                  )}
                 </div>
 
                 <div className="form-group">
@@ -286,8 +323,6 @@ export default function PaymentAllocation() {
                   />
                 </div>
 
-
-
                 <button
                   type="submit"
                   className="submit-btn"
@@ -295,11 +330,9 @@ export default function PaymentAllocation() {
                 >
                   {submitting ? "Saving..." : "💾 Save Transaction"}
                 </button>
-                
               </form>
             </div>
 
-            {/* Ledger Statement Table */}
             <div className="table-card">
               <h3>📜 Account Statement / Ledger</h3>
               <div className="table-responsive">
@@ -309,47 +342,52 @@ export default function PaymentAllocation() {
                       <th>Date</th>
                       <th>Type/Inv.</th>
                       <th>Ref ID</th>
-                      <th>Remarks</th>
+                     <th> Remarks</th>
                       <th className="text-right">Amount (৳)</th>
+                      <th className="text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {ledgerHistory.length > 0 ? (
-                      ledgerHistory.map((txn) => (
-                        <tr key={txn._id}>
-                          <td>
-                            {new Date(txn.date).toLocaleDateString("en-GB")}
-                          </td>
-                          <td>
-                            <span
-                              className={`type-badge ${txn.type.toLowerCase()}`}
-                            >
-                              {txn.type}
-                            </span>
-                            {txn.allocatedInvoice && (
-                              <div className="inv-badge">
-                                Inv: {txn.allocatedInvoice}
-                              </div>
-                            )}
-                          </td>
-                          <td>
-                            <strong>{txn.transactionId || "-"}</strong>
-                          </td>
-                          <td>
-                            <small>{txn.remarks || "-"}</small>
-                          </td>
-                          <td className="text-right fw-bold text-green">
-                            + {txn.amount.toLocaleString()}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="5" className="no-data">
-                          কোনো ট্রানজেকশন পাওয়া যায়নি।
+                    {ledgerHistory.map((txn) => (
+                      <tr key={txn._id}>
+                        <td>
+                          {new Date(txn.date).toLocaleDateString("en-GB")}
+                        </td>
+                        <td>
+                          <span
+                            className={`type-badge ${txn.type.toLowerCase()}`}
+                          >
+                            {txn.type}
+                          </span>
+                          {txn.allocatedInvoice && (
+                            <div className="inv-badge">
+                              Inv: {txn.allocatedInvoice}
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          <strong>{txn.transactionId || "-"}</strong>
+                        </td>
+                        <td>
+                          {txn.remarks && (
+                            <div className="remarks-badge">
+                              {txn.remarks}
+                            </div>
+                          )}
+                        </td>
+                        <td className="text-right fw-bold text-green">
+                          + {txn.amount.toLocaleString()}
+                        </td>
+                        <td className="text-center">
+                          <button
+                            className="delete-row-btn"
+                            onClick={() => handleDelete(txn._id)}
+                          >
+                            🗑️
+                          </button>
                         </td>
                       </tr>
-                    )}
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -409,6 +447,13 @@ export default function PaymentAllocation() {
         .fw-bold { font-weight: bold; }
         .text-green { color: #10b981; }
         .no-data { text-align: center; color: #94a3b8; padding: 30px !important; }
+
+        /* ... আপনার আগের স্টাইলগুলো থাকবে ... */
+        .auto-id-input { background-color: #f0f9ff; border-color: #0ea5e9 !important; font-weight: bold; color: #0369a1; }
+        .delete-row-btn { background: none; border: none; cursor: pointer; font-size: 18px; transition: 0.2s; padding: 5px; }
+        .delete-row-btn:hover { background: #fee2e2; border-radius: 4px; transform: scale(1.1); }
+        .text-center { text-align: center; }
+        /* বাকি স্টাইল আপনার আগের মতোই */
       `}</style>
     </div>
   );

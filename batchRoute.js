@@ -106,8 +106,8 @@ router.get("/:id", async (req, res) => {
     if (!batch) return res.status(404).json({ error: "ব্যাচ পাওয়া যায়নি।" });
 
     const shipments = await Shipment.find({ batch: batch._id })
-      .populate("customer")
-      .populate("agency");
+      // .populate("customer")
+      // .populate("agency");
 
     res.json({ batch, shipments });
   } catch (err) {

@@ -714,6 +714,7 @@
   print-color-adjust: exact;
 }
 
+
 @media print {
   /* প্রিন্ট করার সময় লোগো যাতে উজ্জ্বল থাকে */
   .pro-main-logo {

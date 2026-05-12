@@ -142,7 +142,7 @@ export default function BatchList() {
               <th>রুট ও পোর্ট</th>
               <th>ফ্লাইট নম্বর</th>
               <th>ফ্লাইট তারিখ</th>
-              <th>শিপমেন্ট সংখ্যা</th>
+              <th>মোট কার্টুন সংখ্যা</th>
               <th>স্ট্যাটাস</th>
               <th className="action-col">অ্যাকশন</th>
             </tr>

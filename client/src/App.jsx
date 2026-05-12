@@ -78,9 +78,12 @@ const Header = () => {
       >
         {/* Logo Section */}
         <div className="logo" onClick={() => navigate("/")}>
-          <span className="logo-icon">📦</span>
+          <span className="logo-icon"></span>
           <div className="logo-text">
-            <h1>SABA & RIHAN </h1>
+            <h1>SABA & RIHAN  </h1>
+         
+            
+
           </div>
         </div>
 

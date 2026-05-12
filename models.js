@@ -3,21 +3,6 @@
 import mongoose from "mongoose";
 const { Schema, model } = mongoose;
 
-/* =====================================================
-   1️⃣ Agency Model (Branch)
-===================================================== */
-const AgencySchema = new Schema(
-  {
-    name: { type: String, required: true, unique: true, trim: true },
-    contactPerson: String,
-    mobile: String,
-    address: String,
-    notes: String,
-  },
-  { timestamps: true },
-);
-export const Agency = model("Agency", AgencySchema);
-
 const branchSchema = new Schema(
   {
     branchName: {
@@ -49,22 +34,6 @@ const branchSchema = new Schema(
 );
 
 export const Branch = model("Branch", branchSchema);
-
-/* =====================================================
-   2️⃣ Customer Model
-===================================================== */
-// const CustomerSchema = new Schema(
-//   {
-//     agency: { type: Schema.Types.ObjectId, ref: "Agency", required: true },
-//     fullName: { type: String, required: true, trim: true },
-//     phoneNumber: { type: String, required: false, unique: true },
-//     address: String,
-//     nidOrPassport: String,
-//     notes: String,
-//   },
-//   { timestamps: true },
-// );
-// export const Customer = model("Customer", CustomerSchema);
 
 /* =====================================================
    3️⃣ Shipment Model (Updated with Exception Handling)
@@ -110,8 +79,8 @@ const shipmentSchema = new mongoose.Schema(
     },
 
     // রিলেশনস
-    customer: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
-    agency: { type: mongoose.Schema.Types.ObjectId, ref: "Agency" },
+    // customer: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
+    // agency: { type: mongoose.Schema.Types.ObjectId, ref: "Agency" },
     batch: { type: mongoose.Schema.Types.ObjectId, ref: "Batch" },
 
     // 🔴 স্ট্যাটাস এবং নতুন এক্সেপশন (Hold) লজিক
@@ -141,93 +110,6 @@ const shipmentSchema = new mongoose.Schema(
 );
 
 export const Shipment = model("Shipment", shipmentSchema);
-/* =====================================================
-   4️⃣ Bank Statement Model
-===================================================== */
-const BankStatementSchema = new Schema(
-  {
-    paymentType: {
-      type: String,
-      enum: ["bank", "mobile", "cash"],
-      required: true,
-    },
-    statementNo: {
-      type: String,
-      required: true,
-      unique: true,
-      uppercase: true,
-      trim: true,
-    },
-    bankName: String,
-    mobileBank: String,
-    receivedDate: { type: Date, required: true },
-    totalAmount: { type: Number, required: true },
-    allocatedAmount: { type: Number, default: 0 },
-    isFinalized: { type: Boolean, default: false },
-  },
-  { timestamps: true },
-);
-export const BankStatement = model("BankStatement", BankStatementSchema);
-
-/* =====================================================
-   5️⃣ Payment Allocation Model
-===================================================== */
-const PaymentAllocationSchema = new Schema(
-  {
-    statement: {
-      type: Schema.Types.ObjectId,
-      ref: "BankStatement",
-      required: true,
-    },
-    shipment: { type: Schema.Types.ObjectId, ref: "Shipment", required: true },
-    customer: { type: Schema.Types.ObjectId, ref: "Customer", required: true },
-    agency: { type: Schema.Types.ObjectId, ref: "Agency", required: true },
-    amount: { type: Number, required: true },
-    paymentDate: { type: Date, required: true },
-  },
-  { timestamps: true },
-);
-export const PaymentAllocation = model(
-  "PaymentAllocation",
-  PaymentAllocationSchema,
-);
-
-/* =====================================================
-   6️⃣ Global Bank Statement Lock (FIXED)
-===================================================== */
-const GlobalBankStatementSchema = new Schema(
-  {
-    statementNo: {
-      type: String,
-      required: true,
-      unique: true,
-      uppercase: true,
-      trim: true,
-    },
-    paymentType: {
-      type: String,
-      enum: ["bank", "mobile", "cash"],
-      required: true,
-    },
-    appSource: {
-      type: String,
-      enum: ["HAJJI", "UMRAH", "CARGO"],
-      required: true,
-    },
-    linkedStatement: { type: Schema.Types.ObjectId, ref: "BankStatement" },
-    totalAmount: { type: Number, required: true },
-    status: { type: String, enum: ["LOCKED", "FINALIZED"], default: "LOCKED" },
-  },
-  { timestamps: true },
-);
-
-// Indexing
-GlobalBankStatementSchema.index({ statementNo: 1 });
-
-export const GlobalBankStatement = model(
-  "GlobalBankStatement",
-  GlobalBankStatementSchema,
-);
 
 //* =====================================================
 // 6️⃣ Payment Model (UPDATED)
@@ -374,5 +256,124 @@ const BatchSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+/* =====================================================
+   2️⃣ Customer Model
+===================================================== */
+// const CustomerSchema = new Schema(
+//   {
+//     agency: { type: Schema.Types.ObjectId, ref: "Agency", required: true },
+//     fullName: { type: String, required: true, trim: true },
+//     phoneNumber: { type: String, required: false, unique: true },
+//     address: String,
+//     nidOrPassport: String,
+//     notes: String,
+//   },
+//   { timestamps: true },
+// );
+// export const Customer = model("Customer", CustomerSchema);
+
+/* =====================================================
+   1️⃣ Agency Model (Branch)
+===================================================== */
+// const AgencySchema = new Schema(
+//   {
+//     name: { type: String, required: true, unique: true, trim: true },
+//     contactPerson: String,
+//     mobile: String,
+//     address: String,
+//     notes: String,
+//   },
+//   { timestamps: true },
+// );
+// export const Agency = model("Agency", AgencySchema);
+
+/* =====================================================
+   4️⃣ Bank Statement Model
+===================================================== */
+// const BankStatementSchema = new Schema(
+//   {
+//     paymentType: {
+//       type: String,
+//       enum: ["bank", "mobile", "cash"],
+//       required: true,
+//     },
+//     statementNo: {
+//       type: String,
+//       required: true,
+//       unique: true,
+//       uppercase: true,
+//       trim: true,
+//     },
+//     bankName: String,
+//     mobileBank: String,
+//     receivedDate: { type: Date, required: true },
+//     totalAmount: { type: Number, required: true },
+//     allocatedAmount: { type: Number, default: 0 },
+//     isFinalized: { type: Boolean, default: false },
+//   },
+//   { timestamps: true },
+// );
+// export const BankStatement = model("BankStatement", BankStatementSchema);
+
+/* =====================================================
+   5️⃣ Payment Allocation Model
+===================================================== */
+// const PaymentAllocationSchema = new Schema(
+//   {
+//     statement: {
+//       type: Schema.Types.ObjectId,
+//       ref: "BankStatement",
+//       required: true,
+//     },
+//     shipment: { type: Schema.Types.ObjectId, ref: "Shipment", required: true },
+//     customer: { type: Schema.Types.ObjectId, ref: "Customer", required: true },
+//     agency: { type: Schema.Types.ObjectId, ref: "Agency", required: true },
+//     amount: { type: Number, required: true },
+//     paymentDate: { type: Date, required: true },
+//   },
+//   { timestamps: true },
+// );
+// export const PaymentAllocation = model(
+//   "PaymentAllocation",
+//   PaymentAllocationSchema,
+// );
+
+/* =====================================================
+   6️⃣ Global Bank Statement Lock (FIXED)
+===================================================== */
+// const GlobalBankStatementSchema = new Schema(
+//   {
+//     statementNo: {
+//       type: String,
+//       required: true,
+//       unique: true,
+//       uppercase: true,
+//       trim: true,
+//     },
+//     paymentType: {
+//       type: String,
+//       enum: ["bank", "mobile", "cash"],
+//       required: true,
+//     },
+//     appSource: {
+//       type: String,
+//       enum: ["HAJJI", "UMRAH", "CARGO"],
+//       required: true,
+//     },
+//     linkedStatement: { type: Schema.Types.ObjectId, ref: "BankStatement" },
+//     totalAmount: { type: Number, required: true },
+//     status: { type: String, enum: ["LOCKED", "FINALIZED"], default: "LOCKED" },
+//   },
+//   { timestamps: true },
+// );
+
+// Indexing
+// GlobalBankStatementSchema.index({ statementNo: 1 });
+
+// export const GlobalBankStatement = model(
+//   "GlobalBankStatement",
+//   GlobalBankStatementSchema,
+// );
 
 export const Batch = model("Batch", BatchSchema);

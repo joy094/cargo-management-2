@@ -98,19 +98,23 @@ router.get("/summary/:shippingMark", async (req, res) => {
     };
 
     // ২. Payment কালেকশন থেকে মোট জমা এবং ডিসকাউন্টের হিসাব
+    // ✅ ৩. ড্যাশবোর্ড সামারি রাউটের ভেতর পেমেন্ট লজিক আপডেট
     const payments = await Payment.find({ shippingMark: shippingMarkRegex });
     let totalPaid = 0;
     let totalDiscount = 0;
 
     payments.forEach((txn) => {
-      if (txn.type === "PAYMENT") {
+      // .toUpperCase() ব্যবহার করা হয়েছে যাতে 'Discount' বা 'discount' যাই থাকুক তা খুঁজে পায়
+      const type = txn.type ? txn.type.toUpperCase() : "";
+
+      if (type === "PAYMENT") {
         totalPaid += txn.amount;
-      } else if (txn.type === "DISCOUNT" || txn.type === "ADJUSTMENT") {
+      } else if (type === "DISCOUNT" || type === "ADJUSTMENT") {
         totalDiscount += txn.amount;
       }
     });
 
-    // ৩. বর্তমান বকেয়া (Due) হিসাব
+    // ৩. বর্তমান বকেয়া (Due) হিসাব (ডিসকাউন্ট মাইনাস হচ্ছে)
     const currentDue = summaryData.totalBilled - totalPaid - totalDiscount;
 
     // ৪. সব ডেটা একসাথে পাঠানো (কাস্টমার ইনফো সহ)

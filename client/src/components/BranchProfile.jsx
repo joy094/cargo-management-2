@@ -471,44 +471,44 @@ export default function BranchProfile() {
               className="direct-entry-btn"
               onClick={() => setShowDirectEntry(!showDirectEntry)}
               style={{
-                background: "#2563eb",
+                background: showDirectEntry ? "#ef4444" : "#3b82f6",
                 color: "white",
                 padding: "10px 15px",
-                borderRadius: "8px",
                 border: "none",
+                borderRadius: "5px",
                 cursor: "pointer",
               }}
             >
               {showDirectEntry
                 ? "✖ Close Direct Entry"
-                : "📥 Add Direct Parcel"}
+                : "📥 Add Direct Entry"}
             </button>
           </CanAccess>
         </div>
-
-        {/* ডাইরেক্ট এন্ট্রি টেবিল */}
-        {showDirectEntry && (
-          <div
-            className="direct-entry-wrapper"
-            style={{
-              background: "#f8fafc",
-              padding: "20px",
-              borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              marginBottom: "20px",
-            }}
-          >
-            <DirectBulkEntry
-              fixedShippingMark={activeMark} // ব্রাঞ্চের শিপিং মার্ক পাস করে দিচ্ছি
-              onSuccess={() => {
-                fetchBranchData(activeMark); // সেভ হওয়ার পর প্রোফাইল রিফ্রেশ হবে
-                setShowDirectEntry(false); // টেবিল বন্ধ হয়ে যাবে
-              }}
-              onClose={() => setShowDirectEntry(false)}
-            />
-          </div>
-        )}
       </div>
+
+      {/* ডাইরেক্ট এন্ট্রি টেবিল */}
+      {showDirectEntry && (
+        <div
+          className="direct-entry-wrapper"
+          style={{
+            background: "#f8fafc",
+            padding: "20px",
+            borderRadius: "10px",
+            border: "1px solid #e2e8f0",
+            marginBottom: "20px",
+          }}
+        >
+          <DirectBulkEntry
+            fixedShippingMark={activeMark} // ব্রাঞ্চের শিপিং মার্ক পাস করে দিচ্ছি
+            onSuccess={() => {
+              fetchBranchData(activeMark); // সেভ হওয়ার পর প্রোফাইল রিফ্রেশ হবে
+              setShowDirectEntry(false); // টেবিল বন্ধ হয়ে যাবে
+            }}
+            onClose={() => setShowDirectEntry(false)}
+          />
+        </div>
+      )}
 
       <div className="tab-navigation">
         <button

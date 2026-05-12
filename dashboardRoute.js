@@ -12,13 +12,12 @@ router.get("/summary", async (req, res) => {
     // ২. শিপমেন্ট অ্যানালিটিক্স (Shipment Collection)
     const shipmentStats = await Shipment.aggregate([
       {
-        $match: { isMasterCarton: { $ne: true } }, // মাস্টার কার্টন বাদ দিয়ে
+        $match: { isMasterCarton: { $ne: true } },
       },
       {
         $group: {
           _id: null,
           totalBoxes: { $sum: 1 },
-          // স্ট্রিং থাকলেও নম্বরে কনভার্ট করে ওজন যোগ করবে
           totalWeight: {
             $sum: {
               $toDouble: {
@@ -26,7 +25,6 @@ router.get("/summary", async (req, res) => {
               },
             },
           },
-          // বিল হওয়া আইটেমগুলোর টোটাল বিল যোগ করবে
           totalBilledAmount: {
             $sum: {
               $cond: [
@@ -72,7 +70,7 @@ router.get("/summary", async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(5);
 
-    // ডিফল্ট ভ্যালু সেট করা যাতে এরর না আসে
+    // ডিফল্ট ভ্যালু সেট করা
     const sStats = shipmentStats[0] || {
       totalBoxes: 0,
       totalWeight: 0,
@@ -80,10 +78,62 @@ router.get("/summary", async (req, res) => {
     };
     const pStats = paymentStats[0] || { totalCollected: 0, totalDiscount: 0 };
 
+    // ৫. বকেয়া কাস্টমারদের তালিকা (Due List) তৈরি
+    const allBranches = await Branch.find(
+      {},
+      "branchName shippingMark phone address",
+    );
+
+    const dueListPromises = allBranches.map(async (branch) => {
+      const markRegex = new RegExp(`^${branch.shippingMark}$`, "i");
+
+      // নির্দিষ্ট ব্রাঞ্চের বিল
+      const billData = await Shipment.aggregate([
+        {
+          $match: {
+            shippingMark: markRegex,
+            isBilled: true,
+            isMasterCarton: { $ne: true },
+          },
+        },
+        { $group: { _id: null, total: { $sum: "$totalBill" } } },
+      ]);
+
+      // নির্দিষ্ট ব্রাঞ্চের পেমেন্ট ও ডিসকাউন্ট
+      const payData = await Payment.find({ shippingMark: markRegex });
+      let paid = 0;
+      let discount = 0;
+
+      payData.forEach((p) => {
+        if (p.type === "PAYMENT") paid += p.amount;
+        else if (p.type === "DISCOUNT" || p.type === "ADJUSTMENT")
+          discount += p.amount;
+      });
+
+      const totalBill = billData[0]?.total || 0;
+      const currentDue = totalBill - paid - discount;
+
+      return {
+        _id: branch._id,
+        branchName: branch.branchName,
+        shippingMark: branch.shippingMark,
+        phone: branch.phone,
+        currentDue: currentDue,
+      };
+    });
+
+    const branchesWithDue = await Promise.all(dueListPromises);
+
+    // শুধু যাদের বকেয়া আছে তাদের ফিল্টার করে সর্ট করা
+    const sortedDueList = branchesWithDue
+      .filter((b) => b.currentDue > 0)
+      .sort((a, b) => b.currentDue - a.currentDue);
+
     // বর্তমান মার্কেট ডিউ হিসাব
     const totalDue =
       sStats.totalBilledAmount - pStats.totalCollected - pStats.totalDiscount;
 
+    // ✅ ৬. ফাইনাল রেসপন্স (সব ডাটা একসাথে)
     res.status(200).json({
       success: true,
       data: {
@@ -95,16 +145,15 @@ router.get("/summary", async (req, res) => {
         totalDiscount: pStats.totalDiscount,
         totalDue,
         recentPayments,
+        dueCustomers: sortedDueList, // পপআপের জন্য ডাটা
       },
     });
   } catch (error) {
     console.error("Dashboard API Error:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "ড্যাশবোর্ড ডাটা লোড হতে ব্যর্থ হয়েছে",
-      });
+    res.status(500).json({
+      success: false,
+      message: "ড্যাশবোর্ড ডাটা লোড হতে ব্যর্থ হয়েছে",
+    });
   }
 });
 

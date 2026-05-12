@@ -1,3 +1,4 @@
+//src/components/Dashboard.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
@@ -5,6 +6,8 @@ import { Link } from "react-router-dom";
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showDueList, setShowDueList] = useState(false);
+  const [dueCustomers, setDueCustomers] = useState([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -23,6 +26,16 @@ export default function Dashboard() {
     }
   };
 
+// Dashboard.jsx এর ভেতরে ফাংশনটি এভাবে লিখুন
+const handleShowDueList = () => {
+  if (stats && stats.dueCustomers) {
+    setDueCustomers(stats.dueCustomers);
+    setShowDueList(true);
+  } else {
+    alert("বকেয়া তালিকা এখনো লোড হয়নি বা খালি।");
+  }
+};
+
   if (loading) {
     return <div className="loading-screen">ড্যাশবোর্ড লোড হচ্ছে...</div>;
   }
@@ -36,14 +49,68 @@ export default function Dashboard() {
           <p>কার্গো এবং এজেন্সি ম্যানেজমেন্ট ওভারভিউ</p>
         </div>
         <div className="header-actions">
-          <Link to="/branch/new" className="btn-primary">
-            🏢 Manage Branches
-          </Link>
-          <Link to="/payment-allocation" className="btn-success">
-            💰 Receive Payment
-          </Link>
+          {/* ✅ আগের বাটন সরিয়ে নতুন Due Customer List বাটন */}
+          <button className="due-list-btn" onClick={handleShowDueList}>
+            📋 Due Customer List
+          </button>
         </div>
       </div>
+
+      {/* 🟢 Due Customer List Popup (Modal) */}
+      {showDueList && (
+        <div className="modal-overlay">
+          <div className="due-modal-content">
+            <div className="due-modal-header">
+              <h3>🚨 Priority Due List (High to Low)</h3>
+              <button className="close-x" onClick={() => setShowDueList(false)}>
+                ✖
+              </button>
+            </div>
+
+            <div className="due-list-scrollable">
+              <table className="due-table">
+                <thead>
+                  <tr>
+                    <th>SL</th>
+                    <th>Customer Name</th>
+                    <th>Mark</th>
+                    <th className="text-right">Total Due</th>
+                    <th>Phone</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dueCustomers.length > 0 ? (
+                    dueCustomers.map((cust, index) => (
+                      <tr
+                        key={cust._id}
+                        className={index < 3 ? "high-priority-row" : ""}
+                      >
+                        <td>{index + 1}</td>
+                        <td>
+                          <strong>{cust.branchName}</strong>
+                        </td>
+                        <td>
+                          <span className="mark-tag">{cust.shippingMark}</span>
+                        </td>
+                        <td className="text-right due-amount-cell">
+                          ৳ {cust.currentDue.toLocaleString()}
+                        </td>
+                        <td>{cust.phone}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="5" className="no-data">
+                        কোনো বকেয়া কাস্টমার পাওয়া যায়নি
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Top Value Cards (Financials) */}
       <div className="stats-grid top-grid">
@@ -147,13 +214,48 @@ export default function Dashboard() {
         .dashboard-container { padding: 30px; background: #f4f7fa; min-height: 100vh; font-family: 'Inter', sans-serif; }
         
         .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .dashboard-header h2 { margin: 0; color: #0f172a; font-size: 28px; font-weight: 800; }
+        .dashboard-header h2 { margin: 0; color: #99cc0e; font-size: 28px; font-weight: 800; }
         .dashboard-header p { margin: 5px 0 0; color: #64748b; font-size: 15px; }
         .header-actions { display: flex; gap: 15px; }
-        .btn-primary { background: #0f172a; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; transition: 0.2s; }
-        .btn-primary:hover { background: #1e293b; }
-        .btn-success { background: #10b981; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; transition: 0.2s; }
-        .btn-success:hover { background: #059669; }
+
+        /* ✅ Due List Button Style */
+        .due-list-btn { 
+            background: #1e293b; color: white; padding: 12px 24px; border-radius: 8px; 
+            border: none; cursor: pointer; font-weight: bold; font-size: 15px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: 0.3s;
+        }
+        .due-list-btn:hover { background: #0f172a; transform: translateY(-2px); }
+
+        /* 🟢 Modal / Popup Styles */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .due-modal-content {
+            background: white; width: 850px; max-height: 85vh; border-radius: 20px;
+            padding: 30px; display: flex; flex-direction: column; position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        .due-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; }
+        .due-modal-header h3 { margin: 0; font-size: 22px; color: #1e293b; }
+        .close-x { background: #f1f5f9; border: none; font-size: 18px; cursor: pointer; width: 35px; height: 35px; border-radius: 50%; color: #64748b; transition: 0.2s; }
+        .close-x:hover { background: #fee2e2; color: #ef4444; }
+
+        .due-list-scrollable { overflow-y: auto; flex-grow: 1; margin-right: -10px; padding-right: 10px; }
+        .due-list-scrollable::-webkit-scrollbar { width: 6px; }
+        .due-list-scrollable::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        /* Due Table Styles */
+        .due-table { width: 100%; border-collapse: collapse; }
+        .due-table th { position: sticky; top: 0; background: #f8fafc; padding: 15px; text-align: left; border-bottom: 2px solid #e2e8f0; font-size: 13px; color: #64748b; z-index: 10; }
+        .due-table td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        
+        .due-amount-cell { color: #dc2626; font-weight: 800; font-size: 16px; }
+        .mark-tag { background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; }
+        
+        /* টপ ৩ জনের জন্য হাইলাইট */
+        .high-priority-row { background: #fff1f2; }
+        .high-priority-row strong { color: #9f1239; }
 
         .stats-grid { display: grid; gap: 20px; margin-bottom: 30px; }
         .top-grid { grid-template-columns: repeat(3, 1fr); }
@@ -164,9 +266,9 @@ export default function Dashboard() {
         .stat-card .info span { font-size: 14px; font-weight: 600; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px; }
         .stat-card .info h3 { margin: 5px 0 0; font-size: 32px; font-weight: 800; }
         
-        .blue-gradient { background: linear-gradient(135deg, #2563eb, #3b82f6); }
-        .green-gradient { background: linear-gradient(135deg, #059669, #10b981); }
-        .red-gradient { background: linear-gradient(135deg, #dc2626, #ef4444); }
+        .blue-gradient { background: linear-gradient(135deg, #c6d1e9, #779dda); }
+        .green-gradient { background: linear-gradient(135deg, #3ee6b0, #10b981); }
+        .red-gradient { background: linear-gradient(135deg, #e26161, #ee5858); }
 
         .stat-box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }
         .stat-box h4 { margin: 0 0 10px; color: #64748b; font-size: 14px; font-weight: 600; }

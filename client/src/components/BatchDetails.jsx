@@ -513,7 +513,7 @@ export default function BatchDetails() {
                     <th>Tracking No(CN)</th>
                     <th>Shipping Mark*</th>
                     <th>Product</th>
-                    <th>Carton</th>
+                    <th>Carton No</th>
                     <th>Qty</th>
                     <th>Wt(KG)</th>
                     <th>L</th>
