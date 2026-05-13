@@ -114,14 +114,14 @@ const Header = () => {
 
           {/* 🔥 Shipment Access */}
           <CanAccess module="shipment" action="view">
-            <li>
+            {/* <li>
               <NavLink
                 to="/shipment-list"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 শিপমেন্টস
               </NavLink>
-            </li>
+            </li> */}
             <li>
               <NavLink
                 to="/unassigned"
