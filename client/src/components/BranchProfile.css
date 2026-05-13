@@ -713,7 +713,34 @@
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
+/* Invoice Meta Section (Billed To & Date) */
+.pro-invoice-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 20px;
+}
 
+.pro-bill-to {
+  flex: 1;
+}
+
+.pro-date-info {
+  text-align: right;
+  margin-bottom: 5px;
+}
+
+.pro-date-info .info-table {
+  margin-left: auto; /* টেবিলটাকে একদম ডান দিকে চাপিয়ে রাখবে */
+}
+
+/* প্রিন্টের সময় লেআউট যাতে ঠিক থাকে */
+@media print {
+  .pro-invoice-meta {
+    display: flex !important;
+    justify-content: space-between !important;
+  }
+}
 
 @media print {
   /* প্রিন্ট করার সময় লোগো যাতে উজ্জ্বল থাকে */

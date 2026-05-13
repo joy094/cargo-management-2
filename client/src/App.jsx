@@ -17,7 +17,7 @@ import Login from "./components/Login";
 import BottomNav from "./components/BottomNav";
 import BatchList from "./components/BatchList";
 import BatchDetails from "./components/BatchDetails";
-import BulkImport from "./components/BulkImport";
+import BulkImport from "./components/UploadExcelModal";
 import BoxDetails from "./components/BoxDetails";
 import BranchProfile from "./components/BranchProfile";
 import UnassignedShipments from "./components/UnassignedShipments";
@@ -80,7 +80,7 @@ const Header = () => {
         <div className="logo" onClick={() => navigate("/")}>
           <span className="logo-icon"></span>
           <div className="logo-text">
-            <h1>SABA & RIHAN  </h1>
+            {/* <h1>SABA & RIHAN  </h1> */}
          
             
 
@@ -141,7 +141,7 @@ const Header = () => {
                 className="nav-link"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                শিপমেন্ট ব্যাচেস
+                শিপমেন্ট ব্যাচ
               </NavLink>
             </li>
           </CanAccess>
@@ -167,10 +167,10 @@ const Header = () => {
                   className="nav-link"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  রোল এবং পারমিশন
+                  রোল & পারমিশন
                 </NavLink>
               </li>
-              <li>
+              {/* <li>
                 <NavLink
                   to="/admin/users"
                   className="nav-link"
@@ -178,7 +178,7 @@ const Header = () => {
                 >
                   ইউজার ম্যানেজমেন্ট
                 </NavLink>
-              </li>
+              </li> */}
             </>
           )}
 
@@ -305,7 +305,7 @@ const App = () => (
       <Route
         path="/box-details/:id"
         element={
-          <ProtectedRoute module="shipment" action="view">
+          <ProtectedRoute >
             <BoxDetails />
           </ProtectedRoute>
         }

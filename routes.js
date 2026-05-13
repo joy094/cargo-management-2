@@ -4,11 +4,7 @@ import express from "express";
 import dotenv from "dotenv";
 dotenv.config();
 
-import {
-  Shipment,
- 
-  Batch,
-} from "./models.js";
+import { Shipment, Batch } from "./models.js";
 import { authMiddleware, loginHandler, LOGIN_RATE_LIMIT } from "./auth.js";
 
 const APP_SOURCE = process.env.APP_TYPE || "CARGO";
@@ -176,15 +172,30 @@ router.post("/shipments", async (req, res) => {
   }
 });
 
-// ✅ স্মার্ট বাল্ক ইমপোর্ট (চায়না থেকে আসা প্যাকিং লিস্টের জন্য)
-router.post("/shipments/bulk-import", async (req, res) => {
+// ✅ Excel Master & Sub-box স্মার্ট বাল্ক ইমপোর্ট
+router.post("/bulk-import-excel", async (req, res) => {
   try {
-    const { shipments, agencyId, batchId } = req.body;
-    if (!shipments || !shipments.length)
+    const { shipments, batchId } = req.body;
+    if (!shipments || !shipments.length) {
       return res.status(400).json({ error: "No data found!" });
+    }
 
-    const preparedData = shipments.map((item) => {
-      // CBM ক্যালকুলেশন লজিক
+    // ১. ডাটাবেস থেকে বর্তমান ব্যাচের আগের মাস্টার বক্সগুলো খুঁজে বের করা (যদি আগে আপলোড করা থাকে)
+    const existingMasters = await Shipment.find({
+      batch: batchId,
+      isMasterCarton: true,
+    });
+    const masterIdMap = {};
+    existingMasters.forEach((m) => {
+      if (m.cartonNo) masterIdMap[m.cartonNo] = m._id;
+    });
+
+    // ২. আগত এক্সেল ডাটাকে মাস্টার এবং সাব-বক্সে ভাগ করা
+    const incomingMasters = shipments.filter((s) => s.isMasterCarton);
+    const incomingSubs = shipments.filter((s) => !s.isMasterCarton);
+
+    // ৩. ডাটা প্রস্তুত করার একটি কমন ফাংশন
+    const prepareDoc = (item) => {
       let calculatedCbm = item.cbm || 0;
       if (!calculatedCbm && item.length && item.width && item.height) {
         calculatedCbm =
@@ -194,7 +205,7 @@ router.post("/shipments/bulk-import", async (req, res) => {
 
       return {
         trackingNumber: `MAT-${Math.floor(100000 + Math.random() * 900000)}`,
-        chinaTrackingNo: item.chinaTrackingNo || item.trackingNumber || "-",
+        chinaTrackingNo: item.chinaTrackingNo || "-",
         shippingMark: item.shippingMark || "-",
         cartonNo: item.cartonNo || "-",
         productName: item.productName || "Various Items",
@@ -207,20 +218,55 @@ router.post("/shipments/bulk-import", async (req, res) => {
           height: Number(item.height) || 0,
         },
         cbm: Number(calculatedCbm).toFixed(3),
-        agency: agencyId || null,
         batch: batchId || null,
         status: "Warehouse Received",
         receivedDate: item.receivedDate
           ? new Date(item.receivedDate)
           : new Date(),
+        isMasterCarton: item.isMasterCarton,
+        parentId: null, // সাব-বক্সের জন্য নিচে আপডেট হবে
       };
+    };
+
+    // ৪. প্রথমে মাস্টার বক্সগুলো ডাটাবেসে সেভ করা
+    const masterDocsToInsert = incomingMasters.map(prepareDoc);
+    let insertedMasters = [];
+
+    if (masterDocsToInsert.length > 0) {
+      insertedMasters = await Shipment.insertMany(masterDocsToInsert);
+      // নতুন সেভ হওয়া মাস্টার বক্সগুলোর ডাটাবেস ID ম্যাপে যোগ করা
+      insertedMasters.forEach((m) => {
+        if (m.cartonNo) masterIdMap[m.cartonNo] = m._id;
+      });
+    }
+
+    // ৫. এবার সাব-বক্সগুলো প্রস্তুত করা এবং প্যারেন্ট ID (Master Box ID) লিংক করা
+    const subDocsToInsert = incomingSubs.map((item) => {
+      const doc = prepareDoc(item);
+      // প্যারেন্ট কার্টন নাম্বার দিয়ে ম্যাপ থেকে আসল ডাটাবেস ID বের করা
+      const parentId = masterIdMap[item.parentCartonNo];
+
+      if (parentId) {
+        doc.parentId = parentId;
+      } else {
+        // যদি কোনো সাব-বক্সের মাস্টার কার্টন না পাওয়া যায়, তাকে আলাদা পার্সেল হিসেবে ট্রিট করতে চাইলে:
+        // doc.isMasterCarton = true;
+      }
+      return doc;
     });
 
-    const results = await Shipment.insertMany(preparedData);
-    res.json({ success: true, count: results.length });
+    // ৬. সাব-বক্সগুলো ডাটাবেসে সেভ করা
+    if (subDocsToInsert.length > 0) {
+      await Shipment.insertMany(subDocsToInsert);
+    }
+
+    res.json({
+      success: true,
+      message: `সফলভাবে ${insertedMasters.length} টি মাস্টার বক্স এবং ${subDocsToInsert.length} টি সাব-বক্স আপলোড হয়েছে!`,
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "বাল্ক ইম্পোর্ট ব্যর্থ হয়েছে।" });
+    console.error("Excel Import Error:", err);
+    res.status(500).json({ error: "এক্সেল আপলোড ব্যর্থ হয়েছে।" });
   }
 });
 

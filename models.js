@@ -178,8 +178,20 @@ const RoleSchema = new Schema(
         edit: Boolean,
         delete: Boolean,
       },
-      branch: { view: Boolean, manage: Boolean },
+      // 🔥 Branch আপডেট করা হলো
+      branch: {
+        view: Boolean,
+        create: Boolean,
+        edit: Boolean,
+        delete: Boolean,
+      },
       billing: { view: Boolean, create: Boolean, revert: Boolean },
+      // 🔥 Payment নতুন যোগ করা হলো
+      payment: {
+        view: Boolean,
+        create: Boolean,
+        delete: Boolean,
+      },
     },
   },
   { timestamps: true },

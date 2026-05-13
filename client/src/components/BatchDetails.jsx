@@ -10,7 +10,7 @@ import Search from "./Search";
 import { QRCodeCanvas } from "qrcode.react";
 import CanAccess from "./CanAccess";
 import "./BatchDetails.css";
-
+import UploadExcelModal from "./UploadExcelModal";
 export default function BatchDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -23,6 +23,8 @@ export default function BatchDetails() {
   const [selectedMaster, setSelectedMaster] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [shipmentToEdit, setShipmentToEdit] = useState(null);
+
+  const [isUploadExcelOpen, setIsUploadExcelOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -472,6 +474,21 @@ export default function BatchDetails() {
           {/* ✅ আলাদা করা সার্চ কম্পোনেন্ট */}
           <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
           <div className="action-btns">
+            {/* ✅ নতুন Upload Excel বাটন */}
+            <CanAccess module="shipment" action="create">
+              <button
+                className="excel-btn"
+                style={{
+                  background: "#10b981",
+                  color: "white",
+                  borderColor: "#059669",
+                }}
+                onClick={() => setIsUploadExcelOpen(true)}
+              >
+                📤 Upload Excel
+              </button>
+            </CanAccess>
+
             {/* ✅ নতুন Manage Exception বাটন (যখন বক্স সিলেক্ট করা হবে তখন দেখাবে) */}
             {selectedBoxIds.length > 0 && (
               <button
@@ -871,25 +888,26 @@ export default function BatchDetails() {
                               <td>-</td>
                               <td>
                                 <div style={{ display: "flex", gap: "5px" }}>
-
                                   <CanAccess module="shipment" action="edit">
-                                  <button
-                                    onClick={() => {
-                                      setShipmentToEdit(sub);
-                                      setIsEditModalOpen(true);
-                                    }}
-                                    className="edit-btn"
-                                  >
-                                    ✏️
-                                  </button>
+                                    <button
+                                      onClick={() => {
+                                        setShipmentToEdit(sub);
+                                        setIsEditModalOpen(true);
+                                      }}
+                                      className="edit-btn"
+                                    >
+                                      ✏️
+                                    </button>
                                   </CanAccess>
                                   <CanAccess module="batch" action="delete">
-                                  <button
-                                    onClick={() => handleDelete(sub._id, false)}
-                                    className="delete-btn"
-                                  >
-                                    🗑️
-                                  </button>
+                                    <button
+                                      onClick={() =>
+                                        handleDelete(sub._id, false)
+                                      }
+                                      className="delete-btn"
+                                    >
+                                      🗑️
+                                    </button>
                                   </CanAccess>
                                 </div>
                               </td>
@@ -930,6 +948,13 @@ export default function BatchDetails() {
           setShipmentToEdit(null);
         }}
         shipment={shipmentToEdit}
+        onSuccess={fetchData}
+      />
+      
+      <UploadExcelModal
+        isOpen={isUploadExcelOpen}
+        onClose={() => setIsUploadExcelOpen(false)}
+        batchId={id}
         onSuccess={fetchData}
       />
       {/* ✅ QR Code Print Modal */}

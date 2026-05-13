@@ -466,7 +466,7 @@ export default function BranchProfile() {
           style={{ display: "flex", gap: "10px", margin: "20px 0" }}
         >
           {/* শুধুমাত্র shipment তৈরি করার ক্ষমতা থাকলে এই বাটন দেখবে */}
-          <CanAccess module="shipment" action="create">
+          <CanAccess module="branch" action="create">
             <button
               className="direct-entry-btn"
               onClick={() => setShowDirectEntry(!showDirectEntry)}
@@ -479,9 +479,7 @@ export default function BranchProfile() {
                 cursor: "pointer",
               }}
             >
-              {showDirectEntry
-                ? "✖ Close Direct Entry"
-                : "📥 Add Direct Entry"}
+              {showDirectEntry ? "✖ Close Direct Entry" : "📥 Add Direct Entry"}
             </button>
           </CanAccess>
         </div>
@@ -702,21 +700,26 @@ export default function BranchProfile() {
                           {/* 🔥 অ্যাকশন বাটন লজিক */}
                           {isCompleted ? (
                             <div className="action-group">
-                              <button
-                                className="edit-mini-btn"
-                                onClick={() => handleEditBilledItem(item)}
-                              >
-                                ✏️ Edit
-                              </button>
-                              <button
-                                className="undo-mini-btn"
-                                onClick={() => handleRevertItem(item._id)}
-                              >
-                                ↩️ Undo
-                              </button>
+                              <CanAccess module="branch" action="edit">
+                                <button
+                                  className="edit-mini-btn"
+                                  onClick={() => handleEditBilledItem(item)}
+                                >
+                                  ✏️ Edit
+                                </button>
+                              </CanAccess>
+
+                              <CanAccess module="billing" action="revert">
+                                <button
+                                  className="undo-mini-btn"
+                                  onClick={() => handleRevertItem(item._id)}
+                                >
+                                  ↩️ Undo
+                                </button>
+                              </CanAccess>
                             </div>
                           ) : isManual ? (
-                            /* 🔥 ম্যানুয়াল এন্ট্রি হলে স্পেশাল এডিট/ডিলিট বাটন দেখাবে */
+                            // /* 🔥 ম্যানুয়াল এন্ট্রি হলে স্পেশাল এডিট/ডিলিট বাটন দেখাবে */ shipment module
                             <div className="manual-actions">
                               <CanAccess module="shipment" action="edit">
                                 <button
@@ -802,6 +805,7 @@ export default function BranchProfile() {
                   ).toLocaleString()}
                 </h3>
               </div>
+              <CanAccess module="billing" action="create">
               <button
                 className="main-invoice-btn"
                 onClick={handleGenerateInvoice}
@@ -809,6 +813,7 @@ export default function BranchProfile() {
               >
                 {submitting ? "Processing..." : "📄 Confirm & Generate Invoice"}
               </button>
+              </CanAccess>
             </div>
           )}
         </div>
@@ -898,7 +903,7 @@ export default function BranchProfile() {
                             setIsInvoiceModalOpen(true);
                           }}
                         >
-                          👁️ View Memo
+                          👁️ View Invoice
                         </button>
                       </td>
                     </tr>
@@ -963,9 +968,11 @@ export default function BranchProfile() {
               </div>
 
               {/* 👤 Customer & Invoice Meta Info */}
-              <div className="pro-info-section">
+              {/* 🔥 Billed To এবং Date/Invoice No সেকশন */}
+              <div className="pro-invoice-meta">
+                {/* বাম পাশ: কাস্টমার ইনফো */}
                 <div className="pro-bill-to">
-                  <h4 className="info-title">Billed To:</h4>
+                  <h4 className="info-title">BILLED TO:</h4>
                   <table className="info-table">
                     <tbody>
                       <tr>
@@ -983,7 +990,6 @@ export default function BranchProfile() {
                             suppressContentEditableWarning
                             className="editable-print-text"
                           >
-                            {/* 🔥 ডাটাবেসের ঠিক ফিল্ডের নাম branchName বসানো হয়েছে */}
                             {summary?.branchName || "Enter Name"}
                           </strong>
                         </td>
@@ -997,7 +1003,6 @@ export default function BranchProfile() {
                             suppressContentEditableWarning
                             className="editable-print-text"
                           >
-                            {/* 🔥 ডাটাবেসের ঠিক ফিল্ডের নাম phone বসানো হয়েছে */}
                             {summary?.phone || "Enter Phone"}
                           </strong>
                         </td>
@@ -1011,7 +1016,6 @@ export default function BranchProfile() {
                             suppressContentEditableWarning
                             className="editable-print-text"
                           >
-                            {/* 🔥 ডাটাবেসের ঠিক ফিল্ডের নাম address বসানো হয়েছে */}
                             {summary?.address || "Enter Address"}
                           </strong>
                         </td>
@@ -1019,8 +1023,35 @@ export default function BranchProfile() {
                     </tbody>
                   </table>
                 </div>
-              </div>
 
+                {/* ডান পাশ: ইনভয়েস ইনফো (Date & Invoice No) */}
+                <div className="pro-date-info">
+                  <table className="info-table">
+                    <tbody>
+                      <tr>
+                        <td className="lbl">Invoice No</td>
+                        <td>
+                          :{" "}
+                          <strong>
+                            {invoiceData.invoiceId ||
+                              `INV-${Date.now().toString().slice(-6)}`}
+                          </strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="lbl">Date</td>
+                        <td>
+                          :{" "}
+                          <strong>
+                            {invoiceData.date ||
+                              new Date().toLocaleDateString("en-GB")}
+                          </strong>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
               {/* 📦 Invoice Items Table */}
               <table className="pro-item-table">
                 <thead>

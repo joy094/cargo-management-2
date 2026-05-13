@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
-
+import CanAccess from "./CanAccess";
 export default function PaymentAllocation() {
   const [searchParams] = useSearchParams();
   const urlMark = searchParams.get("mark");
@@ -149,7 +149,6 @@ export default function PaymentAllocation() {
         transactionId: finalTxnId,
         shippingMark: activeMark,
         amount: amountVal,
-        
       };
 
       const res = await axios.post("/api/payments/add-payment", payload);
@@ -322,14 +321,15 @@ export default function PaymentAllocation() {
                     placeholder="Write note here..."
                   />
                 </div>
-
-                <button
-                  type="submit"
-                  className="submit-btn"
-                  disabled={submitting}
-                >
-                  {submitting ? "Saving..." : "💾 Save Transaction"}
-                </button>
+                <CanAccess module="payment" action="create">
+                  <button
+                    type="submit"
+                    className="submit-btn"
+                    disabled={submitting}
+                  >
+                    {submitting ? "Saving..." : "💾 Save Transaction"}
+                  </button>
+                </CanAccess>
               </form>
             </div>
 
@@ -342,7 +342,7 @@ export default function PaymentAllocation() {
                       <th>Date</th>
                       <th>Type/Inv.</th>
                       <th>Ref ID</th>
-                     <th> Remarks</th>
+                      <th> Remarks</th>
                       <th className="text-right">Amount (৳)</th>
                       <th className="text-center">Action</th>
                     </tr>
@@ -370,21 +370,21 @@ export default function PaymentAllocation() {
                         </td>
                         <td>
                           {txn.remarks && (
-                            <div className="remarks-badge">
-                              {txn.remarks}
-                            </div>
+                            <div className="remarks-badge">{txn.remarks}</div>
                           )}
                         </td>
                         <td className="text-right fw-bold text-green">
                           + {txn.amount.toLocaleString()}
                         </td>
                         <td className="text-center">
-                          <button
-                            className="delete-row-btn"
-                            onClick={() => handleDelete(txn._id)}
-                          >
-                            🗑️
-                          </button>
+                          <CanAccess module="payment" action="delete">
+                            <button
+                              className="delete-row-btn"
+                              onClick={() => handleDelete(txn._id)}
+                            >
+                              🗑️
+                            </button>
+                          </CanAccess>
                         </td>
                       </tr>
                     ))}

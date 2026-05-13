@@ -1,3 +1,5 @@
+//userRoute.js
+
 import express from "express";
 import bcrypt from "bcrypt";
 import { User } from "./models.js";
@@ -69,5 +71,50 @@ router.put(
     }
   },
 );
+
+// 🔥 ৪. ইউজার এডিট/আপডেট করা (Edit User)
+router.put("/:id", authMiddleware, requireSuperAdmin, async (req, res) => {
+  try {
+    const { username, role, password } = req.body;
+    const updateData = {};
+
+    if (username) updateData.username = username.toLowerCase();
+    if (role) updateData.role = role;
+
+    // যদি নতুন পাসওয়ার্ড দেওয়া হয়, তবেই সেটি হ্যাশ করে আপডেট হবে
+    if (password) {
+      updateData.passwordHash = await bcrypt.hash(password, 12);
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true },
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ error: "ইউজার পাওয়া যায়নি!" });
+    }
+
+    res.json({ success: true, message: "ইউজারের তথ্য সফলভাবে আপডেট হয়েছে!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 🔥 ৫. ইউজার ডিলিট করা (Delete User)
+router.delete("/:id", authMiddleware, requireSuperAdmin, async (req, res) => {
+  try {
+    const deletedUser = await User.findByIdAndDelete(req.params.id);
+
+    if (!deletedUser) {
+      return res.status(404).json({ error: "ইউজার পাওয়া যায়নি!" });
+    }
+
+    res.json({ success: true, message: "ইউজার সফলভাবে ডিলিট হয়েছে!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 export default router;
