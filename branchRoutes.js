@@ -56,21 +56,36 @@ router.post("/generate-invoice", async (req, res) => {
   }
 });
 
-// ✅ ৩. ড্যাশবোর্ড সামারি: Shipping Mark অনুযায়ী টোটাল এবং বকেয়া (Due) হিসাব
+/// ✅ ৩. ড্যাশবোর্ড সামারি: Shipping Marks অনুযায়ী টোটাল এবং বকেয়া (Due) হিসাব
 router.get("/summary/:shippingMark", async (req, res) => {
   try {
-    const shippingMarkRegex = new RegExp(`^${req.params.shippingMark}$`, "i");
+    const requestedMark = req.params.shippingMark;
+    const searchRegex = new RegExp(`^${requestedMark}$`, "i");
 
-    // 🔥 ম্যাজিক আপডেট: Branch কালেকশন থেকে কাস্টমারের আসল ডাটা (নাম, ফোন, ঠিকানা) নিয়ে আসা
+    // 🔥 ১. প্রথমে ব্রাঞ্চ খুঁজে বের করা (পুরোনো String বা নতুন Array দুই নিয়মেই)
     const branchInfo = await Branch.findOne({
-      shippingMark: shippingMarkRegex,
+      $or: [{ shippingMark: searchRegex }, { shippingMarks: searchRegex }],
     });
 
-    // ১. Shipment থেকে টোটাল বিল, ওজন এবং বক্সের হিসাব
+    // 🔥 ২. ব্রাঞ্চের সবগুলো মার্ক একটি Array তে নেওয়া (যাতে সবার ডেটা একসাথে আসে)
+    let allMarksToSearch = [searchRegex]; // ডিফল্ট (যদি ব্রাঞ্চ না পাওয়া যায়)
+    if (
+      branchInfo &&
+      branchInfo.shippingMarks &&
+      branchInfo.shippingMarks.length > 0
+    ) {
+      allMarksToSearch = branchInfo.shippingMarks.map(
+        (m) => new RegExp(`^${m}$`, "i"),
+      );
+    } else if (branchInfo && branchInfo.shippingMark) {
+      allMarksToSearch = [new RegExp(`^${branchInfo.shippingMark}$`, "i")];
+    }
+
+    // ৩. Shipment থেকে টোটাল বিল, ওজন এবং বক্সের হিসাব
     const stats = await Shipment.aggregate([
       {
         $match: {
-          shippingMark: shippingMarkRegex,
+          shippingMark: { $in: allMarksToSearch },
           isMasterCarton: { $ne: true },
         },
       },
@@ -81,7 +96,6 @@ router.get("/summary/:shippingMark", async (req, res) => {
           totalWeight: {
             $sum: { $toDouble: { $ifNull: ["$actualWeight", "$grossWeight"] } },
           },
-          // শুধুমাত্র বিল হওয়া আইটেমগুলোর totalBill যোগ করবে
           totalBilled: {
             $sum: {
               $cond: [{ $eq: ["$isBilled", true] }, "$totalBill", 0],
@@ -97,16 +111,15 @@ router.get("/summary/:shippingMark", async (req, res) => {
       totalBilled: 0,
     };
 
-    // ২. Payment কালেকশন থেকে মোট জমা এবং ডিসকাউন্টের হিসাব
-    // ✅ ৩. ড্যাশবোর্ড সামারি রাউটের ভেতর পেমেন্ট লজিক আপডেট
-    const payments = await Payment.find({ shippingMark: shippingMarkRegex });
+    // ৪. Payment কালেকশন থেকে হিসাব
+    const payments = await Payment.find({
+      shippingMark: { $in: allMarksToSearch },
+    });
     let totalPaid = 0;
     let totalDiscount = 0;
 
     payments.forEach((txn) => {
-      // .toUpperCase() ব্যবহার করা হয়েছে যাতে 'Discount' বা 'discount' যাই থাকুক তা খুঁজে পায়
       const type = txn.type ? txn.type.toUpperCase() : "";
-
       if (type === "PAYMENT") {
         totalPaid += txn.amount;
       } else if (type === "DISCOUNT" || type === "ADJUSTMENT") {
@@ -114,10 +127,8 @@ router.get("/summary/:shippingMark", async (req, res) => {
       }
     });
 
-    // ৩. বর্তমান বকেয়া (Due) হিসাব (ডিসকাউন্ট মাইনাস হচ্ছে)
     const currentDue = summaryData.totalBilled - totalPaid - totalDiscount;
 
-    // ৪. সব ডেটা একসাথে পাঠানো (কাস্টমার ইনফো সহ)
     res.status(200).json({
       success: true,
       summary: {
@@ -125,10 +136,10 @@ router.get("/summary/:shippingMark", async (req, res) => {
         totalPaid,
         totalDiscount,
         currentDue,
-        // 🔥 এই নতুন ৩টি লাইন আপনার ইনভয়েসের নাম-ঠিকানা ঠিক করে দেবে!
         branchName: branchInfo ? branchInfo.branchName : "",
         phone: branchInfo ? branchInfo.phone : "",
         address: branchInfo ? branchInfo.address : "",
+        shippingMarks: branchInfo ? branchInfo.shippingMarks : [], // 🔥 একাধিক মার্ক প্রোফাইলে পাঠানোর জন্য
       },
     });
   } catch (error) {
@@ -141,25 +152,29 @@ router.get("/summary/:shippingMark", async (req, res) => {
 // ==========================================
 
 // ✅ ১. নতুন ব্রাঞ্চ যুক্ত করা (Create Branch)
+// ✅ ১. নতুন ব্রাঞ্চ যুক্ত করা (Create Branch)
 router.post("/", async (req, res) => {
   try {
-    const { branchName, shippingMark, phone, address } = req.body;
+    // 🔥 ফ্রন্টএন্ড থেকে আসা shippingMarks (Array) রিসিভ করা হলো
+    const { branchName, shippingMarks, phone, address } = req.body;
 
-    const existingBranch = await Branch.findOne({
-      shippingMark: shippingMark.toUpperCase(),
-    });
-
-    if (existingBranch) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "এই Shipping Mark টি ইতিমধ্যে অন্য ব্রাঞ্চের জন্য ব্যবহার করা হয়েছে!",
+    // চেক করা হচ্ছে যে পাঠানো মার্কগুলোর মধ্যে কোনোটি আগে থেকেই অন্য ব্রাঞ্চে আছে কি না
+    if (shippingMarks && shippingMarks.length > 0) {
+      const existingBranch = await Branch.findOne({
+        shippingMarks: { $in: shippingMarks } // $in ব্যবহার করে Array এর ভেতরে খোঁজা হচ্ছে
       });
+
+      if (existingBranch) {
+        return res.status(400).json({
+          success: false,
+          message: "এই Shipping Mark গুলোর মধ্যে কোনো একটি ইতিমধ্যে অন্য ব্রাঞ্চে ব্যবহার করা হয়েছে!",
+        });
+      }
     }
 
     const newBranch = new Branch({
       branchName,
-      shippingMark,
+      shippingMarks, // 🔥 Array টি ডাটাবেসে সেভ হচ্ছে
       phone,
       address,
     });
@@ -179,35 +194,49 @@ router.post("/", async (req, res) => {
   }
 });
 
-// ✅ ২. ব্রাঞ্চ আপডেট করা (Update Branch)
+// // ✅ ২. ব্রাঞ্চ আপডেট করা (Update Branch)
+// router.put("/:id", async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const { branchName, shippingMark, phone, address } = req.body;
+
+//     const updatedBranch = await Branch.findByIdAndUpdate(
+//       id,
+//       { branchName, shippingMark, phone, address },
+//       { new: true },
+//     );
+
+//     if (!updatedBranch) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: "ব্রাঞ্চ খুঁজে পাওয়া যায়নি!" });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       message: "ব্রাঞ্চ সফলভাবে আপডেট হয়েছে",
+//       branch: updatedBranch,
+//     });
+//   } catch (error) {
+//     console.error("Branch Update Error:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "সার্ভার এরর, ব্রাঞ্চ আপডেট করা যায়নি!",
+//     });
+//   }
+// });
+
+// 🔥 (বোনাস) আপনার আগের Edit (PUT) রাউটে shippingMarks আপডেট করার জন্য নিশ্চিত করুন যে কোডটি এভাবে আছে:
 router.put("/:id", async (req, res) => {
   try {
-    const { id } = req.params;
-    const { branchName, shippingMark, phone, address } = req.body;
-
     const updatedBranch = await Branch.findByIdAndUpdate(
-      id,
-      { branchName, shippingMark, phone, address },
+      req.params.id,
+      req.body, // { branchName, shippingMarks, phone, address }
       { new: true },
     );
-
-    if (!updatedBranch) {
-      return res
-        .status(404)
-        .json({ success: false, message: "ব্রাঞ্চ খুঁজে পাওয়া যায়নি!" });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "ব্রাঞ্চ সফলভাবে আপডেট হয়েছে",
-      branch: updatedBranch,
-    });
-  } catch (error) {
-    console.error("Branch Update Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "সার্ভার এরর, ব্রাঞ্চ আপডেট করা যায়নি!",
-    });
+    res.json({ success: true, branch: updatedBranch });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -252,19 +281,36 @@ router.delete("/:id", async (req, res) => {
 // 📦 Shipment & Invoice API Routes
 // ==========================================
 
-// ✅ ইনভয়েস হিস্ট্রি ফেচ করা (Batch Lookup ফিক্স সহ)
+// ✅ ইনভয়েস হিস্ট্রি ফেচ করা (সব মার্ক একসাথে)
 router.get("/invoice-history/:shippingMark", async (req, res) => {
   try {
-    const { shippingMark } = req.params;
+    const requestedMark = req.params.shippingMark;
+    const searchRegex = new RegExp(`^${requestedMark}$`, "i");
+
+    const branch = await Branch.findOne({
+      $or: [{ shippingMark: searchRegex }, { shippingMarks: searchRegex }],
+    });
+
+    let allMarksToSearch = [requestedMark]; // Aggregation এ স্ট্রিং বা রেজেক্স দুটিই কাজ করে, তবে বেস্ট হলো স্ট্রিং পাঠানো।
+    if (branch && branch.shippingMarks && branch.shippingMarks.length > 0) {
+      allMarksToSearch = branch.shippingMarks;
+    }
 
     const history = await Shipment.aggregate([
-      { $match: { shippingMark: shippingMark, isBilled: true } },
+      // 🔥 $in অপারেটর দিয়ে সবগুলো মার্কের ডাটা একসাথে আনা হচ্ছে
+      {
+        $match: {
+          shippingMark: {
+            $in: allMarksToSearch.map((m) => new RegExp(`^${m}$`, "i")),
+          },
+          isBilled: true,
+        },
+      },
 
-      // 🔥 Aggregation-এর ভেতরে Populate করার জন্য $lookup ব্যবহার করা হলো
       {
         $lookup: {
-          from: "batches", // ডাটাবেসে Batch মডেলের কালেকশনের নাম (MongoDB অটোমেটিক s যোগ করে)
-          localField: "batch", // Shipment মডেলে ব্যাচের রেফারেন্স ফিল্ড
+          from: "batches",
+          localField: "batch",
           foreignField: "_id",
           as: "batchDetails",
         },
@@ -272,19 +318,15 @@ router.get("/invoice-history/:shippingMark", async (req, res) => {
       {
         $unwind: {
           path: "$batchDetails",
-          preserveNullAndEmptyArrays: true, // যদি কোনো আইটেমে ব্যাচ না থাকে, তবুও যেন এরর না দেয়
+          preserveNullAndEmptyArrays: true,
         },
       },
-
-      // এরপর গ্রুপিং করা হচ্ছে
       {
         $group: {
           _id: "$invoiceId",
           date: { $first: "$billingDate" },
           totalAmount: { $sum: "$totalBill" },
           totalWeight: { $sum: { $toDouble: "$grossWeight" } },
-
-          // 🔥 items এর ভেতরে ব্যাচের আসল নাম (batchName) সরাসরি ঢুকিয়ে দেওয়া হচ্ছে
           items: {
             $push: {
               $mergeObjects: [
@@ -295,7 +337,7 @@ router.get("/invoice-history/:shippingMark", async (req, res) => {
           },
         },
       },
-      { $sort: { date: -1 } }, // লেটেস্ট ইনভয়েস উপরে থাকবে
+      { $sort: { date: -1 } },
     ]);
 
     res.status(200).json({ success: true, history });
@@ -307,13 +349,27 @@ router.get("/invoice-history/:shippingMark", async (req, res) => {
   }
 });
 
-// ✅ সব আইটেম আনার রাউট (Populate সহ, যাতে ব্যাচের আসল নাম আসে)
+// ✅ সব আইটেম আনার রাউট (সব মার্ক একসাথে)
 router.get("/all-items/:shippingMark", async (req, res) => {
   try {
+    const requestedMark = req.params.shippingMark;
+    const searchRegex = new RegExp(`^${requestedMark}$`, "i");
+
+    const branch = await Branch.findOne({
+      $or: [{ shippingMark: searchRegex }, { shippingMarks: searchRegex }],
+    });
+
+    let allMarksToSearch = [searchRegex];
+    if (branch && branch.shippingMarks && branch.shippingMarks.length > 0) {
+      allMarksToSearch = branch.shippingMarks.map(
+        (m) => new RegExp(`^${m}$`, "i"),
+      );
+    }
+
     const items = await Shipment.find({
-      shippingMark: req.params.shippingMark,
+      shippingMark: { $in: allMarksToSearch },
     })
-      .populate("batch", "batchName") // 🔥 ম্যাজিক লাইন: এই লাইনটিই আইডির বদলে আসল ব্যাচ নেম (MAY 20 GU) নিয়ে আসবে!
+      .populate("batch", "batchName")
       .sort({ createdAt: -1 });
 
     res.status(200).json({ success: true, items });
@@ -370,6 +426,37 @@ router.get("/unassigned-shipments", async (req, res) => {
     res.json(unassignedShipments);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ✅ Excel থেকে Bulk Branch আপলোড করার API
+router.post("/bulk-import", async (req, res) => {
+  try {
+    const { branches } = req.body;
+
+    if (!branches || branches.length === 0) {
+      return res.status(400).json({ error: "No branch data provided" });
+    }
+
+    // Insert Many দিয়ে একসাথে সবগুলো সেভ করা (Duplicate Skip করার জন্য ordered: false দেওয়া হয়েছে)
+    const result = await Branch.insertMany(branches, { ordered: false });
+
+    res.json({
+      success: true,
+      message: `সফলভাবে ${result.length} টি ব্রাঞ্চ যুক্ত হয়েছে!`,
+    });
+  } catch (error) {
+    // যদি কিছু ডুপ্লিকেট থাকে, তবুও যেন বাকিগুলো সেভ হয়
+    if (error.code === 11000) {
+      res.json({
+        success: true,
+        message:
+          "নতুন ব্রাঞ্চগুলো সেভ হয়েছে, তবে কিছু ডুপ্লিকেট মার্ক স্কিপ করা হয়েছে।",
+      });
+    } else {
+      console.error("Bulk Import Error:", error);
+      res.status(500).json({ error: "আপলোড ব্যর্থ হয়েছে।" });
+    }
   }
 });
 

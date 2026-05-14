@@ -323,14 +323,17 @@ export default function BranchProfile() {
         setInvoiceData({
           invoiceId: res.data.invoiceId,
           date: new Date().toLocaleDateString("en-GB"),
-          customerMark: activeMark,
+          // 🔥 ইনভয়েসে সবগুলো মার্ক কমা দিয়ে দেখাবে
+          customerMark:
+            summary?.shippingMarks && summary.shippingMarks.length > 0
+              ? summary.shippingMarks.join(", ")
+              : activeMark,
           items: itemsToBill,
           totalWeight: totalWeightSum,
           subTotal: totalBillAmount,
           discount: dCost,
-          transportCost: tCost, // 🔥 মোডালে দেখানোর জন্য
-          netPayable: totalBillAmount - dCost + tCost, // 🔥 ফাইনাল বিল
-          // handleGenerateInvoice এর ভেতরে setInvoiceData তে যোগ করুন:
+          transportCost: tCost,
+          netPayable: totalBillAmount - dCost + tCost,
           previousDue: currentDue || 0,
         });
 
@@ -438,8 +441,26 @@ export default function BranchProfile() {
         <button className="back-btn" onClick={() => navigate("/branch/new")}>
           ⬅ Back
         </button>
-        <h2>
-          Customer Profile: <span className="mark-tag">{activeMark}</span>
+        <h2
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "8px",
+            margin: 0,
+          }}
+        >
+          Customer Profile:
+          {/* 🔥 একাধিক মার্ক থাকলে সবগুলো ব্যাজ হিসেবে দেখাবে */}
+          {summary?.shippingMarks && summary.shippingMarks.length > 0 ? (
+            summary.shippingMarks.map((m, i) => (
+              <span key={i} className="mark-tag">
+                {m}
+              </span>
+            ))
+          ) : (
+            <span className="mark-tag">{activeMark}</span>
+          )}
         </h2>
       </div>
 
@@ -806,13 +827,15 @@ export default function BranchProfile() {
                 </h3>
               </div>
               <CanAccess module="billing" action="create">
-              <button
-                className="main-invoice-btn"
-                onClick={handleGenerateInvoice}
-                disabled={submitting}
-              >
-                {submitting ? "Processing..." : "📄 Confirm & Generate Invoice"}
-              </button>
+                <button
+                  className="main-invoice-btn"
+                  onClick={handleGenerateInvoice}
+                  disabled={submitting}
+                >
+                  {submitting
+                    ? "Processing..."
+                    : "📄 Confirm & Generate Invoice"}
+                </button>
               </CanAccess>
             </div>
           )}

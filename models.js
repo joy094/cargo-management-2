@@ -3,6 +3,7 @@
 import mongoose from "mongoose";
 const { Schema, model } = mongoose;
 
+
 const branchSchema = new Schema(
   {
     branchName: {
@@ -10,17 +11,25 @@ const branchSchema = new Schema(
       required: true,
       trim: true,
     },
-    shippingMark: {
-      type: String,
-      required: true,
-      unique: true, // একই শিপিং মার্ক যেন দুইবার সেভ না হয়
-      uppercase: true, // অটোমেটিক্যালি বড় হাতের অক্ষরে সেভ হবে
-      trim: true,
+    // 🔥 ১. shippingMark কে shippingMarks (Array) করা হলো
+    shippingMarks: {
+      type: [
+        {
+          type: String,
+          uppercase: true,
+          trim: true,
+        },
+      ],
+      validate: [
+        (val) => val.length > 0,
+        "অন্তত একটি শিপিং মার্ক দেওয়া আবশ্যক!",
+      ],
     },
     phone: {
       type: String,
       trim: true,
-      default: "",
+      default: null, // 🔥 ২. "" এর বদলে null দেওয়া হলো
+      sparse: true,  // 🔥 ৩. sparse দিলে যাদের ফোন নাম্বার নেই, তাদের duplicate error আসবে না
     },
     address: {
       type: String,
@@ -29,9 +38,12 @@ const branchSchema = new Schema(
     },
   },
   {
-    timestamps: true, // এটি দিলে কখন ব্রাঞ্চ তৈরি হয়েছে বা এডিট হয়েছে তার সময় (createdAt, updatedAt) অটো সেভ হবে
-  },
+    timestamps: true,
+  }
 );
+
+// 🔥 ৪. এই ইনডেক্সটি নিশ্চিত করবে যে একটি শিপিং মার্ক অন্য কোনো ব্রাঞ্চ ব্যবহার করতে পারবে না
+branchSchema.index({ shippingMarks: 1 }, { unique: true });
 
 export const Branch = model("Branch", branchSchema);
 
