@@ -3,6 +3,7 @@
 import express from "express";
 import dotenv from "dotenv";
 dotenv.config();
+import mongoose from "mongoose";
 
 import { Shipment, Batch } from "./models.js";
 import { authMiddleware, loginHandler, LOGIN_RATE_LIMIT } from "./auth.js";
@@ -171,8 +172,7 @@ router.post("/shipments", async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
-
-// ✅ Excel Master & Sub-box স্মার্ট বাল্ক ইমপোর্ট
+// ✅ Excel Master & Sub-box স্মার্ট বাল্ক ইমপোর্ট (হুবহু এক্সেলের সিরিয়াল বজায় রেখে)
 router.post("/bulk-import-excel", async (req, res) => {
   try {
     const { shipments, batchId } = req.body;
@@ -190,12 +190,18 @@ router.post("/bulk-import-excel", async (req, res) => {
       if (m.cartonNo) masterIdMap[m.cartonNo] = m._id;
     });
 
-    // ২. আগত এক্সেল ডাটাকে মাস্টার এবং সাব-বক্সে ভাগ করা
-    const incomingMasters = shipments.filter((s) => s.isMasterCarton);
-    const incomingSubs = shipments.filter((s) => !s.isMasterCarton);
+    // ২. এক্সেলের নতুন মাস্টার বক্সগুলোর জন্য আগে থেকেই ID তৈরি করে রাখা
+    // (যাতে ডাটাবেসে সেভ করার আগেই সাব-বক্সগুলো তাকে চিনতে পারে)
+    shipments.forEach((item) => {
+      if (item.isMasterCarton && item.cartonNo) {
+        const newId = new mongoose.Types.ObjectId(); // নতুন ID তৈরি
+        item._id = newId; // এক্সেলের আইটেমে টেম্পোরারি সেভ রাখলাম
+        masterIdMap[item.cartonNo] = newId; // ম্যাপে আপডেট করলাম
+      }
+    });
 
-    // ৩. ডাটা প্রস্তুত করার একটি কমন ফাংশন
-    const prepareDoc = (item) => {
+    // ৩. এক্সেলের অরিজিনাল সিরিয়াল অনুযায়ী ডাটা প্রস্তুত করা (কোনো ফিল্টার করে আলাদা করা যাবে না)
+    const finalDocsToInsert = shipments.map((item) => {
       let calculatedCbm = item.cbm || 0;
       if (!calculatedCbm && item.length && item.width && item.height) {
         calculatedCbm =
@@ -203,7 +209,7 @@ router.post("/bulk-import-excel", async (req, res) => {
           1000000;
       }
 
-      return {
+      const doc = {
         trackingNumber: `MAT-${Math.floor(100000 + Math.random() * 900000)}`,
         chinaTrackingNo: item.chinaTrackingNo || "-",
         shippingMark: item.shippingMark || "-",
@@ -224,49 +230,79 @@ router.post("/bulk-import-excel", async (req, res) => {
           ? new Date(item.receivedDate)
           : new Date(),
         isMasterCarton: item.isMasterCarton,
-        parentId: null, // সাব-বক্সের জন্য নিচে আপডেট হবে
+        parentId: null,
       };
-    };
 
-    // ৪. প্রথমে মাস্টার বক্সগুলো ডাটাবেসে সেভ করা
-    const masterDocsToInsert = incomingMasters.map(prepareDoc);
-    let insertedMasters = [];
-
-    if (masterDocsToInsert.length > 0) {
-      insertedMasters = await Shipment.insertMany(masterDocsToInsert);
-      // নতুন সেভ হওয়া মাস্টার বক্সগুলোর ডাটাবেস ID ম্যাপে যোগ করা
-      insertedMasters.forEach((m) => {
-        if (m.cartonNo) masterIdMap[m.cartonNo] = m._id;
-      });
-    }
-
-    // ৫. এবার সাব-বক্সগুলো প্রস্তুত করা এবং প্যারেন্ট ID (Master Box ID) লিংক করা
-    const subDocsToInsert = incomingSubs.map((item) => {
-      const doc = prepareDoc(item);
-      // প্যারেন্ট কার্টন নাম্বার দিয়ে ম্যাপ থেকে আসল ডাটাবেস ID বের করা
-      const parentId = masterIdMap[item.parentCartonNo];
-
-      if (parentId) {
-        doc.parentId = parentId;
-      } else {
-        // যদি কোনো সাব-বক্সের মাস্টার কার্টন না পাওয়া যায়, তাকে আলাদা পার্সেল হিসেবে ট্রিট করতে চাইলে:
-        // doc.isMasterCarton = true;
+      // মাস্টার বক্স হলে আমাদের তৈরি করা ID টি বসিয়ে দেবো
+      if (item.isMasterCarton) {
+        doc._id = item._id;
       }
+      // সাব-বক্স হলে ম্যাপ থেকে তার প্যারেন্ট ID বের করে বসাবো
+      else if (item.parentCartonNo && masterIdMap[item.parentCartonNo]) {
+        doc.parentId = masterIdMap[item.parentCartonNo];
+      }
+
       return doc;
     });
 
-    // ৬. সাব-বক্সগুলো ডাটাবেসে সেভ করা
-    if (subDocsToInsert.length > 0) {
-      await Shipment.insertMany(subDocsToInsert);
-    }
+    // ৪. এক ক্লিকে এক্সেলের হুবহু সিরিয়াল অনুযায়ী পুরো ডাটাবেসে সেভ করা!
+    await Shipment.insertMany(finalDocsToInsert);
 
     res.json({
       success: true,
-      message: `সফলভাবে ${insertedMasters.length} টি মাস্টার বক্স এবং ${subDocsToInsert.length} টি সাব-বক্স আপলোড হয়েছে!`,
+      message: `সফলভাবে ${finalDocsToInsert.length} টি বক্স আপলোড হয়েছে!`,
     });
   } catch (err) {
     console.error("Excel Import Error:", err);
     res.status(500).json({ error: "এক্সেল আপলোড ব্যর্থ হয়েছে।" });
+  }
+});
+
+// ✅ স্মার্ট বাল্ক ইমপোর্ট (চায়না থেকে আসা প্যাকিং লিস্টের জন্য)
+router.post("/shipments/bulk-import", async (req, res) => {
+  try {
+    const { shipments, agencyId, batchId } = req.body;
+    if (!shipments || !shipments.length)
+      return res.status(400).json({ error: "No data found!" });
+
+    const preparedData = shipments.map((item) => {
+      // CBM ক্যালকুলেশন লজিক
+      let calculatedCbm = item.cbm || 0;
+      if (!calculatedCbm && item.length && item.width && item.height) {
+        calculatedCbm =
+          (Number(item.length) * Number(item.width) * Number(item.height)) /
+          1000000;
+      }
+
+      return {
+        trackingNumber: `MAT-${Math.floor(100000 + Math.random() * 900000)}`,
+        chinaTrackingNo: item.chinaTrackingNo || item.trackingNumber || "-",
+        shippingMark: item.shippingMark || "-",
+        cartonNo: item.cartonNo || "-",
+        productName: item.productName || "Various Items",
+        quantity: Number(item.quantity) || 1,
+        grossWeight: Number(item.grossWeight) || 0,
+        actualWeight: Number(item.grossWeight) || 0,
+        dimensions: {
+          length: Number(item.length) || 0,
+          width: Number(item.width) || 0,
+          height: Number(item.height) || 0,
+        },
+        cbm: Number(calculatedCbm).toFixed(3),
+        agency: agencyId || null,
+        batch: batchId || null,
+        status: "Warehouse Received",
+        receivedDate: item.receivedDate
+          ? new Date(item.receivedDate)
+          : new Date(),
+      };
+    });
+
+    const results = await Shipment.insertMany(preparedData);
+    res.json({ success: true, count: results.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "বাল্ক ইম্পোর্ট ব্যর্থ হয়েছে।" });
   }
 });
 

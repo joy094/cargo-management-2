@@ -249,19 +249,20 @@ export default function BatchDetails() {
     matchedShipments.filter((s) => s.parentId).map((s) => s.parentId),
   );
 
-  // ফাইনাল লিস্ট: সরাসরি ম্যাচ হওয়া মাল + ম্যাচ হওয়া সাব-বক্সের মাস্টার বক্স
+  // ফাইনাল লিস্ট: সরাসরি ম্যাচ হওয়া মাল + ম্যাচ হওয়া সাব-বক্সের মাস্টার বক্স
   const finalFilteredList = shipments.filter(
     (s) =>
       matchedShipments.some((ms) => ms._id === s._id) ||
       matchedParentIds.has(s._id),
   );
 
-  const masterCartons = finalFilteredList.filter((s) => s.isMasterCarton);
-  const standaloneItems = finalFilteredList.filter(
-    (s) => !s.isMasterCarton && !s.parentId,
-  );
+  // 🔥 সিরিয়াল ঠিক রাখার জন্য পরিবর্তন করা হলো:
+  // সাব-বক্সগুলোকে আলাদা করা হলো (যেগুলো মাস্টার বক্সের ভেতরে দেখাবে)
   const subItems = shipments.filter((s) => !s.isMasterCarton && s.parentId);
-  const displayList = [...masterCartons, ...standaloneItems];
+
+  // যাদের কোনো প্যারেন্ট নেই (অর্থাৎ মাস্টার বক্স এবং সাধারণ বক্স),
+  // তাদেরকে একসাথে রাখা হলো যাতে এক্সেলের অরিজিনাল সিরিয়াল ব্রেক না হয়!
+  const displayList = finalFilteredList.filter((s) => !s.parentId);
 
   // ✅ ২. সার্চ করলে সাব-বক্স অটোমেটিক খোলার লজিক
   useEffect(() => {
@@ -845,26 +846,66 @@ export default function BatchDetails() {
                         </div>
                       </td>
                     </tr>
-
                     {expandedRows[s._id] &&
                       subItems
                         .filter((sub) => sub.parentId === s._id)
-                        .map((sub) => {
+                        .map((sub, subIdx) => {
+                          // 🔥 subIdx যুক্ত করা হলো সিরিয়ালের জন্য
                           const subActual =
                             Number(sub.actualWeight) ||
                             Number(sub.grossWeight) ||
                             0;
                           const subMissing =
                             (Number(sub.grossWeight) || 0) - subActual;
+
                           return (
-                            <tr key={sub._id} className="sub-item-row">
-                              <td></td>
-                              <td></td>
+                            <tr
+                              key={sub._id}
+                              className={`sub-item-row ${sub.isHeld ? "held-row" : ""}`}
+                            >
+                              {/* 🔥 ১. সাব-বক্সের জন্য চেকবক্স */}
+                              <td>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedBoxIds.includes(sub._id)}
+                                  onChange={() => handleSelectBox(sub._id)}
+                                />
+                              </td>
+
+                              {/* 🔥 ২. সাব-বক্সের সিরিয়াল নাম্বার (যেমন: 1.1, 1.2) */}
+                              <td>
+                                <span
+                                  style={{
+                                    fontSize: "12px",
+                                    color: "#64748b",
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  {idx + 1}.{subIdx + 1}
+                                </span>
+                              </td>
+
                               <td className="sub-tracking">
                                 {sub.chinaTrackingNo || "-"}
                               </td>
                               <td className="sub-mark">
                                 ↪️ {sub.shippingMark}
+                                {/* 🔥 ৩. সাব-বক্স হোল্ড করা হলে স্ট্যাটাস দেখাবে */}
+                                {sub.isHeld && (
+                                  <span
+                                    style={{
+                                      background: "#ef4444",
+                                      color: "white",
+                                      padding: "2px 6px",
+                                      borderRadius: "4px",
+                                      fontSize: "10px",
+                                      marginLeft: "5px",
+                                      fontWeight: "bold",
+                                    }}
+                                  >
+                                    🛑 {sub.exceptionStatus}
+                                  </span>
+                                )}
                               </td>
                               <td>{sub.productName || "-"}</td>
                               <td>-</td>
@@ -877,7 +918,11 @@ export default function BatchDetails() {
                                   onBlur={(e) =>
                                     updateWeight(sub._id, e.target.value)
                                   }
-                                  className="input-editable-small"
+                                  className={
+                                    isLocked
+                                      ? "input-disabled"
+                                      : "input-editable-small"
+                                  }
                                 />
                                 {subMissing > 0 && (
                                   <span className="sub-missing-alert">
@@ -885,7 +930,7 @@ export default function BatchDetails() {
                                   </span>
                                 )}
                               </td>
-                              <td>-</td>
+                              <td className="cbm-badge">-</td>
                               <td>
                                 <div style={{ display: "flex", gap: "5px" }}>
                                   <CanAccess module="shipment" action="edit">
@@ -950,7 +995,7 @@ export default function BatchDetails() {
         shipment={shipmentToEdit}
         onSuccess={fetchData}
       />
-      
+
       <UploadExcelModal
         isOpen={isUploadExcelOpen}
         onClose={() => setIsUploadExcelOpen(false)}
