@@ -52,8 +52,13 @@ export default function BranchProfile() {
   const fetchBranchData = async (mark) => {
     setLoading(true);
     try {
-      const summaryRes = await axios.get(`/api/branches/summary/${mark}`);
-      const itemsRes = await axios.get(`/api/branches/all-items/${mark}`);
+      // 🔥 এখানে encodeURIComponent যুক্ত করা হয়েছে
+      const summaryRes = await axios.get(
+        `/api/branches/summary/${encodeURIComponent(mark)}`,
+      );
+      const itemsRes = await axios.get(
+        `/api/branches/all-items/${encodeURIComponent(mark)}`,
+      );
 
       setSummary(summaryRes.data.summary);
 
@@ -88,8 +93,9 @@ export default function BranchProfile() {
 
   const fetchInvoiceHistory = async () => {
     try {
+      // 🔥 এখানে encodeURIComponent যুক্ত করা হয়েছে
       const res = await axios.get(
-        `/api/branches/invoice-history/${activeMark}`,
+        `/api/branches/invoice-history/${encodeURIComponent(activeMark)}`,
       );
       if (res.data.success) {
         setInvoiceHistory(res.data.history);

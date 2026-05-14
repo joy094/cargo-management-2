@@ -161,13 +161,14 @@ router.post("/", async (req, res) => {
     // চেক করা হচ্ছে যে পাঠানো মার্কগুলোর মধ্যে কোনোটি আগে থেকেই অন্য ব্রাঞ্চে আছে কি না
     if (shippingMarks && shippingMarks.length > 0) {
       const existingBranch = await Branch.findOne({
-        shippingMarks: { $in: shippingMarks } // $in ব্যবহার করে Array এর ভেতরে খোঁজা হচ্ছে
+        shippingMarks: { $in: shippingMarks }, // $in ব্যবহার করে Array এর ভেতরে খোঁজা হচ্ছে
       });
 
       if (existingBranch) {
         return res.status(400).json({
           success: false,
-          message: "এই Shipping Mark গুলোর মধ্যে কোনো একটি ইতিমধ্যে অন্য ব্রাঞ্চে ব্যবহার করা হয়েছে!",
+          message:
+            "এই Shipping Mark গুলোর মধ্যে কোনো একটি ইতিমধ্যে অন্য ব্রাঞ্চে ব্যবহার করা হয়েছে!",
         });
       }
     }
@@ -285,7 +286,9 @@ router.delete("/:id", async (req, res) => {
 router.get("/invoice-history/:shippingMark", async (req, res) => {
   try {
     const requestedMark = req.params.shippingMark;
-    const searchRegex = new RegExp(`^${requestedMark}$`, "i");
+
+    const safeMark = requestedMark.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const searchRegex = new RegExp(`^${safeMark}$`, "i");
 
     const branch = await Branch.findOne({
       $or: [{ shippingMark: searchRegex }, { shippingMarks: searchRegex }],

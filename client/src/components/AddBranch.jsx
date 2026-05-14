@@ -377,13 +377,16 @@ export default function AddBranch() {
                         <button
                           className="action-btn profile-btn"
                           onClick={() => {
-                            // প্রোফাইলে যাওয়ার সময় প্রথম মার্কটা নিয়ে যাবে
                             const markToPass =
                               branch.shippingMarks &&
                               branch.shippingMarks.length > 0
                                 ? branch.shippingMarks[0]
                                 : branch.shippingMark;
-                            navigate(`/branch-profile?mark=${markToPass}`);
+
+                            // 🔥 এখানে encodeURIComponent যুক্ত করা হয়েছে
+                            navigate(
+                              `/branch-profile?mark=${encodeURIComponent(markToPass)}`,
+                            );
                           }}
                         >
                           👤
