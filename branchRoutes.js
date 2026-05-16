@@ -410,28 +410,48 @@ router.put("/update-billed-item/:id", async (req, res) => {
     res.status(500).json({ success: false });
   }
 });
-
 // --- আন-অ্যাসাইনড শিপমেন্ট তালিকা (যেগুলোর ব্রাঞ্চ নেই) ---
 router.get("/unassigned-shipments", async (req, res) => {
   try {
-    // ১. সব ব্রাঞ্চের শিপিং মার্কগুলো খুঁজে বের করা
-    const branches = await Branch.find({}, "shippingMark");
-    const activeShippingMarks = branches.map((b) => b.shippingMark);
+    // ১. সব ব্রাঞ্চ থেকে পুরোনো shippingMark এবং নতুন shippingMarks দুটিই নিয়ে আসা
+    const branches = await Branch.find({}, "shippingMark shippingMarks");
 
-    // ২. এমন শিপমেন্ট খোঁজা যেগুলো Arrived বা Delivered হয়েছে, কিন্তু শিপিং মার্ক কোনো ব্রাঞ্চের সাথে মেলে না
+    // ২. সব ব্রাঞ্চের সবগুলো মার্ক একটি সিঙ্গেল লিস্টে (Set) জমা করা
+    let activeShippingMarks = new Set();
+
+    branches.forEach((branch) => {
+      // পুরোনো সিঙ্গেল মার্ক থাকলে যোগ করা
+      if (branch.shippingMark) {
+        activeShippingMarks.add(branch.shippingMark.toUpperCase());
+      }
+      // নতুন Array ফরম্যাটে থাকলে সবগুলো যোগ করা
+      if (branch.shippingMarks && branch.shippingMarks.length > 0) {
+        branch.shippingMarks.forEach((mark) => {
+          activeShippingMarks.add(mark.toUpperCase());
+        });
+      }
+    });
+
+    // Set কে নরমাল Array তে রূপান্তর করা
+    const activeMarksArray = Array.from(activeShippingMarks);
+
+    // ৩. এমন শিপমেন্ট খোঁজা যেগুলো Arrived বা Delivered হয়েছে
     const unassignedShipments = await Shipment.find({
       status: { $in: ["Arrived", "Delivered"] },
-      shippingMark: { $nin: activeShippingMarks }, // $nin মানে "Not In" (লিস্টে নেই)
-
       isMasterCarton: { $ne: true }, // 🔥 শুধু সাব-বক্স বা সাধারণ বক্স আনবে
     }).sort({ receivedDate: -1 });
 
-    res.json(unassignedShipments);
+    // ৪. কেস-ইনসেনসিটিভ চেকিংয়ের জন্য জাভাস্ক্রিপ্ট দিয়ে ফিল্টার করা (সবচেয়ে সেফ পদ্ধতি)
+    const finalUnassigned = unassignedShipments.filter((shipment) => {
+      if (!shipment.shippingMark) return true; // মার্ক না থাকলে আনঅ্যাসাইনড
+      return !activeMarksArray.includes(shipment.shippingMark.toUpperCase());
+    });
+
+    res.json(finalUnassigned);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
 // ✅ Excel থেকে Bulk Branch আপলোড করার API
 router.post("/bulk-import", async (req, res) => {
   try {

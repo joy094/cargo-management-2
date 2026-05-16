@@ -26,15 +26,15 @@ export default function Dashboard() {
     }
   };
 
-// Dashboard.jsx এর ভেতরে ফাংশনটি এভাবে লিখুন
-const handleShowDueList = () => {
-  if (stats && stats.dueCustomers) {
-    setDueCustomers(stats.dueCustomers);
-    setShowDueList(true);
-  } else {
-    alert("বকেয়া তালিকা এখনো লোড হয়নি বা খালি।");
-  }
-};
+  // Dashboard.jsx এর ভেতরে ফাংশনটি এভাবে লিখুন
+  const handleShowDueList = () => {
+    if (stats && stats.dueCustomers) {
+      setDueCustomers(stats.dueCustomers);
+      setShowDueList(true);
+    } else {
+      alert("বকেয়া তালিকা এখনো লোড হয়নি বা খালি।");
+    }
+  };
 
   if (loading) {
     return <div className="loading-screen">ড্যাশবোর্ড লোড হচ্ছে...</div>;
@@ -143,17 +143,21 @@ const handleShowDueList = () => {
           <h4>📦 Total Shipments (Boxes)</h4>
           <h2>{stats?.totalBoxes?.toLocaleString() || 0} PCS</h2>
         </div>
+
+        {/* 🔥 নতুন যুক্ত করা হলো: Total Batches */}
+        <div className="stat-box">
+          <h4>🏭 Total Batches</h4>
+          <h2>{stats?.totalBatches?.toLocaleString() || 0} Batches</h2>
+        </div>
+
         <div className="stat-box">
           <h4>⚖️ Total Processed Weight</h4>
           <h2>{stats?.totalWeight?.toFixed(2) || 0} KG</h2>
         </div>
+
         <div className="stat-box">
-          <h4>🏢 Active Branches/Agencies</h4>
+          <h4>🏢 Active ustomers/Branches</h4>
           <h2>{stats?.totalBranches || 0}</h2>
-        </div>
-        <div className="stat-box">
-          <h4>🎁 Total Discount Given</h4>
-          <h2>৳ {stats?.totalDiscount?.toLocaleString() || 0}</h2>
         </div>
       </div>
 

@@ -70,6 +70,23 @@ const Header = () => {
 
   const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
+  // 🔥 গ্লোবালি স্ক্রল করে নাম্বার চেঞ্জ হওয়া বন্ধ করার ম্যাজিক কোড
+  useEffect(() => {
+    const disableNumberScroll = (event) => {
+      if (document.activeElement.type === "number") {
+        document.activeElement.blur(); // স্ক্রল করলেই ইনপুট থেকে ফোকাস সরিয়ে দেবে
+      }
+    };
+
+    // পুরো উইন্ডোতে স্ক্রল ইভেন্ট অ্যাড করা হলো
+    window.addEventListener("wheel", disableNumberScroll);
+
+    // ক্লিনআপ ফাংশন
+    return () => {
+      window.removeEventListener("wheel", disableNumberScroll);
+    };
+  }, []);
+
   return (
     <header className="main-header">
       <nav
