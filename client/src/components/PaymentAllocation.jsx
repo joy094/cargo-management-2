@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
 import CanAccess from "./CanAccess";
+
 export default function PaymentAllocation() {
   const [searchParams] = useSearchParams();
   const urlMark = searchParams.get("mark");
@@ -57,14 +58,21 @@ export default function PaymentAllocation() {
     setLoading(true);
     setActiveMark(mark);
     try {
-      const summaryRes = await axios.get(`/api/branches/summary/${mark}`);
+      // 🔥 encodeURIComponent যোগ করা হয়েছে যাতে / বা স্পেশাল ক্যারেক্টার সমস্যা না করে
+      const encodedMark = encodeURIComponent(mark);
+
+      const summaryRes = await axios.get(
+        `/api/branches/summary/${encodedMark}`,
+      );
       setTotalBilled(summaryRes.data.summary?.totalBilled || 0);
 
-      const paymentRes = await axios.get(`/api/payments/history/${mark}`);
+      const paymentRes = await axios.get(
+        `/api/payments/history/${encodedMark}`,
+      );
       if (paymentRes.data.success) setLedgerHistory(paymentRes.data.payments);
 
       const invoiceRes = await axios.get(
-        `/api/branches/invoice-history/${mark}`,
+        `/api/branches/invoice-history/${encodedMark}`,
       );
       if (invoiceRes.data.success) setCustomerInvoices(invoiceRes.data.history);
     } catch (error) {
@@ -86,7 +94,6 @@ export default function PaymentAllocation() {
 
     if (name === "type") {
       if (value === "DISCOUNT" || value === "ADJUSTMENT") {
-        // ইউনিক স্টেটমেন্ট আইডি জেনারেট (STMT-তারিখ-র্যান্ডম)
         const autoId = `STMT-${Date.now().toString().slice(-6)}`;
         setFormData({ ...formData, type: value, transactionId: autoId });
       } else {
@@ -111,7 +118,7 @@ export default function PaymentAllocation() {
   const handleDelete = async (id) => {
     if (
       !window.confirm(
-        "আপনি কি নিশ্চিত এটি ডিলিট করবেন? এটি ডিলিট করলে কাস্টমারের বকেয়া (Due) আবার বেড়ে যাবে।",
+        "আপনি কি নিশ্চিত এটি ডিলিট করবেন? এটি ডিলিট করলে কাস্টমারের বকেয়া (Due) আবার বেড়ে যাবে।",
       )
     )
       return;
@@ -119,11 +126,11 @@ export default function PaymentAllocation() {
     try {
       const res = await axios.delete(`/api/payments/delete/${id}`);
       if (res.data.success) {
-        alert("রেকর্ডটি ডিলিট করা হয়েছে এবং ব্যালেন্স অ্যাডজাস্ট হয়েছে।");
+        alert("রেকর্ডটি ডিলিট করা হয়েছে এবং ব্যালেন্স অ্যাডজাস্ট হয়েছে।");
         loadCustomerLedger(activeMark);
       }
     } catch (error) {
-      alert("ডিলিট করতে সমস্যা হয়েছে!");
+      alert("ডিলিট করতে সমস্যা হয়েছে!");
     }
   };
 
@@ -132,7 +139,6 @@ export default function PaymentAllocation() {
     const amountVal = parseFloat(formData.amount);
     if (!amountVal || amountVal <= 0) return alert("সঠিক টাকার পরিমাণ দিন!");
 
-    // ট্রানজেকশন আইডি ট্রিম করা
     const finalTxnId = formData.transactionId.trim();
 
     if (finalTxnId && checkDuplicate(finalTxnId)) {
@@ -147,7 +153,7 @@ export default function PaymentAllocation() {
       const payload = {
         ...formData,
         transactionId: finalTxnId,
-        shippingMark: activeMark,
+        shippingMark: activeMark, // 🔥 যে কাস্টমার সিলেক্টেড আছে তার নামেই যাবে
         amount: amountVal,
       };
 
@@ -189,7 +195,7 @@ export default function PaymentAllocation() {
     <div className="payment-allocation-container">
       <div className="header-section">
         <h2>💰 Payment Allocation & Ledger</h2>
-        <p>কাস্টমার সিলেক্ট করুন এবং তাদের বকেয়া বা ডিসকাউন্ট ম্যানেজ করুন</p>
+        <p>কাস্টমার সিলেক্ট করুন এবং তাদের বকেয়া বা ডিসকাউন্ট ম্যানেজ করুন</p>
       </div>
 
       <div className="search-card">
@@ -200,11 +206,24 @@ export default function PaymentAllocation() {
           className="smart-select"
         >
           <option value="">-- কাস্টমার সিলেক্ট করুন --</option>
-          {allBranches.map((branch) => (
-            <option key={branch._id} value={branch.shippingMark}>
-              {branch.shippingMark} - {branch.branchName}
-            </option>
-          ))}
+          {allBranches.map((branch) => {
+            // 🔥 একাধিক মার্ক (Array) থাকলে প্রথমটি নেবে, না থাকলে পুরোনো String টাই নেবে
+            const displayMark =
+              branch.shippingMarks && branch.shippingMarks.length > 0
+                ? branch.shippingMarks.join(", ")
+                : branch.shippingMark;
+
+            const valueMark =
+              branch.shippingMarks && branch.shippingMarks.length > 0
+                ? branch.shippingMarks[0]
+                : branch.shippingMark;
+
+            return (
+              <option key={branch._id} value={valueMark}>
+                {displayMark} - {branch.branchName}
+              </option>
+            );
+          })}
         </select>
       </div>
 
@@ -448,12 +467,10 @@ export default function PaymentAllocation() {
         .text-green { color: #10b981; }
         .no-data { text-align: center; color: #94a3b8; padding: 30px !important; }
 
-        /* ... আপনার আগের স্টাইলগুলো থাকবে ... */
         .auto-id-input { background-color: #f0f9ff; border-color: #0ea5e9 !important; font-weight: bold; color: #0369a1; }
         .delete-row-btn { background: none; border: none; cursor: pointer; font-size: 18px; transition: 0.2s; padding: 5px; }
         .delete-row-btn:hover { background: #fee2e2; border-radius: 4px; transform: scale(1.1); }
         .text-center { text-align: center; }
-        /* বাকি স্টাইল আপনার আগের মতোই */
       `}</style>
     </div>
   );
