@@ -734,6 +734,38 @@
   margin-left: auto; /* টেবিলটাকে একদম ডান দিকে চাপিয়ে রাখবে */
 }
 
+/* গুগল ফন্ট ইমপোর্ট */
+@import url("https://fonts.googleapis.com/css2?family=Tiro+Bangla&display=swap");
+
+/* Warning Note Design */
+.invoice-warning-note {
+  font-family: "Tiro Bangla", serif;
+  background-color: #fef2f2;
+  color: #991b1b;
+  padding: 10px 15px;
+  border-left: 4px solid #dc2626;
+  border-radius: 6px;
+  margin-top: 15px;
+  margin-bottom: 15px;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.warning-icon {
+  font-size: 18px;
+}
+
+/* প্রিন্ট করার সময় যেন ব্যাকগ্রাউন্ড কালার ঠিকমতো আসে */
+@media print {
+  .invoice-warning-note {
+    background-color: #fef2f2 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
 /* প্রিন্টের সময় লেআউট যাতে ঠিক থাকে */
 @media print {
   .pro-invoice-meta {

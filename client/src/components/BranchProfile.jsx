@@ -1207,6 +1207,13 @@ export default function BranchProfile() {
                 <div className="sig-line">Customer Signature</div>
                 <div className="sig-line">Authorised Signature</div>
               </div> */}
+              {/* ⚠️ Warning Note with Tiro Bangla Font */}
+              <div className="invoice-warning-note">
+                <span className="warning-icon">⚠️</span>
+                <span>
+                  <strong>সতর্কতা:</strong> বাংলাদেশের ওয়ারহাউজে পণ্য আসার ৭ দিন পর কোনো প্রকার ক্ষয়ক্ষতি বা নিরাপত্তার দায় কর্তৃপক্ষ বহন করবে না। 
+                </span>
+              </div>
 
               <div className="pro-footer-note">
                 Thank you for your business! Goods once sold will not be taken
