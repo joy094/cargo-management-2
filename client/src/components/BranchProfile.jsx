@@ -607,7 +607,9 @@ export default function BranchProfile() {
                   </th>
                   <th>SL</th>
                   <th>Product Name</th>
-                  <th>Tracking/Carton</th>
+                  <th>Tracking(CN)</th>
+                  <th>Shiping Mark</th>
+                  <th>Carton No</th>
                   <th>Weight</th>
                   {/* 🔥 নতুন স্ট্যাটাস কলাম */}
                   <th>Status</th>
@@ -674,6 +676,10 @@ export default function BranchProfile() {
                         <td>
                           <small>{item.chinaTrackingNo}</small>
                         </td>
+
+                        <td>{item.shippingMark} </td>
+                        <td>{item.cartonNo} </td>
+
                         <td>{item.calcWeight.toFixed(2)} KG</td>
 
                         {/* স্ট্যাটাস ব্যাজ */}
@@ -1211,7 +1217,9 @@ export default function BranchProfile() {
               <div className="invoice-warning-note">
                 <span className="warning-icon">⚠️</span>
                 <span>
-                  <strong>সতর্কতা:</strong> বাংলাদেশের ওয়ারহাউজে পণ্য আসার ৭ দিন পর কোনো প্রকার ক্ষয়ক্ষতি বা নিরাপত্তার দায় কর্তৃপক্ষ বহন করবে না। 
+                  <strong>সতর্কতা:</strong> বাংলাদেশের ওয়ারহাউজে পণ্য আসার ৭ দিন
+                  পর কোনো প্রকার ক্ষয়ক্ষতি বা নিরাপত্তার দায় কর্তৃপক্ষ বহন করবে
+                  না।
                 </span>
               </div>
 
