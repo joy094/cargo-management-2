@@ -4,13 +4,17 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import CanAccess from "./CanAccess";
-import * as XLSX from "xlsx"; // 🔥 এক্সেল রিড করার জন্য
+import * as XLSX from "xlsx";
 
 export default function AddBranch() {
   const [branches, setBranches] = useState([]);
+  // 🔥 নতুন স্টেট: ব্যাচ লিস্ট এবং সিলেক্ট করা ব্যাচের জন্য
+  const [batches, setBatches] = useState([]);
+  const [selectedBatch, setSelectedBatch] = useState("");
+
   const [formData, setFormData] = useState({
     branchName: "",
-    shippingMark: "", // কমা দিয়ে লেখা হবে
+    shippingMark: "",
     phone: "",
     address: "",
   });
@@ -29,17 +33,41 @@ export default function AddBranch() {
 
   useEffect(() => {
     fetchBranches();
+    fetchBatches(); // 🔥 পেজ লোড হলে ব্যাচগুলোও নিয়ে আসবে
   }, []);
 
-  const fetchBranches = async () => {
+  // 🔥 ব্যাচ লিস্ট আনার ফাংশন
+  const fetchBatches = async () => {
     try {
-      const res = await axios.get("/api/branches");
+      const res = await axios.get("/api/batches");
+      if (res.data.success) {
+        setBatches(res.data.batches || res.data.data); // আপনার API এর রেসপন্স অনুযায়ী
+      } else if (Array.isArray(res.data)) {
+        setBatches(res.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch batches", error);
+    }
+  };
+
+  // 🔥 ব্যাচ অনুযায়ী ফিল্টার করে ব্রাঞ্চ আনার লজিক যুক্ত করা হলো
+  const fetchBranches = async (batchId = "") => {
+    try {
+      const url = batchId ? `/api/branches?batch=${batchId}` : "/api/branches";
+      const res = await axios.get(url);
       if (res.data.success) {
         setBranches(res.data.branches);
       }
     } catch (error) {
       console.error("Failed to fetch branches", error);
     }
+  };
+
+  // ব্যাচ সিলেক্ট করলে ফায়ার হবে
+  const handleBatchChange = (e) => {
+    const batchId = e.target.value;
+    setSelectedBatch(batchId);
+    fetchBranches(batchId); // নতুন ব্যাচ অনুযায়ী ডাটা আনবে
   };
 
   const handleInputChange = (e) => {
@@ -52,7 +80,6 @@ export default function AddBranch() {
       return alert("Branch Name এবং Shipping Mark অবশ্যই দিতে হবে!");
     }
 
-    // 🔥 কমা দিয়ে ভাগ করে Array তৈরি করা
     const marksArray = formData.shippingMark
       .split(",")
       .map((mark) => mark.trim().toUpperCase())
@@ -66,7 +93,7 @@ export default function AddBranch() {
     try {
       const payload = {
         branchName: formData.branchName,
-        shippingMarks: marksArray, // Array পাঠানো হচ্ছে
+        shippingMarks: marksArray,
         phone: formData.phone || null,
         address: formData.address,
       };
@@ -80,7 +107,7 @@ export default function AddBranch() {
       }
 
       resetForm();
-      fetchBranches();
+      fetchBranches(selectedBatch); // সেভ করার পর ফিল্টার ঠিক রাখবে
     } catch (error) {
       console.error(error);
       alert(
@@ -94,7 +121,6 @@ export default function AddBranch() {
   };
 
   const handleEditClick = (branch) => {
-    // 🔥 পুরানো (String) এবং নতুন (Array) দুই ধরনের ডেটাই হ্যান্ডেল করা হলো
     let marksToEdit = "";
     if (branch.shippingMarks && branch.shippingMarks.length > 0) {
       marksToEdit = branch.shippingMarks.join(", ");
@@ -124,7 +150,7 @@ export default function AddBranch() {
       return;
     try {
       await axios.delete(`/api/branches/${id}`);
-      fetchBranches();
+      fetchBranches(selectedBatch); // ডিলিটের পর ফিল্টার ঠিক রাখবে
     } catch (error) {
       alert("ডিলিট করতে সমস্যা হয়েছে!");
     }
@@ -198,7 +224,7 @@ export default function AddBranch() {
       alert(res.data.message || "সফলভাবে আপলোড হয়েছে!");
       setIsExcelModalOpen(false);
       setExcelData([]);
-      fetchBranches();
+      fetchBranches(selectedBatch);
     } catch (error) {
       alert(error.response?.data?.error || "আপলোড করতে সমস্যা হয়েছে!");
     } finally {
@@ -272,7 +298,7 @@ export default function AddBranch() {
                 style={{ textTransform: "uppercase" }}
               />
               <small style={{ color: "#64748b", fontSize: "11px" }}>
-                একাধিক মার্ক থাকলে কমা (,) দিয়ে লিখুন।
+                একাধিক মার্ক থাকলে কমা (,) দিয়ে লিখুন।
               </small>
             </div>
             <div className="form-group">
@@ -325,9 +351,52 @@ export default function AddBranch() {
 
         {/* Right Side: List */}
         <div className="list-card">
-          <div className="list-header">
+          <div
+            className="list-header"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <h3>Registered Branches ({branches.length})</h3>
+
+            {/* 🔥 নতুন Batch Filter Dropdown */}
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <span
+                style={{
+                  fontSize: "13px",
+                  fontWeight: "bold",
+                  color: "#475569",
+                }}
+              >
+                Filter:
+              </span>
+              <select
+                value={selectedBatch}
+                onChange={handleBatchChange}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: "6px",
+                  border: "1px solid #cbd5e1",
+                  outline: "none",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  color: "#0f172a",
+                }}
+              >
+                <option value="">🌍 All Batches</option>
+                {batches &&
+                  batches.length > 0 &&
+                  batches.map((b) => (
+                    <option key={b._id} value={b._id}>
+                      {b.batchName || b.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
           </div>
+
           <div className="table-responsive">
             <table className="branch-table">
               <thead>
@@ -358,7 +427,6 @@ export default function AddBranch() {
                             gap: "5px",
                           }}
                         >
-                          {/* 🔥 পুরানো এবং নতুন দুই ফরম্যাটের ব্যাজ সাপোর্ট */}
                           {branch.shippingMarks &&
                           branch.shippingMarks.length > 0 ? (
                             branch.shippingMarks.map((mark, i) => (
@@ -376,6 +444,7 @@ export default function AddBranch() {
                       <td className="action-btns">
                         <button
                           className="action-btn profile-btn"
+                          title="Open Profile in New Tab"
                           onClick={() => {
                             const markToPass =
                               branch.shippingMarks &&
@@ -383,10 +452,9 @@ export default function AddBranch() {
                                 ? branch.shippingMarks[0]
                                 : branch.shippingMark;
 
-                            // 🔥 এখানে encodeURIComponent যুক্ত করা হয়েছে
-                            navigate(
-                              `/branch-profile?mark=${encodeURIComponent(markToPass)}`,
-                            );
+                            // 🔥 নতুন ট্যাবে প্রোফাইল খোলার কোড (window.open)
+                            const url = `/branch-profile?mark=${encodeURIComponent(markToPass)}`;
+                            window.open(url, "_blank", "noopener,noreferrer");
                           }}
                         >
                           👤
@@ -415,7 +483,7 @@ export default function AddBranch() {
                 ) : (
                   <tr>
                     <td colSpan="4" className="no-data">
-                      কোনো ব্রাঞ্চ এখনো যুক্ত করা হয়নি।
+                      কোনো ব্রাঞ্চ পাওয়া যায়নি।
                     </td>
                   </tr>
                 )}

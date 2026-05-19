@@ -3,7 +3,6 @@
 import mongoose from "mongoose";
 const { Schema, model } = mongoose;
 
-
 const branchSchema = new Schema(
   {
     branchName: {
@@ -29,7 +28,7 @@ const branchSchema = new Schema(
       type: String,
       trim: true,
       default: null, // 🔥 ২. "" এর বদলে null দেওয়া হলো
-      sparse: true,  // 🔥 ৩. sparse দিলে যাদের ফোন নাম্বার নেই, তাদের duplicate error আসবে না
+      sparse: true, // 🔥 ৩. sparse দিলে যাদের ফোন নাম্বার নেই, তাদের duplicate error আসবে না
     },
     address: {
       type: String,
@@ -39,7 +38,7 @@ const branchSchema = new Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // 🔥 ৪. এই ইনডেক্সটি নিশ্চিত করবে যে একটি শিপিং মার্ক অন্য কোনো ব্রাঞ্চ ব্যবহার করতে পারবে না
@@ -115,6 +114,7 @@ const shipmentSchema = new mongoose.Schema(
     perKgRate: { type: Number, default: 0 },
     totalBill: { type: Number, default: 0 },
     discount: { type: Number, default: 0 },
+    transportBill: { type: Number, default: 0 }, // 🔥 নতুন এই লাইনটি যুক্ত করুন
     billingDate: { type: Date },
     invoiceId: { type: String },
   },

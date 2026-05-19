@@ -26,13 +26,14 @@ router.get("/pending/:shippingMark", async (req, res) => {
   }
 });
 
-// ✅ ২. আইটেম অনুযায়ী বিল ইনপুট (রেট ও টোটাল সেভ করা)
+// ✅ ২. আইটেম অনুযায়ী বিল ইনপুট (রেট, টোটাল, ট্রান্সপোর্ট ও ডিসকাউন্ট সেভ করা)
 router.post("/generate-invoice", async (req, res) => {
   try {
-    const { items, invoiceTotal, discount } = req.body;
+    // 🔥 req.body থেকে transportBill এবং discount রিসিভ করা হলো
+    const { items, invoiceTotal, discount, transportBill } = req.body;
     const invoiceId = `INV-${Date.now()}`;
 
-    // ফ্রন্টএন্ড থেকে আসা আইটেমগুলোর রেট আপডেট করা
+    // ফ্রন্টএন্ড থেকে আসা আইটেমগুলোর রেট ও ইনভয়েস লেভেলের ডাটা আপডেট করা
     const updatePromises = items.map((item) => {
       return Shipment.findByIdAndUpdate(item.id, {
         perKgRate: item.rate,
@@ -40,6 +41,8 @@ router.post("/generate-invoice", async (req, res) => {
         isBilled: true,
         billingDate: new Date(),
         invoiceId: invoiceId,
+        discount: discount || 0, // 🔥 ইনভয়েসের মোট ডিসকাউন্ট আইটেমে সেভ হচ্ছে
+        transportBill: transportBill || 0, // 🔥 ট্রান্সপোর্ট বিল আইটেমে সেভ হচ্ছে
       });
     });
 
@@ -152,7 +155,7 @@ router.get("/summary/:shippingMark", async (req, res) => {
 // ==========================================
 
 // ✅ ১. নতুন ব্রাঞ্চ যুক্ত করা (Create Branch)
-// ✅ ১. নতুন ব্রাঞ্চ যুক্ত করা (Create Branch)
+
 router.post("/", async (req, res) => {
   try {
     // 🔥 ফ্রন্টএন্ড থেকে আসা shippingMarks (Array) রিসিভ করা হলো
@@ -242,16 +245,46 @@ router.put("/:id", async (req, res) => {
 });
 
 // ✅ ৩. সব ব্রাঞ্চ ফেচ করা (Get All Branches)
+// ✅ সব ব্রাঞ্চ দেখা (Batch Filter সহ)
 router.get("/", async (req, res) => {
   try {
-    const branches = await Branch.find().sort({ createdAt: -1 });
-    res.status(200).json({ success: true, branches });
+    const { batch } = req.query; // ফ্রন্টএন্ড থেকে আসা ব্যাচ আইডি
+    let filter = {};
+
+    if (batch) {
+      // ১. ওই নির্দিষ্ট ব্যাচের সব শিপমেন্ট খোঁজা
+      const shipments = await Shipment.find({ batch: batch }, "shippingMark");
+
+      // ২. ওই ব্যাচের মধ্যে থাকা সব ইউনিক শিপিং মার্ক বের করা
+      const marksInBatch = [
+        ...new Set(
+          shipments.map((s) => s.shippingMark?.toUpperCase()).filter(Boolean),
+        ),
+      ];
+
+      if (marksInBatch.length > 0) {
+        // ৩. রেগুলার এক্সপ্রেশন দিয়ে কেস-ইনসেনসিটিভ ম্যাচ করানো (যেমন: J-SKL)
+        const regexMarks = marksInBatch.map(
+          (m) =>
+            new RegExp(`^${m.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+        );
+        filter = {
+          $or: [
+            { shippingMark: { $in: regexMarks } },
+            { shippingMarks: { $in: regexMarks } },
+          ],
+        };
+      } else {
+        // ওই ব্যাচে কোনো শিপমেন্ট না থাকলে ফাঁকা লিস্ট পাঠাবে
+        return res.json({ success: true, branches: [] });
+      }
+    }
+
+    const branches = await Branch.find(filter).sort({ createdAt: -1 });
+    res.json({ success: true, branches });
   } catch (error) {
-    console.error("Fetch Branches Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "ব্রাঞ্চ লিস্ট লোড করতে সমস্যা হয়েছে!",
-    });
+    console.error("Branch Fetch Error:", error);
+    res.status(500).json({ success: false, message: "সার্ভার এরর!" });
   }
 });
 
@@ -328,6 +361,8 @@ router.get("/invoice-history/:shippingMark", async (req, res) => {
         $group: {
           _id: "$invoiceId",
           date: { $first: "$billingDate" },
+          transportBill: { $first: { $ifNull: ["$transportBill", 0] } }, // 🔥 ডাটাবেস থেকে ট্রান্সপোর্ট বিল রিড করা হলো
+          discount: { $first: { $ifNull: ["$discount", 0] } }, // 🔥 ডাটাবেস থেকে ডিসকাউন্ট রিড করা হলো
           totalAmount: { $sum: "$totalBill" },
           totalWeight: { $sum: { $toDouble: "$grossWeight" } },
           items: {
@@ -340,6 +375,7 @@ router.get("/invoice-history/:shippingMark", async (req, res) => {
           },
         },
       },
+      { $sort: { date: -1 } },
       { $sort: { date: -1 } },
     ]);
 

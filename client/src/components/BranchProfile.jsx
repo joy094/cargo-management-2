@@ -31,14 +31,15 @@ export default function BranchProfile() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [globalRate, setGlobalRate] = useState("");
   const [discount, setDiscount] = useState(0);
-  const [transportCost, setTransportCost] = useState(0); // 🔥 নতুন স্টেট
+  const [transportCost, setTransportCost] = useState(0);
+
   // Modal States
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [invoiceData, setInvoiceData] = useState(null);
 
   const [showDirectEntry, setShowDirectEntry] = useState(false);
-  // Edit Shipment Modal States
 
+  // Edit Shipment Modal States
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingShipment, setEditingShipment] = useState(null);
 
@@ -52,7 +53,6 @@ export default function BranchProfile() {
   const fetchBranchData = async (mark) => {
     setLoading(true);
     try {
-      // 🔥 এখানে encodeURIComponent যুক্ত করা হয়েছে
       const summaryRes = await axios.get(
         `/api/branches/summary/${encodeURIComponent(mark)}`,
       );
@@ -62,8 +62,7 @@ export default function BranchProfile() {
 
       setSummary(summaryRes.data.summary);
 
-      // 🔥 স্মার্ট ফিল্টার: শুধু দেশে পৌঁছানো মালগুলো ফিল্টার করা হচ্ছে
-      // "Warehouse Received" এবং "In-Transit" বাদে বাকি সব (Arrived থেকে Delivered পর্যন্ত) দেখাবে
+      // স্মার্ট ফিল্টার: শুধু দেশে পৌঁছানো মালগুলো ফিল্টার করা হচ্ছে
       const arrivedItems = itemsRes.data.items.filter(
         (item) =>
           item.status !== "Warehouse Received" &&
@@ -93,7 +92,6 @@ export default function BranchProfile() {
 
   const fetchInvoiceHistory = async () => {
     try {
-      // 🔥 এখানে encodeURIComponent যুক্ত করা হয়েছে
       const res = await axios.get(
         `/api/branches/invoice-history/${encodeURIComponent(activeMark)}`,
       );
@@ -105,7 +103,6 @@ export default function BranchProfile() {
     }
   };
 
-  // 🔥 ম্যানুয়াল শিপমেন্ট এডিট করার ফাংশন
   const handleEditManualShipment = (shipment) => {
     setEditingShipment(shipment);
     setShowEditModal(true);
@@ -120,12 +117,13 @@ export default function BranchProfile() {
       try {
         await axios.delete(`/api/shipments/${id}`);
         alert("সফলভাবে ডিলিট হয়েছে!");
-        fetchBranchData(activeMark); // ডাটা রিফ্রেশ
+        fetchBranchData(activeMark);
       } catch (err) {
         alert("ডিলিট করতে সমস্যা হয়েছে!");
       }
     }
   };
+
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     if (tab === "history") {
@@ -135,7 +133,6 @@ export default function BranchProfile() {
     }
   };
 
-  // ✅ ডাইনামিকভাবে ব্যাচের আসল নাম বের করা
   const uniqueBatches = useMemo(() => {
     const batches = allItems.map((item) => {
       if (item.batchId && item.batchId.batchName) return item.batchId.batchName;
@@ -145,7 +142,6 @@ export default function BranchProfile() {
     return [...new Set(batches)].filter(Boolean);
   }, [allItems]);
 
-  // ✅ ফিল্টার লজিক
   const filteredItems = useMemo(() => {
     return allItems.filter((item) => {
       let itemBatch = "";
@@ -165,7 +161,6 @@ export default function BranchProfile() {
     });
   }, [searchTerm, selectedBatch, allItems]);
 
-  // ✅ ইনভয়েস হিস্ট্রি ফিল্টার করা
   const filteredHistory = useMemo(() => {
     return invoiceHistory.filter((inv) => {
       let batchMatch = true;
@@ -235,7 +230,7 @@ export default function BranchProfile() {
     updatedItems[idx].total = updatedItems[idx].calcWeight * rateVal;
     setAllItems(updatedItems);
   };
-  // 🔥 রিভার্ট ফাংশন: বিল করা আইটেমকে আবার আনবিল্ড করা
+
   const handleRevertItem = async (itemId) => {
     if (
       !window.confirm(
@@ -253,7 +248,7 @@ export default function BranchProfile() {
       alert("রিভার্ট করতে সমস্যা হয়েছে!");
     }
   };
-  // 🔥 বিল করা আইটেমের রেট এডিট করার ফাংশন
+
   const handleEditBilledItem = async (item) => {
     const newRate = prompt(
       "এই আইটেমের জন্য নতুন রেট দিন (৳):",
@@ -281,7 +276,7 @@ export default function BranchProfile() {
       alert("আপডেট করতে সমস্যা হয়েছে!");
     }
   };
-  // 🔥 পূর্বের বকেয়া এন্ট্রি করার ফাংশন
+
   const handleOpeningBalance = async (amount, note) => {
     try {
       const res = await axios.post("/api/branches/manual-due", {
@@ -291,11 +286,11 @@ export default function BranchProfile() {
       });
 
       if (res.data.success) {
-        alert("বকেয়া সফলভাবে যুক্ত হয়েছে!");
-        fetchBranchData(activeMark); // ডাটা রিফ্রেশ করবে
+        alert("বকেয়া সফলভাবে যুক্ত হয়েছে!");
+        fetchBranchData(activeMark);
       }
     } catch (err) {
-      alert("এন্ট্রি দিতে সমস্যা হয়েছে!");
+      alert("এন্ট্রি দিতে সমস্যা হয়েছে!");
     }
   };
 
@@ -309,8 +304,8 @@ export default function BranchProfile() {
 
     setSubmitting(true);
     try {
-      const tCost = parseFloat(transportCost) || 0; // ট্রান্সপোর্ট খরচ
-      const dCost = parseFloat(discount) || 0; // ডিসকাউন্ট
+      const tCost = parseFloat(transportCost) || 0;
+      const dCost = parseFloat(discount) || 0;
 
       const payload = {
         shippingMark: activeMark,
@@ -319,9 +314,9 @@ export default function BranchProfile() {
           rate: item.rate,
           total: item.total,
         })),
-        transportCost: tCost, // 🔥 ব্যাকএন্ডে পাঠাচ্ছি
+        transportBill: tCost, // 🔥 ফিক্সড: ব্যাকএন্ডের expected নাম transportBill এ রিনেম করা হয়েছে
         discount: dCost,
-        invoiceTotal: totalBillAmount - dCost + tCost, // 🔥 নতুন টোটাল
+        invoiceTotal: totalBillAmount - dCost + tCost,
       };
 
       const res = await axios.post("/api/branches/generate-invoice", payload);
@@ -329,7 +324,6 @@ export default function BranchProfile() {
         setInvoiceData({
           invoiceId: res.data.invoiceId,
           date: new Date().toLocaleDateString("en-GB"),
-          // 🔥 ইনভয়েসে সবগুলো মার্ক কমা দিয়ে দেখাবে
           customerMark:
             summary?.shippingMarks && summary.shippingMarks.length > 0
               ? summary.shippingMarks.join(", ")
@@ -346,7 +340,7 @@ export default function BranchProfile() {
         setIsInvoiceModalOpen(true);
         fetchBranchData(activeMark);
         setDiscount(0);
-        setTransportCost(0); // সাবমিট শেষে জিরো করে দিলাম
+        setTransportCost(0);
       }
     } catch (error) {
       alert("ইনভয়েস তৈরিতে সমস্যা হয়েছে!");
@@ -374,7 +368,6 @@ export default function BranchProfile() {
   const lifetimeDiscount = summary?.totalDiscount || 0;
   const currentDue = summary?.currentDue || 0;
 
-  // টাকাকে কথায় (Words) রূপান্তর করার ফাংশন
   const numberToWords = (num) => {
     if (num === 0) return "Zero Taka Only";
     const a = [
@@ -457,7 +450,6 @@ export default function BranchProfile() {
           }}
         >
           Customer Profile:
-          {/* 🔥 একাধিক মার্ক থাকলে সবগুলো ব্যাজ হিসেবে দেখাবে */}
           {summary?.shippingMarks && summary.shippingMarks.length > 0 ? (
             summary.shippingMarks.map((m, i) => (
               <span key={i} className="mark-tag">
@@ -492,7 +484,6 @@ export default function BranchProfile() {
           className="action-bar"
           style={{ display: "flex", gap: "10px", margin: "20px 0" }}
         >
-          {/* শুধুমাত্র shipment তৈরি করার ক্ষমতা থাকলে এই বাটন দেখবে */}
           <CanAccess module="branch" action="create">
             <button
               className="direct-entry-btn"
@@ -512,7 +503,6 @@ export default function BranchProfile() {
         </div>
       </div>
 
-      {/* ডাইরেক্ট এন্ট্রি টেবিল */}
       {showDirectEntry && (
         <div
           className="direct-entry-wrapper"
@@ -525,10 +515,10 @@ export default function BranchProfile() {
           }}
         >
           <DirectBulkEntry
-            fixedShippingMark={activeMark} // ব্রাঞ্চের শিপিং মার্ক পাস করে দিচ্ছি
+            fixedShippingMark={activeMark}
             onSuccess={() => {
-              fetchBranchData(activeMark); // সেভ হওয়ার পর প্রোফাইল রিফ্রেশ হবে
-              setShowDirectEntry(false); // টেবিল বন্ধ হয়ে যাবে
+              fetchBranchData(activeMark);
+              setShowDirectEntry(false);
             }}
             onClose={() => setShowDirectEntry(false)}
           />
@@ -611,7 +601,6 @@ export default function BranchProfile() {
                   <th>Shiping Mark</th>
                   <th>Carton No</th>
                   <th>Weight</th>
-                  {/* 🔥 নতুন স্ট্যাটাস কলাম */}
                   <th>Status</th>
                   <th>Rate (৳)</th>
                   <th>Total (৳)</th>
@@ -622,7 +611,7 @@ export default function BranchProfile() {
                 {filteredItems.length > 0 ? (
                   filteredItems.map((item, idx) => {
                     const isCompleted = item.isBilled;
-                    const isManual = !item.batch && !item.batchId; // 🔥 ব্যাচ না থাকলে এটি ম্যানুয়াল
+                    const isManual = !item.batch && !item.batchId;
 
                     return (
                       <tr
@@ -656,14 +645,11 @@ export default function BranchProfile() {
                               📦 {item.batchName}
                             </div>
                           )}
-
-                          {/* 🔥 ম্যানুয়াল ব্যাজ */}
                           {isManual && (
                             <div style={{ marginTop: "4px" }}>
                               <span className="badge-manual">MANUAL</span>
                             </div>
                           )}
-
                           {isCompleted && (
                             <span
                               className="status-badge"
@@ -676,13 +662,9 @@ export default function BranchProfile() {
                         <td>
                           <small>{item.chinaTrackingNo}</small>
                         </td>
-
                         <td>{item.shippingMark} </td>
                         <td>{item.cartonNo} </td>
-
                         <td>{item.calcWeight.toFixed(2)} KG</td>
-
-                        {/* স্ট্যাটাস ব্যাজ */}
                         <td>
                           <span
                             style={{
@@ -704,7 +686,6 @@ export default function BranchProfile() {
                             {item.status || "Arrived"}
                           </span>
                         </td>
-
                         <td>
                           {isCompleted ? (
                             <span className="locked-val">
@@ -721,16 +702,13 @@ export default function BranchProfile() {
                             />
                           )}
                         </td>
-
                         <td className="row-total">
                           ৳{" "}
                           {isCompleted
                             ? item.totalBill?.toLocaleString() || 0
                             : item.total.toLocaleString()}
                         </td>
-
                         <td>
-                          {/* 🔥 অ্যাকশন বাটন লজিক */}
                           {isCompleted ? (
                             <div className="action-group">
                               <CanAccess module="branch" action="edit">
@@ -741,7 +719,6 @@ export default function BranchProfile() {
                                   ✏️ Edit
                                 </button>
                               </CanAccess>
-
                               <CanAccess module="billing" action="revert">
                                 <button
                                   className="undo-mini-btn"
@@ -752,7 +729,6 @@ export default function BranchProfile() {
                               </CanAccess>
                             </div>
                           ) : isManual ? (
-                            // /* 🔥 ম্যানুয়াল এন্ট্রি হলে স্পেশাল এডিট/ডিলিট বাটন দেখাবে */ shipment module
                             <div className="manual-actions">
                               <CanAccess module="shipment" action="edit">
                                 <button
@@ -763,7 +739,6 @@ export default function BranchProfile() {
                                   ✏️
                                 </button>
                               </CanAccess>
-
                               <CanAccess module="shipment" action="delete">
                                 <button
                                   className="btn-mini-delete"
@@ -777,7 +752,6 @@ export default function BranchProfile() {
                               </CanAccess>
                             </div>
                           ) : (
-                            /* সাধারণ ব্যাচ আইটেমের ক্ষেত্রে */
                             <span
                               style={{ fontSize: "12px", color: "#64748b" }}
                             >
@@ -790,7 +764,7 @@ export default function BranchProfile() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan="9" className="no-data">
+                    <td colSpan="11" className="no-data">
                       কোনো আইটেম নেই
                     </td>
                   </tr>
@@ -809,7 +783,6 @@ export default function BranchProfile() {
                 <span>Unbilled Sub-Total:</span>
                 <strong>৳ {totalBillAmount.toLocaleString()}</strong>
               </div>
-              {/* 🔥 নতুন ট্রান্সপোর্ট খরচ ইনপুট */}
               <div className="f-row">
                 <span>Transport/Other Cost:</span>
                 <input
@@ -825,6 +798,7 @@ export default function BranchProfile() {
                   type="number"
                   value={discount}
                   onChange={(e) => setDiscount(e.target.value)}
+                  placeholder="0"
                 />
               </div>
               <div className="f-row grand">
@@ -914,6 +888,12 @@ export default function BranchProfile() {
                         <button
                           className="view-btn"
                           onClick={() => {
+                            const subTotal = inv.totalAmount;
+                            const discountAmt = inv.discount || 0;
+                            const transportAmt = inv.transportBill || 0;
+                            const finalTotal =
+                              subTotal + transportAmt - discountAmt;
+
                             setInvoiceData({
                               invoiceId: inv._id,
                               date: new Date(inv.date).toLocaleDateString(
@@ -930,10 +910,10 @@ export default function BranchProfile() {
                                 total: it.totalBill,
                               })),
                               totalWeight: inv.totalWeight,
-                              subTotal: inv.totalAmount, // ব্যাকএন্ডে ডিসকাউন্ট/ট্রান্সপোর্ট সেভ থাকলে সেটা আসবে
-                              discount: inv.discount || 0,
-                              transportCost: inv.transportCost || 0,
-                              netPayable: inv.totalAmount,
+                              subTotal: subTotal,
+                              discount: discountAmt,
+                              transportCost: transportAmt,
+                              netPayable: finalTotal,
                             });
                             setIsInvoiceModalOpen(true);
                           }}
@@ -961,22 +941,17 @@ export default function BranchProfile() {
         <div className="modal-overlay">
           <div className="modal-content pro-modal-width">
             <div id="print-area" className="pro-invoice-wrapper">
-              {/* 🌟 Header Section with Gradient & Logo Placeholder */}
-              {/* 🌟 Header Section with Gradient & Logo Image */}
               <div className="pro-inv-header">
                 <div className="pro-logo-container">
-                  {/* আপনার লোগো ফাইলটি public ফোল্ডারে রেখে এখানে ফাইলের নাম দিন */}
                   <img
                     src="/SABA_&_RIHAN_LOGO.jpeg"
                     alt="Company Logo"
                     className="pro-main-logo"
                     onError={(e) => {
-                      // যদি ছবি খুঁজে না পায় তবে যেন ভেঙে না যায়
                       e.target.style.display = "none";
                       e.target.nextSibling.style.display = "flex";
                     }}
                   />
-                  {/* ছবি লোড না হলে নিচের বক্সটি দেখাবে */}
                   <div
                     className="pro-logo-placeholder"
                     style={{ display: "none" }}
@@ -1002,10 +977,7 @@ export default function BranchProfile() {
                 <h2>COMMERCIAL INVOICE</h2>
               </div>
 
-              {/* 👤 Customer & Invoice Meta Info */}
-              {/* 🔥 Billed To এবং Date/Invoice No সেকশন */}
               <div className="pro-invoice-meta">
-                {/* বাম পাশ: কাস্টমার ইনফো */}
                 <div className="pro-bill-to">
                   <h4 className="info-title">BILLED TO:</h4>
                   <table className="info-table">
@@ -1059,7 +1031,6 @@ export default function BranchProfile() {
                   </table>
                 </div>
 
-                {/* ডান পাশ: ইনভয়েস ইনফো (Date & Invoice No) */}
                 <div className="pro-date-info">
                   <table className="info-table">
                     <tbody>
@@ -1087,7 +1058,7 @@ export default function BranchProfile() {
                   </table>
                 </div>
               </div>
-              {/* 📦 Invoice Items Table */}
+
               <table className="pro-item-table">
                 <thead>
                   <tr>
@@ -1127,14 +1098,12 @@ export default function BranchProfile() {
                 </tbody>
               </table>
 
-              {/* 💰 Calculations & Amount in Words */}
               <div className="pro-calc-section">
                 <div className="amount-in-words">
                   <p>
                     <strong>Amount in Words:</strong>
                   </p>
                   <p className="words-text">
-                    {/* 🔥 এখন শুধু netPayable কে কথায় কনভার্ট করবে */}
                     {typeof numberToWords === "function"
                       ? numberToWords(invoiceData.netPayable || 0)
                       : "Total amount in words will appear here."}
@@ -1147,7 +1116,7 @@ export default function BranchProfile() {
                       <tr>
                         <td>Subtotal</td>
                         <td className="right">
-                          ৳ {invoiceData.subTotal.toLocaleString()}
+                          ৳ {invoiceData.subTotal?.toLocaleString()}
                         </td>
                       </tr>
 
@@ -1155,7 +1124,7 @@ export default function BranchProfile() {
                         <tr className="text-red">
                           <td>Discount</td>
                           <td className="right">
-                            - ৳ {invoiceData.discount.toLocaleString()}
+                            - ৳ {invoiceData.discount?.toLocaleString()}
                           </td>
                         </tr>
                       )}
@@ -1170,8 +1139,6 @@ export default function BranchProfile() {
                         </tr>
                       )}
 
-                      {/* 🔥 Previous Due এর রো পুরোপুরি বাদ দেওয়া হয়েছে */}
-
                       <tr className="grand-total-row">
                         <td>Grand Total</td>
                         <td className="right">
@@ -1183,7 +1150,6 @@ export default function BranchProfile() {
                 </div>
               </div>
 
-              {/* 🏦 Bank & Payment Information */}
               <div className="pro-bank-info">
                 <h4>Payment Information</h4>
                 <div className="bank-grid">
@@ -1208,18 +1174,12 @@ export default function BranchProfile() {
                 </div>
               </div>
 
-              {/* ✍️ Signatures */}
-              {/* <div className="pro-signatures">
-                <div className="sig-line">Customer Signature</div>
-                <div className="sig-line">Authorised Signature</div>
-              </div> */}
-              {/* ⚠️ Warning Note with Tiro Bangla Font */}
               <div className="invoice-warning-note">
                 <span className="warning-icon">⚠️</span>
                 <span>
-                  <strong>সতর্কতা:</strong> বাংলাদেশের ওয়ারহাউজে পণ্য আসার ৭ দিন
-                  পর কোনো প্রকার ক্ষয়ক্ষতি বা নিরাপত্তার দায় কর্তৃপক্ষ বহন করবে
-                  না।
+                  <strong>সতর্কতা:</strong> বাংলাদেশের ওয়ারহাউজে পণ্য আসার ৭
+                  দিন পর কোনো প্রকার ক্ষয়ক্ষতি বা নিরাপত্তার দায় কর্তৃপক্ষ বহন
+                  করবে না।
                 </span>
               </div>
 
@@ -1229,7 +1189,6 @@ export default function BranchProfile() {
               </div>
             </div>
 
-            {/* 🖨️ Modal Actions */}
             <div className="modal-btns no-print">
               <button onClick={() => window.print()} className="print-btn">
                 🖨️ Print Invoice
