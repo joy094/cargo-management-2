@@ -7,7 +7,8 @@ import "./BranchProfile.css";
 import CanAccess from "./CanAccess";
 import DirectBulkEntry from "./DirectBulkEntry";
 import EditShipmentModal from "./EditShipmentModal";
-
+import InvoicePrintModal from "./InvoicePrintModal"; // 🔥 নতুন ইমপোর্ট যোগ করুন
+import InvoiceHistory from "./InvoiceHistory"; //🔥 নতুন ইমপোর্ট যোগ করুন
 export default function BranchProfile() {
   const [searchParams] = useSearchParams();
   const markFromUrl = searchParams.get("mark");
@@ -368,72 +369,6 @@ export default function BranchProfile() {
   const lifetimeDiscount = summary?.totalDiscount || 0;
   const currentDue = summary?.currentDue || 0;
 
-  const numberToWords = (num) => {
-    if (num === 0) return "Zero Taka Only";
-    const a = [
-      "",
-      "One ",
-      "Two ",
-      "Three ",
-      "Four ",
-      "Five ",
-      "Six ",
-      "Seven ",
-      "Eight ",
-      "Nine ",
-      "Ten ",
-      "Eleven ",
-      "Twelve ",
-      "Thirteen ",
-      "Fourteen ",
-      "Fifteen ",
-      "Sixteen ",
-      "Seventeen ",
-      "Eighteen ",
-      "Nineteen ",
-    ];
-    const b = [
-      "",
-      "",
-      "Twenty",
-      "Thirty",
-      "Forty",
-      "Fifty",
-      "Sixty",
-      "Seventy",
-      "Eighty",
-      "Ninety",
-    ];
-    if ((num = num.toString()).length > 9) return "Overflow";
-    const n = ("000000000" + num)
-      .substr(-9)
-      .match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
-    if (!n) return;
-    let str = "";
-    str +=
-      n[1] != 0
-        ? (a[Number(n[1])] || b[n[1][0]] + " " + a[n[1][1]]) + "Crore "
-        : "";
-    str +=
-      n[2] != 0
-        ? (a[Number(n[2])] || b[n[2][0]] + " " + a[n[2][1]]) + "Lakh "
-        : "";
-    str +=
-      n[3] != 0
-        ? (a[Number(n[3])] || b[n[3][0]] + " " + a[n[3][1]]) + "Thousand "
-        : "";
-    str +=
-      n[4] != 0
-        ? (a[Number(n[4])] || b[n[4][0]] + " " + a[n[4][1]]) + "Hundred "
-        : "";
-    str +=
-      n[5] != 0
-        ? (str != "" ? "and " : "") +
-          (a[Number(n[5])] || b[n[5][0]] + " " + a[n[5][1]])
-        : "";
-    return str.trim() + " Taka Only";
-  };
-
   return (
     <div className="profile-container">
       <div className="header-flex">
@@ -461,7 +396,6 @@ export default function BranchProfile() {
           )}
         </h2>
       </div>
-
       <div className="stats-grid">
         <div className="stat-card blue">
           <span>Total Billed Amount</span>
@@ -502,7 +436,6 @@ export default function BranchProfile() {
           </CanAccess>
         </div>
       </div>
-
       {showDirectEntry && (
         <div
           className="direct-entry-wrapper"
@@ -524,7 +457,6 @@ export default function BranchProfile() {
           />
         </div>
       )}
-
       <div className="tab-navigation">
         <button
           className={`tab-btn ${activeTab === "pending" ? "active" : ""}`}
@@ -539,7 +471,6 @@ export default function BranchProfile() {
           📜 Invoice History
         </button>
       </div>
-
       {activeTab === "pending" && (
         <div className="tab-content">
           <div className="controls-bar">
@@ -827,382 +758,52 @@ export default function BranchProfile() {
           )}
         </div>
       )}
-
       {/* ================= HISTORY TAB ================= */}
+
       {activeTab === "history" && (
-        <div className="tab-content">
-          <div
-            className="controls-bar"
-            style={{ marginBottom: "20px", display: "flex", gap: "15px" }}
-          >
-            <select
-              value={selectedBatch}
-              onChange={(e) => setSelectedBatch(e.target.value)}
-              className="filter-input"
-              style={{ width: "220px", fontWeight: "bold" }}
-            >
-              <option value="">📦 All Batches</option>
-              {uniqueBatches.map((batch) => (
-                <option key={batch} value={batch}>
-                  Batch: {batch}
-                </option>
-              ))}
-            </select>
+        <InvoiceHistory
+          historyData={invoiceHistory}
+          filteredHistory={filteredHistory}
+          invoiceSearchTerm={invoiceSearchTerm}
+          setInvoiceSearchTerm={setInvoiceSearchTerm}
+          selectedBatch={selectedBatch}
+          setSelectedBatch={setSelectedBatch}
+          uniqueBatches={uniqueBatches}
+          onViewInvoice={(inv) => {
+            // এখানে আগেকার সেই লজিকটি বসবে যা মডালের জন্য ডাটা সেট করে
+            const subTotal = inv.totalAmount;
+            const discountAmt = inv.discount || 0;
+            const transportAmt = inv.transportBill || 0;
+            const finalTotal = subTotal + transportAmt - discountAmt;
 
-            <input
-              type="text"
-              placeholder="Search by Invoice ID or Tracking No..."
-              value={invoiceSearchTerm}
-              onChange={(e) => setInvoiceSearchTerm(e.target.value)}
-              className="filter-input"
-              style={{ width: "100%", maxWidth: "400px" }}
-            />
-          </div>
-
-          <div className="table-card">
-            <table className="pro-table history-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Invoice ID</th>
-                  <th>Total Items</th>
-                  <th>Total Weight</th>
-                  <th>Total Billed</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredHistory.length > 0 ? (
-                  filteredHistory.map((inv) => (
-                    <tr key={inv._id}>
-                      <td>{new Date(inv.date).toLocaleDateString("en-GB")}</td>
-                      <td>
-                        <strong>{inv._id}</strong>
-                      </td>
-                      <td>{inv.items.length} PCS</td>
-                      <td>{inv.totalWeight.toFixed(2)} KG</td>
-                      <td className="row-total">
-                        ৳ {inv.totalAmount.toLocaleString()}
-                      </td>
-                      <td>
-                        <button
-                          className="view-btn"
-                          onClick={() => {
-                            const subTotal = inv.totalAmount;
-                            const discountAmt = inv.discount || 0;
-                            const transportAmt = inv.transportBill || 0;
-                            const finalTotal =
-                              subTotal + transportAmt - discountAmt;
-
-                            setInvoiceData({
-                              invoiceId: inv._id,
-                              date: new Date(inv.date).toLocaleDateString(
-                                "en-GB",
-                              ),
-                              customerMark: activeMark,
-                              items: inv.items.map((it) => ({
-                                ...it,
-                                calcWeight:
-                                  Number(it.actualWeight) ||
-                                  Number(it.grossWeight) ||
-                                  0,
-                                rate: it.perKgRate,
-                                total: it.totalBill,
-                              })),
-                              totalWeight: inv.totalWeight,
-                              subTotal: subTotal,
-                              discount: discountAmt,
-                              transportCost: transportAmt,
-                              netPayable: finalTotal,
-                            });
-                            setIsInvoiceModalOpen(true);
-                          }}
-                        >
-                          👁️ View Invoice
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="6" className="no-data">
-                      কোনো ইনভয়েস হিস্ট্রি পাওয়া যায়নি
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+            setInvoiceData({
+              invoiceId: inv._id,
+              date: new Date(inv.date).toLocaleDateString("en-GB"),
+              customerMark: activeMark,
+              items: inv.items.map((it) => ({
+                ...it,
+                calcWeight:
+                  Number(it.actualWeight) || Number(it.grossWeight) || 0,
+                rate: it.perKgRate,
+                total: it.totalBill,
+              })),
+              totalWeight: inv.totalWeight,
+              subTotal: subTotal,
+              discount: discountAmt,
+              transportCost: transportAmt,
+              netPayable: finalTotal,
+            });
+            setIsInvoiceModalOpen(true);
+          }}
+        />
       )}
-
-      {/* ✅ Professional Invoice View / Print Modal */}
-      {isInvoiceModalOpen && invoiceData && (
-        <div className="modal-overlay">
-          <div className="modal-content pro-modal-width">
-            <div id="print-area" className="pro-invoice-wrapper">
-              <div className="pro-inv-header">
-                <div className="pro-logo-container">
-                  <img
-                    src="/SABA_&_RIHAN_LOGO.jpeg"
-                    alt="Company Logo"
-                    className="pro-main-logo"
-                    onError={(e) => {
-                      e.target.style.display = "none";
-                      e.target.nextSibling.style.display = "flex";
-                    }}
-                  />
-                  <div
-                    className="pro-logo-placeholder"
-                    style={{ display: "none" }}
-                  >
-                    <span>LOGO</span>
-                  </div>
-                </div>
-
-                <div className="pro-company-details">
-                  <h1 className="gradient-company-name">
-                    SABA & RIHAN ENTERPRISE
-                  </h1>
-                  <p className="pro-tagline">
-                    GOVT. AUTHORISED CUSTOMS, CLEARING & FORWARDING (C&F) AGENT
-                  </p>
-                  <p className="pro-address">
-                    Door to Door (Cargo) • China • Hongkong • Dubai • Malaysia
-                  </p>
-                </div>
-              </div>
-
-              <div className="pro-inv-title-bar">
-                <h2>COMMERCIAL INVOICE</h2>
-              </div>
-
-              <div className="pro-invoice-meta">
-                <div className="pro-bill-to">
-                  <h4 className="info-title">BILLED TO:</h4>
-                  <table className="info-table">
-                    <tbody>
-                      <tr>
-                        <td className="lbl">Shipping Mark</td>
-                        <td>
-                          : <strong>{invoiceData.customerMark}</strong>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="lbl">Customer Name</td>
-                        <td>
-                          :
-                          <strong
-                            contentEditable
-                            suppressContentEditableWarning
-                            className="editable-print-text"
-                          >
-                            {summary?.branchName || "Enter Name"}
-                          </strong>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="lbl">Phone Number</td>
-                        <td>
-                          :
-                          <strong
-                            contentEditable
-                            suppressContentEditableWarning
-                            className="editable-print-text"
-                          >
-                            {summary?.phone || "Enter Phone"}
-                          </strong>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="lbl">Address</td>
-                        <td>
-                          :
-                          <strong
-                            contentEditable
-                            suppressContentEditableWarning
-                            className="editable-print-text"
-                          >
-                            {summary?.address || "Enter Address"}
-                          </strong>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="pro-date-info">
-                  <table className="info-table">
-                    <tbody>
-                      <tr>
-                        <td className="lbl">Invoice No</td>
-                        <td>
-                          :{" "}
-                          <strong>
-                            {invoiceData.invoiceId ||
-                              `INV-${Date.now().toString().slice(-6)}`}
-                          </strong>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="lbl">Date</td>
-                        <td>
-                          :{" "}
-                          <strong>
-                            {invoiceData.date ||
-                              new Date().toLocaleDateString("en-GB")}
-                          </strong>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <table className="pro-item-table">
-                <thead>
-                  <tr>
-                    <th width="5%">SL</th>
-                    <th width="45%">Description of Goods</th>
-                    <th width="15%">Weight (KG)</th>
-                    <th width="15%">Rate (৳)</th>
-                    <th width="20%">Total Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoiceData.items.map((it, i) => (
-                    <tr key={i}>
-                      <td className="center">{i + 1}</td>
-                      <td>
-                        <strong className="item-name">
-                          {it.productName || "General Cargo Item"}
-                        </strong>
-                        <div className="item-meta">
-                          {it.batchName && (
-                            <span className="batch-pill">
-                              Batch: {it.batchName}
-                            </span>
-                          )}
-                          {it.chinaTrackingNo && (
-                            <span className="trk-text">
-                              Trk: {it.chinaTrackingNo}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="center">{it.calcWeight.toFixed(2)}</td>
-                      <td className="center">{it.rate}</td>
-                      <td className="right">৳ {it.total.toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              <div className="pro-calc-section">
-                <div className="amount-in-words">
-                  <p>
-                    <strong>Amount in Words:</strong>
-                  </p>
-                  <p className="words-text">
-                    {typeof numberToWords === "function"
-                      ? numberToWords(invoiceData.netPayable || 0)
-                      : "Total amount in words will appear here."}
-                  </p>
-                </div>
-
-                <div className="pro-totals">
-                  <table className="totals-table">
-                    <tbody>
-                      <tr>
-                        <td>Subtotal</td>
-                        <td className="right">
-                          ৳ {invoiceData.subTotal?.toLocaleString()}
-                        </td>
-                      </tr>
-
-                      {invoiceData.discount > 0 && (
-                        <tr className="text-red">
-                          <td>Discount</td>
-                          <td className="right">
-                            - ৳ {invoiceData.discount?.toLocaleString()}
-                          </td>
-                        </tr>
-                      )}
-
-                      {invoiceData.transportCost > 0 && (
-                        <tr>
-                          <td>Transport / Other Cost</td>
-                          <td className="right">
-                            + ৳{" "}
-                            {(invoiceData.transportCost || 0).toLocaleString()}
-                          </td>
-                        </tr>
-                      )}
-
-                      <tr className="grand-total-row">
-                        <td>Grand Total</td>
-                        <td className="right">
-                          ৳ {(invoiceData.netPayable || 0).toLocaleString()}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className="pro-bank-info">
-                <h4>Payment Information</h4>
-                <div className="bank-grid">
-                  <div className="bank-card">
-                    <strong>Dutch Bangla Bank</strong>
-                    <p>A/C Name: SABA AND RIHAN ENTERPRISE</p>
-                    <p>A/C No: 2021100054999</p>
-                    <p>Branch: Hazicamp, Askona</p>
-                  </div>
-                  <div className="bank-card">
-                    <strong>BRAC Bank</strong>
-                    <p>A/C Name: SABA AND RIHAN ENTER PRISE</p>
-                    <p>A/C No: 2077416900001</p>
-                    <p>Branch: Dakshin Khan Sub Br.</p>
-                  </div>
-                  <div className="bank-card">
-                    <strong>Southeast Bank PLC</strong>
-                    <p>A/C Name: SABA AND RIHAN ENTERPRIS</p>
-                    <p>A/C No: 003011100006291</p>
-                    <p>Branch: Aganagor</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="invoice-warning-note">
-                <span className="warning-icon">⚠️</span>
-                <span>
-                  <strong>সতর্কতা:</strong> বাংলাদেশের ওয়ারহাউজে পণ্য আসার ৭
-                  দিন পর কোনো প্রকার ক্ষয়ক্ষতি বা নিরাপত্তার দায় কর্তৃপক্ষ বহন
-                  করবে না।
-                </span>
-              </div>
-
-              <div className="pro-footer-note">
-                Thank you for your business! Goods once sold will not be taken
-                back.
-              </div>
-            </div>
-
-            <div className="modal-btns no-print">
-              <button onClick={() => window.print()} className="print-btn">
-                🖨️ Print Invoice
-              </button>
-              <button
-                onClick={() => setIsInvoiceModalOpen(false)}
-                className="close-btn"
-              >
-                ✖ Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ✅ একদম নিচে থাকা পুরানো বিশাল কোডটি সরিয়ে শুধু এই লাইনটি বসান */}
+      <InvoicePrintModal
+        isOpen={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
+        invoiceData={invoiceData}
+        summary={summary}
+      />
     </div>
   );
 }
