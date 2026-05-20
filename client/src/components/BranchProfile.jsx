@@ -9,6 +9,7 @@ import DirectBulkEntry from "./DirectBulkEntry";
 import EditShipmentModal from "./EditShipmentModal";
 import InvoicePrintModal from "./InvoicePrintModal"; // 🔥 নতুন ইমপোর্ট যোগ করুন
 import InvoiceHistory from "./InvoiceHistory"; //🔥 নতুন ইমপোর্ট যোগ করুন
+import PaymentLedger from "./PaymentLedger"; // 🔥 নতুন ইমপোর্ট
 export default function BranchProfile() {
   const [searchParams] = useSearchParams();
   const markFromUrl = searchParams.get("mark");
@@ -508,6 +509,14 @@ export default function BranchProfile() {
         >
           📜 Invoice History
         </button>
+
+        {/* 🔥 নতুন 3rd Tab বাটন */}
+        <button
+          className={`tab-btn ${activeTab === "ledger" ? "active" : ""}`}
+          onClick={() => handleTabChange("ledger")}
+        >
+          💳 Statement / Ledger
+        </button>
       </div>
       {activeTab === "pending" && (
         <div className="tab-content">
@@ -857,6 +866,15 @@ export default function BranchProfile() {
             });
             setIsInvoiceModalOpen(true);
           }}
+        />
+      )}
+
+      {/* ================= LEDGER TAB ================= */}
+      {activeTab === "ledger" && (
+        <PaymentLedger
+          activeMark={activeMark}
+          summary={summary}
+          invoiceHistory={invoiceHistory}
         />
       )}
       {/* ✅ একদম নিচে থাকা পুরানো বিশাল কোডটি সরিয়ে শুধু এই লাইনটি বসান */}

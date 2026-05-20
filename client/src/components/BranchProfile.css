@@ -831,6 +831,50 @@
     padding: 20px;
   }
 }
+
+@media print {
+  .no-print,
+  .tab-navigation,
+  .header-flex,
+  .stats-grid {
+    display: none !important;
+  }
+  .print-only-header {
+    display: block !important;
+  }
+}
+
+/* =========================================================
+   ম্যাজিক প্রিন্ট সিএসএস (শুধু লেজার প্রিন্ট করার জন্য)
+========================================================= */
+@media print {
+  /* প্রথমে ওয়েবসাইটের সবকিছু লুকিয়ে ফেলবে */
+  body * {
+    visibility: hidden;
+  }
+
+  /* শুধুমাত্র আমাদের লেজার সেকশন এবং তার ভেতরের জিনিসপত্র ভিজিবল করবে */
+  #ledger-print-section,
+  #ledger-print-section * {
+    visibility: visible;
+  }
+
+  /* লেজার সেকশনটিকে পেজের একদম উপরে নিয়ে আসবে যেন ব্ল্যাঙ্ক স্পেস না থাকে */
+  #ledger-print-section {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* প্রিন্টের সময় অপ্রয়োজনীয় প্যাডিং সরিয়ে ফেলা */
+  body {
+    margin: 0;
+    padding: 0;
+  }
+}
 /* 
 @media print {
   body * {

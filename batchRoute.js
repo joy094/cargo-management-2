@@ -1,7 +1,7 @@
-//src/batchRoute.js
+//batchRoute.js
 
 import express from "express";
-import { Batch, Shipment } from "./models.js";
+import { Batch, Shipment,Branch } from "./models.js";
 
 const router = express.Router();
 
@@ -105,9 +105,9 @@ router.get("/:id", async (req, res) => {
     const batch = await Batch.findById(req.params.id);
     if (!batch) return res.status(404).json({ error: "ব্যাচ পাওয়া যায়নি।" });
 
-    const shipments = await Shipment.find({ batch: batch._id })
-      // .populate("customer")
-      // .populate("agency");
+    const shipments = await Shipment.find({ batch: batch._id });
+    // .populate("customer")
+    // .populate("agency");
 
     res.json({ batch, shipments });
   } catch (err) {
@@ -190,6 +190,38 @@ router.delete("/:id", async (req, res) => {
     res.json({ success: true, message: "ব্যাচ ডিলিট হয়েছে।" });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// --- ৯. ব্যাচ আইডি দিয়ে কাস্টমার (Branch) ফিল্টার করা ---
+router.get("/filter-by-batch/:batchId", async (req, res) => {
+  try {
+    const batchId = req.params.batchId;
+
+    // ১. এই ব্যাচের আন্ডারে থাকা সব শিপমেন্ট খুঁজে বের করা
+    const shipments = await Shipment.find({ batch: batchId }).select(
+      "shippingMark",
+    );
+
+    // ২. শিপিং মার্কগুলো থেকে ডুপ্লিকেট বাদ দিয়ে ইউনিক মার্কের লিস্ট তৈরি করা
+    const uniqueMarks = [...new Set(shipments.map((s) => s.shippingMark))];
+
+    if (uniqueMarks.length === 0) {
+      return res.json({ success: true, branches: [] });
+    }
+
+    // ৩. এই মার্কগুলোর সাথে মিলে যাওয়া কাস্টমারদের (Branches) খুঁজে বের করা
+    const branches = await Branch.find({
+      $or: [
+        { shippingMark: { $in: uniqueMarks } },
+        { shippingMarks: { $in: uniqueMarks } },
+      ],
+    });
+
+    res.json({ success: true, branches });
+  } catch (error) {
+    console.error("Batch filter error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
