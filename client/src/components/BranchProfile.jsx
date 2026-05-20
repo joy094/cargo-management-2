@@ -201,14 +201,14 @@ export default function BranchProfile() {
   };
 
   const toggleSelectAll = () => {
-    const unbilledFiltered = filteredItems.filter((item) => !item.isBilled);
+    // 🔥 এখন এটি বিল্ড এবং আনবিল্ড সব আইটেমই সিলেক্ট করতে পারবে
     if (
-      selectedIds.length === unbilledFiltered.length &&
-      unbilledFiltered.length > 0
+      selectedIds.length === filteredItems.length &&
+      filteredItems.length > 0
     ) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(unbilledFiltered.map((item) => item._id));
+      setSelectedIds(filteredItems.map((item) => item._id));
     }
   };
 
@@ -247,6 +247,44 @@ export default function BranchProfile() {
       }
     } catch (error) {
       alert("রিভার্ট করতে সমস্যা হয়েছে!");
+    }
+  };
+
+  // 🔥 একসাথে একাধিক সিলেক্টেড আইটেম আনডু (Bulk Undo) করার ফাংশন
+  const handleBulkRevert = async () => {
+    const billedItemsToRevert = allItems.filter(
+      (item) => selectedIds.includes(item._id) && item.isBilled,
+    );
+
+    if (billedItemsToRevert.length === 0) {
+      return alert(
+        "সিলেক্ট করা আইটেমগুলোর মধ্যে কোনো বিল্ড (Billed) আইটেম নেই!",
+      );
+    }
+
+    if (
+      !window.confirm(
+        `আপনি কি নিশ্চিত? সিলেক্ট করা ${billedItemsToRevert.length}টি আইটেম ইনভয়েস থেকে বাদ পড়ে আবার আনবিল্ড হয়ে যাবে।`,
+      )
+    )
+      return;
+
+    setSubmitting(true);
+    try {
+      const promises = billedItemsToRevert.map((item) =>
+        axios.post("/api/branches/revert-item", { itemId: item._id }),
+      );
+
+      await Promise.all(promises);
+
+      alert("সিলেক্ট করা সব আইটেম সফলভাবে রিভার্ট করা হয়েছে!");
+      fetchBranchData(activeMark);
+      setSelectedIds([]);
+    } catch (error) {
+      console.error(error);
+      alert("আইটেমগুলো রিভার্ট করতে সমস্যা হয়েছে!");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -498,7 +536,7 @@ export default function BranchProfile() {
               />
             </div>
 
-            <div className="bulk-side">
+            <div className="bulk-side" style={{ display: "flex", gap: "10px" }}>
               <input
                 type="number"
                 placeholder="Rate (৳)"
@@ -508,6 +546,30 @@ export default function BranchProfile() {
               <button onClick={applyRateToSelected}>
                 ⚡ Apply to Selected
               </button>
+
+              {/* 🔥 Bulk Undo Button */}
+              {allItems.some(
+                (item) => selectedIds.includes(item._id) && item.isBilled,
+              ) && (
+                <button
+                  onClick={handleBulkRevert}
+                  disabled={submitting}
+                  style={{
+                    background: "#dc2626",
+                    color: "white",
+                    border: "none",
+                    padding: "0 15px",
+                    borderRadius: "6px",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                    transition: "0.2s",
+                  }}
+                  onMouseOver={(e) => (e.target.style.background = "#b91c1c")}
+                  onMouseOut={(e) => (e.target.style.background = "#dc2626")}
+                >
+                  {submitting ? "Undoing..." : "↩️ Bulk Undo"}
+                </button>
+              )}
             </div>
           </div>
 
