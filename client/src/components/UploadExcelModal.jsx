@@ -15,61 +15,84 @@ export default function UploadExcelModal({
 
   if (!isOpen) return null;
 
-  // ✅ নতুন টেমপ্লেট ডাউনলোড (Master & Sub-box সাপোর্টেড)
+  // 📥 ডায়নামিক টেমপ্লেট ডাউনলোড লজিক
   const downloadTemplate = () => {
-    const templateData = [
-      {
-        "Shipping Mark": "SKL-RONY",
-        "Carton No": "100",
-        "Box Type": "Master", // Master নাকি Sub-box
-        "Parent Carton No": "", // Sub-box হলে এখানে মাস্টার বক্সের কার্টন নাম্বার দিতে হবে
-        "Product Name": "Garments",
-        Quantity: 1,
-        "Gross Weight": 45.5,
-        L: 55,
-        W: 45,
-        H: 60,
-        "China Tracking": "SF123456789",
-        "Customer Name": "Rony",
-        Mobile: "01712345678",
-      },
-      {
-        "Shipping Mark": "SKL-RONY",
-        "Carton No": "100-1",
-        "Box Type": "Sub-box", // এটি একটি সাব-বক্স
-        "Parent Carton No": "100", // এটি 100 নাম্বার কার্টনের ভেতরের মাল
-        "Product Name": "T-shirt",
-        Quantity: 1,
-        "Gross Weight": 20.0,
-        L: "",
-        W: "",
-        H: "",
-        "China Tracking": "YT987654321",
-        "Customer Name": "Rony",
-        Mobile: "01712345678",
-      },
-      {
-        "Shipping Mark": "SKL-RONY",
-        "Carton No": "100-2",
-        "Box Type": "Sub-box",
-        "Parent Carton No": "100",
-        "Product Name": "Jeans",
-        Quantity: 1,
-        "Gross Weight": 25.5,
-        L: "",
-        W: "",
-        H: "",
-        "China Tracking": "ZT123456789",
-        "Customer Name": "Rony",
-        Mobile: "01712345678",
-      },
-    ];
+    let templateData;
+    let fileName;
+
+    if (batchId) {
+      // 📦 ব্যাচ পেজের জন্য মাস্টার/সাব-বক্স টেমপ্লেট
+      templateData = [
+        {
+          "Shipping Mark": "SKL-RONY",
+          "Carton No": "100",
+          "Box Type": "Master",
+          "Parent Carton No": "",
+          "Product Name": "Garments",
+          Quantity: 1,
+          "Gross Weight": 45.5,
+          L: 55,
+          W: 45,
+          H: 60,
+          "China Tracking": "SF123456789",
+          "Customer Name": "Rony",
+          Mobile: "01712345678",
+        },
+        {
+          "Shipping Mark": "SKL-RONY",
+          "Carton No": "100-1",
+          "Box Type": "Sub-box",
+          "Parent Carton No": "100",
+          "Product Name": "T-shirt",
+          Quantity: 1,
+          "Gross Weight": 20.0,
+          L: "",
+          W: "",
+          H: "",
+          "China Tracking": "YT987654321",
+          "Customer Name": "Rony",
+          Mobile: "01712345678",
+        },
+      ];
+      fileName = "batch_master_sub_template.xlsx";
+    } else {
+      // 🏠 চায়না ওয়্যারহাউজের জন্য সিম্পল লুজ মাল টেমপ্লেট
+      templateData = [
+        {
+          "Shipping Mark": "JAMAL-01",
+          "Carton No": "5",
+          "Product Name": "Shoes",
+          Quantity: 2,
+          "Gross Weight": 30.5,
+          L: 40,
+          W: 30,
+          H: 50,
+          "China Tracking": "YT123456789",
+          "Customer Name": "Jamal",
+          Mobile: "01812345678",
+        },
+        {
+          "Shipping Mark": "KAMAL-02",
+          "Carton No": "1",
+          "Product Name": "Electronics",
+          Quantity: 5,
+          "Gross Weight": 15.0,
+          L: 20,
+          W: 20,
+          H: 20,
+          "China Tracking": "ZTO987654321",
+          "Customer Name": "Kamal",
+          Mobile: "01912345678",
+        },
+      ];
+      fileName = "warehouse_loose_items_template.xlsx";
+    }
 
     const worksheet = XLSX.utils.json_to_sheet(templateData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Shipment List");
 
-    XLSX.writeFile(workbook, "cargo_master_sub_template.xlsx");
+    XLSX.writeFile(workbook, fileName);
   };
 
   const handleFileUpload = (e) => {
@@ -84,7 +107,7 @@ export default function UploadExcelModal({
       const sheet = workbook.Sheets[sheetName];
       const json = XLSX.utils.sheet_to_json(sheet);
 
-      // ✅ এক্সেল ডাটা ম্যাপিং লজিক
+      // ✅ ডায়নামিক এক্সেল ডাটা ম্যাপিং লজিক
       const mappedData = json.map((row) => {
         const l = Number(row["L"]) || 0;
         const w = Number(row["W"]) || 0;
@@ -92,9 +115,15 @@ export default function UploadExcelModal({
         const calculatedCbm =
           l > 0 && w > 0 && h > 0 ? (l * w * h) / 1000000 : 0;
 
-        // বক্স টাইপ ডিটেকশন
-        const rawBoxType = String(row["Box Type"] || "").toLowerCase();
-        const isMaster = rawBoxType !== "sub-box"; // বাই ডিফল্ট মাস্টার বক্স ধরে নিবে
+        let isMaster = true; // ওয়্যারহাউজের জন্য বাই ডিফল্ট সব মাস্টার/লুজ
+        let parentCartonNo = "";
+
+        // 📦 শুধুমাত্র ব্যাচ পেজ থেকে আপলোড হলে বক্স টাইপ চেক করবে
+        if (batchId) {
+          const rawBoxType = String(row["Box Type"] || "").toLowerCase();
+          isMaster = rawBoxType !== "sub-box";
+          parentCartonNo = String(row["Parent Carton No"] || "");
+        }
 
         return {
           shippingMark: row["Shipping Mark"] || "",
@@ -111,9 +140,8 @@ export default function UploadExcelModal({
           customerName: row["Customer Name"] || "Unknown",
           customerMobile: row["Mobile"] || "",
 
-          // 🔥 সাব-বক্সের জন্য স্পেশাল ফিল্ড
           isMasterCarton: isMaster,
-          parentCartonNo: String(row["Parent Carton No"] || ""),
+          parentCartonNo: parentCartonNo,
         };
       });
 
@@ -131,18 +159,21 @@ export default function UploadExcelModal({
 
     setLoading(true);
     try {
-      // ডেটার সাথে অটোমেটিকভাবে বর্তমান Batch ID পাঠানো হচ্ছে
+      // ওয়্যারহাউজের জন্য batchId null হবে, তাই স্ট্যাটাস ম্যানুয়ালি পাঠিয়ে দিচ্ছি
       const payload = {
-        shipments: excelData,
-        batchId: batchId, // Auto-assigned
+        shipments: excelData.map((item) => ({
+          ...item,
+          status: batchId ? undefined : "Warehouse Received", // ওয়্যারহাউজের জন্য ডিফল্ট স্ট্যাটাস
+        })),
+        batchId: batchId || null,
       };
 
       const res = await axios.post("/api/bulk-import-excel", payload);
       alert(res.data.message || "সফলভাবে ইমপোর্ট হয়েছে!");
 
       setExcelData([]);
-      onSuccess(); // ব্যাচ ডিটেইলস পেজের ডাটা রিফ্রেশ করবে
-      onClose(); // পপআপ বন্ধ করবে
+      onSuccess();
+      onClose();
     } catch (err) {
       alert(err.response?.data?.error || "ইম্পোর্ট করতে সমস্যা হয়েছে।");
     } finally {
@@ -151,7 +182,7 @@ export default function UploadExcelModal({
   };
 
   return (
-    <div className="fixed-modal-overlay">
+    <div className="fixed-modal-overlay" style={{ zIndex: 1000 }}>
       <div
         className="fixed-modal-content"
         style={{ maxWidth: "900px", width: "95%" }}
@@ -165,7 +196,9 @@ export default function UploadExcelModal({
           }}
         >
           <h2 style={{ margin: 0, color: "#0f172a" }}>
-            🚀 Upload Master & Sub-Boxes
+            {batchId
+              ? "🚀 Upload Master & Sub-Boxes"
+              : "🏠 Upload Warehouse Shipments"}
           </h2>
           <button
             onClick={onClose}
@@ -186,10 +219,13 @@ export default function UploadExcelModal({
             display: "flex",
             justifyContent: "space-between",
             marginBottom: "20px",
+            alignItems: "center",
           }}
         >
-          <p style={{ color: "#64748b", margin: 0, alignSelf: "center" }}>
-            বর্তমান ব্যাচে সরাসরি ডাটা যুক্ত হবে।
+          <p style={{ color: "#64748b", margin: 0 }}>
+            {batchId
+              ? "বর্তমান ব্যাচে সরাসরি ডাটা যুক্ত হবে।"
+              : "ওয়্যারহাউজে লুজ মাল হিসেবে যুক্ত হবে।"}
           </p>
           <button
             onClick={downloadTemplate}
@@ -203,7 +239,7 @@ export default function UploadExcelModal({
               fontWeight: "bold",
             }}
           >
-            📥 Download Format
+            📥 Download {batchId ? "Master/Sub" : "Simple"} Format
           </button>
         </div>
 
@@ -262,8 +298,8 @@ export default function UploadExcelModal({
                   <tr>
                     <th style={{ padding: "10px" }}>Mark</th>
                     <th style={{ padding: "10px" }}>Carton</th>
-                    <th style={{ padding: "10px" }}>Type</th>
-                    <th style={{ padding: "10px" }}>Parent</th>
+                    {batchId && <th style={{ padding: "10px" }}>Type</th>}
+                    {batchId && <th style={{ padding: "10px" }}>Parent</th>}
                     <th style={{ padding: "10px" }}>Weight</th>
                     <th style={{ padding: "10px" }}>CBM</th>
                   </tr>
@@ -281,36 +317,43 @@ export default function UploadExcelModal({
                         {row.shippingMark}
                       </td>
                       <td style={{ padding: "10px" }}>{row.cartonNo}</td>
-                      <td style={{ padding: "10px" }}>
-                        {row.isMasterCarton ? (
-                          <span
-                            style={{
-                              background: "#dcfce7",
-                              color: "#166534",
-                              padding: "3px 8px",
-                              borderRadius: "5px",
-                              fontSize: "12px",
-                            }}
-                          >
-                            Master
-                          </span>
-                        ) : (
-                          <span
-                            style={{
-                              background: "#fef3c7",
-                              color: "#b45309",
-                              padding: "3px 8px",
-                              borderRadius: "5px",
-                              fontSize: "12px",
-                            }}
-                          >
-                            Sub-box
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ padding: "10px" }}>
-                        {row.parentCartonNo || "-"}
-                      </td>
+
+                      {/* ব্যাচ পেজ হলে Type এবং Parent দেখাবে */}
+                      {batchId && (
+                        <>
+                          <td style={{ padding: "10px" }}>
+                            {row.isMasterCarton ? (
+                              <span
+                                style={{
+                                  background: "#dcfce7",
+                                  color: "#166534",
+                                  padding: "3px 8px",
+                                  borderRadius: "5px",
+                                  fontSize: "12px",
+                                }}
+                              >
+                                Master
+                              </span>
+                            ) : (
+                              <span
+                                style={{
+                                  background: "#fef3c7",
+                                  color: "#b45309",
+                                  padding: "3px 8px",
+                                  borderRadius: "5px",
+                                  fontSize: "12px",
+                                }}
+                              >
+                                Sub-box
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: "10px" }}>
+                            {row.parentCartonNo || "-"}
+                          </td>
+                        </>
+                      )}
+
                       <td style={{ padding: "10px" }}>{row.grossWeight} kg</td>
                       <td
                         style={{
