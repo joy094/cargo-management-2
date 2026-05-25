@@ -27,6 +27,7 @@ import UserManagement from "./components/UserManagement";
 import { AuthContext } from "./context/AuthContext"; // 🔥 AuthContext ইম্পোর্ট
 import CanAccess from "./components/CanAccess";
 import ProtectedRoute from "./ProtectedRoute"; // ⚠️ পাথ ঠিক আছে কি না চেক করে নেবেন
+import ChinaWarehouse from "./components/ChinaWarehouse";
 
 // ==========================================
 // 1. Layout Component
@@ -163,6 +164,21 @@ const Header = () => {
             </li>
           </CanAccess>
 
+
+  {/* 🔥 Batch Access */}
+          <CanAccess module="batch" action="view">
+            <li>
+              <NavLink
+                to="/china-warehouse"
+                className="nav-link"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                CN ওয়ারহাউজ
+              </NavLink>
+            </li>
+          </CanAccess>
+
+
           {/* 🔥 Billing & Payment Access */}
           <CanAccess module="billing" action="view">
             <li>
@@ -174,6 +190,11 @@ const Header = () => {
               </NavLink>
             </li>
           </CanAccess>
+
+
+
+
+
 
           {/* 🔥 শুধুমাত্র সুপার অ্যাডমিনের মেনু */}
           {user?.isSuperAdmin && (
@@ -378,6 +399,16 @@ const App = () => (
         element={
           <ProtectedRoute requireSuperAdmin={true}>
             <UserManagement />
+          </ProtectedRoute>
+        }
+      />
+
+
+      <Route
+        path="/china-warehouse"
+        element={
+          <ProtectedRoute module="shipment" action="view">
+            <ChinaWarehouse />
           </ProtectedRoute>
         }
       />

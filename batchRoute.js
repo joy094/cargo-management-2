@@ -1,7 +1,7 @@
 //batchRoute.js
 
 import express from "express";
-import { Batch, Shipment,Branch } from "./models.js";
+import { Batch, Shipment, Branch } from "./models.js";
 
 const router = express.Router();
 
@@ -115,15 +115,28 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// --- ৪. শিপমেন্টগুলোকে ব্যাচে যুক্ত করা ---
+// --- ৪. শিপমেন্টগুলোকে ব্যাচে (এবং ঐচ্ছিকভাবে মাস্টার বক্সে) যুক্ত করা ---
+// 🔥 (পুরোনোটি মুছে শুধু নতুন আপডেটেডটি রাখা হয়েছে)
 router.put("/:id/assign", async (req, res) => {
   try {
-    const { shipmentIds } = req.body;
+    const { shipmentIds, masterBoxId } = req.body;
+
+    // ডিফল্টভাবে শুধু ব্যাচ আইডি আপডেট করার জন্য পে-লোড
+    const updatePayload = { batch: req.params.id };
+
+    // 🔥 ম্যাজিক লজিক: যদি মাস্টার বক্স সিলেক্ট করা থাকে, তবে parentId সেট করে দেওয়া হচ্ছে
+    if (masterBoxId) {
+      updatePayload.parentId = masterBoxId;
+      updatePayload.isMasterCarton = false; // এটি মাস্টার বক্সের ভেতরের মাল (লুজ মাল নয়)
+    }
+
+    // ডাটাবেসে একসাথে সব সিলেক্ট করা মাল আপডেট করা
     await Shipment.updateMany(
       { _id: { $in: shipmentIds } },
-      { $set: { batch: req.params.id } },
+      { $set: updatePayload },
     );
-    res.json({ success: true, message: "শিপমেন্টগুলো ব্যাচে যুক্ত হয়েছে।" });
+
+    res.json({ success: true, message: "শিপমেন্টগুলো সফলভাবে যুক্ত হয়েছে।" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -224,5 +237,20 @@ router.get("/filter-by-batch/:batchId", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
+// --- ৯. নির্দিষ্ট ব্যাচের মাস্টার বক্সগুলো ফেচ করা ---
+router.get("/:id/master-boxes", async (req, res) => {
+  try {
+    const masterBoxes = await Shipment.find({
+      batch: req.params.id,
+      isMasterCarton: true, // শুধুমাত্র মাস্টার বক্সগুলো
+    }).select("shippingMark cartonNo chinaTrackingNo");
+
+    res.json({ success: true, masterBoxes });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 export default router;

@@ -580,7 +580,6 @@ router.put("/batches/:id/status", async (req, res) => {
   }
 });
 
-// ✅ মাস্টার কার্টনের ভেতরে সাব-আইটেম (পার্সেল) যুক্ত করার রাউট
 // ✅ মাস্টার কার্টনের ভেতরে সাব-আইটেম যুক্ত করার আপডেট করা রাউট
 router.post("/shipments/add-sub-items", async (req, res) => {
   try {
@@ -671,6 +670,59 @@ router.get("/shipments/qr-details/:id", async (req, res) => {
   }
 });
 
-// অন্যান্য রাউটস (যেমন ড্যাশবোর্ড, কাস্টমার ম্যানেজমেন্ট ইত্যাদি) এখানে যুক্ত হবে
+// ✅ ওয়্যারহাউজের আনঅ্যাসাইনড মালগুলো ফেচ করার আপডেট করা API
+router.get("/unassigned", async (req, res) => {
+  try {
+    // যেসব শিপমেন্টের batch নেই এবং স্ট্যাটাস শুধুমাত্র "Warehouse Received"
+    const unassignedShipments = await Shipment.find({
+      $or: [{ batch: null }, { batch: { $exists: false } }],
+      status: "Warehouse Received", // 🔥 ফিক্সড: ডেলিভারড বা ব্রাঞ্চের ম্যানুয়াল এন্ট্রি ফিল্টার আউট করা হলো
+    }).sort({ createdAt: -1 });
+
+    res.json({ success: true, shipments: unassignedShipments });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- বাল্ক ডিলিট (একাধিক শিপমেন্ট একসাথে ডিলিট) ---
+router.post("/bulk-delete", async (req, res) => {
+  try {
+    const { shipmentIds } = req.body;
+
+    if (!shipmentIds || shipmentIds.length === 0) {
+      return res.status(400).json({ error: "কোনো আইডি সিলেক্ট করা হয়নি।" });
+    }
+
+    await Shipment.deleteMany({ _id: { $in: shipmentIds } });
+
+    res.json({ success: true, message: "সফলভাবে ডিলিট করা হয়েছে।" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// // --- ৪. শিপমেন্টগুলোকে ব্যাচে (এবং ঐচ্ছিকভাবে মাস্টার বক্সে) যুক্ত করা ---
+// router.put("/:id/assign", async (req, res) => {
+//   try {
+//     const { shipmentIds, masterBoxId } = req.body;
+
+//     const updatePayload = { batch: req.params.id };
+
+//     // 🔥 যদি ইউজার মাস্টার বক্স সিলেক্ট করে, তবে সেগুলোকে সাব-বক্স হিসেবে সেট করা হবে
+//     if (masterBoxId) {
+//       updatePayload.parentId = masterBoxId;
+//       updatePayload.isMasterCarton = false;
+//     }
+
+//     await Shipment.updateMany(
+//       { _id: { $in: shipmentIds } },
+//       { $set: updatePayload },
+//     );
+//     res.json({ success: true, message: "শিপমেন্টগুলো সফলভাবে যুক্ত হয়েছে।" });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
 
 export default router;
