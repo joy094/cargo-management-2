@@ -1139,10 +1139,10 @@ export default function ChinaWarehouse() {
                       <span className="cbm-badge">{s.cbm || 0}</span>
                     </td>
                     <td style={{ color: "#ef4444", fontWeight: "bold" }}>
-                      ৳{s.packagingCost || 0}
+                      ¥{s.packagingCost || 0}
                     </td>
                     <td style={{ color: "#f59e0b", fontWeight: "bold" }}>
-                      ৳{s.receivingCost || 0}
+                      ¥{s.receivingCost || 0}
                     </td>
 
                     <td
