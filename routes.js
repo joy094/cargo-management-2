@@ -231,6 +231,13 @@ router.post("/bulk-import-excel", async (req, res) => {
           : new Date(),
         isMasterCarton: item.isMasterCarton,
         parentId: null,
+
+        // 🔥 এক্সেলের জন্যও এই নতুন ফিল্ডগুলো যুক্ত করা হলো
+        category: item.category || "By Sea",
+        customerName: item.customerName || "",
+        packagingCost: Number(item.packagingCost) || 0,
+        receivingCost: Number(item.receivingCost) || 0,
+        note: item.note || "",
       };
 
       // মাস্টার বক্স হলে আমাদের তৈরি করা ID টি বসিয়ে দেবো
@@ -295,6 +302,13 @@ router.post("/shipments/bulk-import", async (req, res) => {
         receivedDate: item.receivedDate
           ? new Date(item.receivedDate)
           : new Date(),
+
+        // 🔥 এই নতুন ফিল্ডগুলো যুক্ত করা হলো
+        category: item.category || "By Sea",
+        customerName: item.customerName || "",
+        packagingCost: Number(item.packagingCost) || 0,
+        receivingCost: Number(item.receivingCost) || 0,
+        note: item.note || "",
       };
     });
 
@@ -670,6 +684,33 @@ router.get("/shipments/qr-details/:id", async (req, res) => {
   }
 });
 
+// ✅ শিপিং মার্ক থেকে কাস্টমারের নাম অটো-ফিল করার API
+router.get("/customer-map", async (req, res) => {
+  try {
+    // mongoose.model ব্যবহার করছি যাতে import error না আসে
+    const branches = await mongoose.model("Branch").find();
+    const customerMap = {};
+
+    branches.forEach((b) => {
+      // সিঙ্গেল শিপিং মার্ক থাকলে
+      if (b.shippingMark) {
+        customerMap[b.shippingMark.toUpperCase()] =
+          b.name || b.branchName || "";
+      }
+      // যদি মাল্টিপল শিপিং মার্কস (Array) থাকে
+      if (b.shippingMarks && Array.isArray(b.shippingMarks)) {
+        b.shippingMarks.forEach((mark) => {
+          customerMap[mark.toUpperCase()] = b.name || b.branchName || "";
+        });
+      }
+    });
+
+    res.json({ success: true, customerMap });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ✅ ওয়্যারহাউজের আনঅ্যাসাইনড মালগুলো ফেচ করার আপডেট করা API
 router.get("/unassigned", async (req, res) => {
   try {
@@ -701,28 +742,5 @@ router.post("/bulk-delete", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-// // --- ৪. শিপমেন্টগুলোকে ব্যাচে (এবং ঐচ্ছিকভাবে মাস্টার বক্সে) যুক্ত করা ---
-// router.put("/:id/assign", async (req, res) => {
-//   try {
-//     const { shipmentIds, masterBoxId } = req.body;
-
-//     const updatePayload = { batch: req.params.id };
-
-//     // 🔥 যদি ইউজার মাস্টার বক্স সিলেক্ট করে, তবে সেগুলোকে সাব-বক্স হিসেবে সেট করা হবে
-//     if (masterBoxId) {
-//       updatePayload.parentId = masterBoxId;
-//       updatePayload.isMasterCarton = false;
-//     }
-
-//     await Shipment.updateMany(
-//       { _id: { $in: shipmentIds } },
-//       { $set: updatePayload },
-//     );
-//     res.json({ success: true, message: "শিপমেন্টগুলো সফলভাবে যুক্ত হয়েছে।" });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// });
 
 export default router;

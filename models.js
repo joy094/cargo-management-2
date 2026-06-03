@@ -117,6 +117,14 @@ const shipmentSchema = new mongoose.Schema(
     transportBill: { type: Number, default: 0 }, // 🔥 নতুন এই লাইনটি যুক্ত করুন
     billingDate: { type: Date },
     invoiceId: { type: String },
+
+
+    // Shipment Schema এর ভেতরে এই ফিল্ডগুলো যোগ করুন
+category: { type: String, default: "By Sea" }, // By Sea, By Air, Hand Carry, HONG KONG PRODUCT
+customerName: { type: String }, // অটো-ফিল হওয়া নাম সেভ করার জন্য
+packagingCost: { type: Number, default: 0 },
+receivingCost: { type: Number, default: 0 },
+note: { type: String },
   },
   { timestamps: true },
 );

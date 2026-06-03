@@ -1,5 +1,7 @@
 // src/components/UploadExcelModal.jsx
 
+// src/components/UploadExcelModal.jsx
+
 import React, { useState } from "react";
 import * as XLSX from "xlsx";
 import axios from "axios";
@@ -21,7 +23,7 @@ export default function UploadExcelModal({
     let fileName;
 
     if (batchId) {
-      // 📦 ব্যাচ পেজের জন্য মাস্টার/সাব-বক্স টেমপ্লেট
+      // 📦 ব্যাচ পেজের জন্য মাস্টার/সাব-বক্স টেমপ্লেট (অপরিবর্তিত)
       templateData = [
         {
           "Shipping Mark": "SKL-RONY",
@@ -56,33 +58,39 @@ export default function UploadExcelModal({
       ];
       fileName = "batch_master_sub_template.xlsx";
     } else {
-      // 🏠 চায়না ওয়্যারহাউজের জন্য সিম্পল লুজ মাল টেমপ্লেট
+      // 🏠 ওয়্যারহাউজের জন্য নতুন আপডেট করা লুজ মাল টেমপ্লেট
       templateData = [
         {
+          Category: "By Sea", // নতুন কলাম
+          "China Tracking": "YT123456789",
           "Shipping Mark": "JAMAL-01",
-          "Carton No": "5",
+          "Customer Name": "Jamal",
           "Product Name": "Shoes",
+          "Carton No": "5",
           Quantity: 2,
           "Gross Weight": 30.5,
           L: 40,
           W: 30,
           H: 50,
-          "China Tracking": "YT123456789",
-          "Customer Name": "Jamal",
-          Mobile: "01812345678",
+          "Packaging Cost": 150, // নতুন কলাম
+          "Receiving Cost": 50, // নতুন কলাম
+          Note: "Fragile items", // নতুন কলাম
         },
         {
+          Category: "By Air",
+          "China Tracking": "ZTO987654321",
           "Shipping Mark": "KAMAL-02",
-          "Carton No": "1",
+          "Customer Name": "Kamal",
           "Product Name": "Electronics",
+          "Carton No": "1",
           Quantity: 5,
           "Gross Weight": 15.0,
           L: 20,
           W: 20,
           H: 20,
-          "China Tracking": "ZTO987654321",
-          "Customer Name": "Kamal",
-          Mobile: "01912345678",
+          "Packaging Cost": 0,
+          "Receiving Cost": 0,
+          Note: "",
         },
       ];
       fileName = "warehouse_loose_items_template.xlsx";
@@ -115,10 +123,10 @@ export default function UploadExcelModal({
         const calculatedCbm =
           l > 0 && w > 0 && h > 0 ? (l * w * h) / 1000000 : 0;
 
-        let isMaster = true; // ওয়্যারহাউজের জন্য বাই ডিফল্ট সব মাস্টার/লুজ
+        let isMaster = true;
         let parentCartonNo = "";
 
-        // 📦 শুধুমাত্র ব্যাচ পেজ থেকে আপলোড হলে বক্স টাইপ চেক করবে
+        // 📦 ব্যাচ পেজ থেকে আপলোড হলে
         if (batchId) {
           const rawBoxType = String(row["Box Type"] || "").toLowerCase();
           isMaster = rawBoxType !== "sub-box";
@@ -126,20 +134,24 @@ export default function UploadExcelModal({
         }
 
         return {
+          category: row["Category"] || "By Sea", // নতুন ফিল্ড
+          chinaTrackingNo:
+            row["China Tracking"] || row["Tracking Number"] || "",
           shippingMark: row["Shipping Mark"] || "",
+          customerName: row["Customer Name"] || "Unknown",
+          productName: row["Product Name"] || "Various Items",
           cartonNo: String(row["Carton No"] || ""),
-          productName: row["Product Name"] || "",
-          quantity: row["Quantity"] || 1,
-          grossWeight: row["Gross Weight"] || 0,
+          quantity: Number(row["Quantity"]) || 1,
+          grossWeight: Number(row["Gross Weight"]) || 0,
           length: l,
           width: w,
           height: h,
           cbm: calculatedCbm.toFixed(3),
-          chinaTrackingNo:
-            row["China Tracking"] || row["Tracking Number"] || "",
-          customerName: row["Customer Name"] || "Unknown",
-          customerMobile: row["Mobile"] || "",
+          packagingCost: Number(row["Packaging Cost"]) || 0, // নতুন ফিল্ড
+          receivingCost: Number(row["Receiving Cost"]) || 0, // নতুন ফিল্ড
+          note: row["Note"] || "", // নতুন ফিল্ড
 
+          // সাব-বক্সের জন্য স্পেশাল ফিল্ড
           isMasterCarton: isMaster,
           parentCartonNo: parentCartonNo,
         };
@@ -159,11 +171,10 @@ export default function UploadExcelModal({
 
     setLoading(true);
     try {
-      // ওয়্যারহাউজের জন্য batchId null হবে, তাই স্ট্যাটাস ম্যানুয়ালি পাঠিয়ে দিচ্ছি
       const payload = {
         shipments: excelData.map((item) => ({
           ...item,
-          status: batchId ? undefined : "Warehouse Received", // ওয়্যারহাউজের জন্য ডিফল্ট স্ট্যাটাস
+          status: batchId ? undefined : "Warehouse Received",
         })),
         batchId: batchId || null,
       };
@@ -185,7 +196,7 @@ export default function UploadExcelModal({
     <div className="fixed-modal-overlay" style={{ zIndex: 1000 }}>
       <div
         className="fixed-modal-content"
-        style={{ maxWidth: "900px", width: "95%" }}
+        style={{ maxWidth: "1000px", width: "95%" }}
       >
         <div
           style={{
@@ -282,7 +293,7 @@ export default function UploadExcelModal({
             <div
               style={{
                 overflowX: "auto",
-                maxHeight: "300px",
+                maxHeight: "350px",
                 border: "1px solid #e2e8f0",
                 borderRadius: "8px",
               }}
@@ -296,12 +307,17 @@ export default function UploadExcelModal({
               >
                 <thead style={{ background: "#003580", color: "white" }}>
                   <tr>
+                    <th style={{ padding: "10px" }}>Category</th>
+                    <th style={{ padding: "10px" }}>Tracking</th>
                     <th style={{ padding: "10px" }}>Mark</th>
+                    <th style={{ padding: "10px" }}>Customer</th>
                     <th style={{ padding: "10px" }}>Carton</th>
                     {batchId && <th style={{ padding: "10px" }}>Type</th>}
                     {batchId && <th style={{ padding: "10px" }}>Parent</th>}
-                    <th style={{ padding: "10px" }}>Weight</th>
+                    <th style={{ padding: "10px" }}>Qty/Wt</th>
                     <th style={{ padding: "10px" }}>CBM</th>
+                    {!batchId && <th style={{ padding: "10px" }}>Costs</th>}
+                    {!batchId && <th style={{ padding: "10px" }}>Note</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -311,14 +327,34 @@ export default function UploadExcelModal({
                       style={{
                         borderBottom: "1px solid #e2e8f0",
                         background: row.isMasterCarton ? "white" : "#f8fafc",
+                        fontSize: "13px",
                       }}
                     >
+                      <td style={{ padding: "10px" }}>
+                        <span
+                          style={{
+                            background: "#e0f2fe",
+                            color: "#0369a1",
+                            padding: "3px 6px",
+                            borderRadius: "4px",
+                            fontWeight: "bold",
+                            fontSize: "11px",
+                          }}
+                        >
+                          {row.category}
+                        </span>
+                      </td>
+                      <td style={{ padding: "10px" }}>
+                        {row.chinaTrackingNo || "-"}
+                      </td>
                       <td style={{ padding: "10px", fontWeight: "bold" }}>
                         {row.shippingMark}
                       </td>
+                      <td style={{ padding: "10px", color: "#475569" }}>
+                        {row.customerName}
+                      </td>
                       <td style={{ padding: "10px" }}>{row.cartonNo}</td>
 
-                      {/* ব্যাচ পেজ হলে Type এবং Parent দেখাবে */}
                       {batchId && (
                         <>
                           <td style={{ padding: "10px" }}>
@@ -354,7 +390,9 @@ export default function UploadExcelModal({
                         </>
                       )}
 
-                      <td style={{ padding: "10px" }}>{row.grossWeight} kg</td>
+                      <td style={{ padding: "10px" }}>
+                        {row.quantity} Pcs / {row.grossWeight} kg
+                      </td>
                       <td
                         style={{
                           padding: "10px",
@@ -364,6 +402,26 @@ export default function UploadExcelModal({
                       >
                         {row.cbm > 0 ? row.cbm : "-"}
                       </td>
+
+                      {!batchId && (
+                        <td style={{ padding: "10px", color: "#475569" }}>
+                          P: ৳{row.packagingCost} <br /> R: ৳{row.receivingCost}
+                        </td>
+                      )}
+
+                      {!batchId && (
+                        <td
+                          style={{
+                            padding: "10px",
+                            maxWidth: "120px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                          title={row.note}
+                        >
+                          {row.note || "-"}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

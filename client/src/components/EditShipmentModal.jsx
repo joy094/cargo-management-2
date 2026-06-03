@@ -11,7 +11,9 @@ export default function EditShipmentModal({
 }) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
+    category: "By Sea",
     shippingMark: "",
+    customerName: "",
     productName: "",
     chinaTrackingNo: "",
     cartonNo: "",
@@ -21,13 +23,18 @@ export default function EditShipmentModal({
     width: 0,
     height: 0,
     cbm: 0,
+    packagingCost: 0,
+    receivingCost: 0,
+    note: "",
     receivedDate: "",
   });
 
   useEffect(() => {
     if (shipment) {
       setFormData({
+        category: shipment.category || "By Sea",
         shippingMark: shipment.shippingMark || "",
+        customerName: shipment.customerName || "",
         productName: shipment.productName || "",
         chinaTrackingNo: shipment.chinaTrackingNo || "",
         cartonNo: shipment.cartonNo || "",
@@ -37,6 +44,9 @@ export default function EditShipmentModal({
         width: shipment.dimensions?.width || 0,
         height: shipment.dimensions?.height || 0,
         cbm: shipment.cbm || 0,
+        packagingCost: shipment.packagingCost || 0,
+        receivingCost: shipment.receivingCost || 0,
+        note: shipment.note || "",
         receivedDate: shipment.receivedDate
           ? shipment.receivedDate.split("T")[0]
           : "",
@@ -61,7 +71,7 @@ export default function EditShipmentModal({
 
   const handleUpdate = async () => {
     if (!formData.shippingMark)
-      return alert("Shipping Mark দেওয়া বাধ্যতামূলক!");
+      return alert("Shipping Mark দেওয়া বাধ্যতামূলক!");
     setLoading(true);
     try {
       await axios.put(`/api/shipments/edit/${shipment._id}`, {
@@ -72,12 +82,12 @@ export default function EditShipmentModal({
           height: formData.height,
         },
       });
-      alert("সফলভাবে আপডেট হয়েছে!");
+      alert("সফলভাবে আপডেট হয়েছে!");
       onSuccess();
       onClose();
     } catch (err) {
       console.error(err);
-      alert("আপডেট করতে সমস্যা হয়েছে।");
+      alert("আপডেট করতে সমস্যা হয়েছে।");
     } finally {
       setLoading(false);
     }
@@ -97,15 +107,27 @@ export default function EditShipmentModal({
         </div>
 
         <div className="modal-body edit-grid">
+          {/* Category Dropdown */}
           <div className="form-group">
-            <label>Shipping Mark *</label>
-            <input
-              type="text"
-              name="shippingMark"
-              value={formData.shippingMark}
+            <label>Category</label>
+            <select
+              name="category"
+              value={formData.category}
               onChange={handleChange}
-            />
+              style={{
+                padding: "10px",
+                borderRadius: "6px",
+                border: "1px solid #cbd5e1",
+                outline: "none",
+              }}
+            >
+              <option value="By Sea">By Sea</option>
+              <option value="By Air">By Air</option>
+              <option value="Hand Carry">Hand Carry</option>
+              <option value="HONG KONG PRODUCT">Hong Kong Product</option>
+            </select>
           </div>
+
           <div className="form-group">
             <label>Tracking Number (China)</label>
             <input
@@ -115,6 +137,29 @@ export default function EditShipmentModal({
               onChange={handleChange}
             />
           </div>
+
+          <div className="form-group">
+            <label>Shipping Mark *</label>
+            <input
+              type="text"
+              name="shippingMark"
+              value={formData.shippingMark}
+              onChange={handleChange}
+              style={{ border: "1px solid #0ea5e9" }}
+            />
+          </div>
+
+          {/* Customer Name */}
+          <div className="form-group">
+            <label>Customer Name</label>
+            <input
+              type="text"
+              name="customerName"
+              value={formData.customerName}
+              onChange={handleChange}
+            />
+          </div>
+
           <div className="form-group">
             <label>Product Name</label>
             <input
@@ -124,6 +169,7 @@ export default function EditShipmentModal({
               onChange={handleChange}
             />
           </div>
+
           <div className="form-group">
             <label>Carton No.</label>
             <input
@@ -133,6 +179,7 @@ export default function EditShipmentModal({
               onChange={handleChange}
             />
           </div>
+
           <div className="form-group">
             <label>Quantity</label>
             <input
@@ -142,12 +189,34 @@ export default function EditShipmentModal({
               onChange={handleChange}
             />
           </div>
+
           <div className="form-group">
             <label>Gross Weight (KG)</label>
             <input
               type="number"
               name="grossWeight"
               value={formData.grossWeight}
+              onChange={handleChange}
+            />
+          </div>
+
+          {/* New Cost Fields */}
+          <div className="form-group">
+            <label>Packaging Cost (৳)</label>
+            <input
+              type="number"
+              name="packagingCost"
+              value={formData.packagingCost}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Receiving Cost (৳)</label>
+            <input
+              type="number"
+              name="receivingCost"
+              value={formData.receivingCost}
               onChange={handleChange}
             />
           </div>
@@ -178,6 +247,7 @@ export default function EditShipmentModal({
               />
             </div>
           </div>
+
           <div className="form-group">
             <label>CBM (Auto)</label>
             <input
@@ -189,6 +259,18 @@ export default function EditShipmentModal({
                 fontWeight: "bold",
                 color: "#0284c7",
               }}
+            />
+          </div>
+
+          {/* Note Field (Full Width) */}
+          <div className="form-group dimensions-group">
+            <label>Note / Remarks</label>
+            <input
+              type="text"
+              name="note"
+              placeholder="Any specific instructions or remarks..."
+              value={formData.note}
+              onChange={handleChange}
             />
           </div>
         </div>
@@ -208,14 +290,14 @@ export default function EditShipmentModal({
       </div>
 
       <style>{`
-        /* ✅ স্ক্রিনের মাঝখানে ভাসিয়ে রাখার CSS */
+        /* ✅ স্ক্রিনের মাঝখানে ভাসিয়ে রাখার CSS */
         .fixed-modal-overlay {
           position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
           background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
           display: flex; justify-content: center; align-items: center; z-index: 9999;
         }
         .fixed-modal-content {
-          background: #fff; width: 90%; max-width: 600px; padding: 25px; border-radius: 16px;
+          background: #fff; width: 90%; max-width: 650px; padding: 25px; border-radius: 16px;
           box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;
           animation: modalFadeIn 0.3s ease-in-out;
         }
@@ -233,7 +315,7 @@ export default function EditShipmentModal({
         .form-group { display: flex; flex-direction: column; gap: 5px; }
         .form-group label { font-size: 12px; font-weight: bold; color: #475569; }
         .form-group input { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; transition: 0.2s; }
-        .form-group input:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1); }
+        .form-group input:focus, .form-group select:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1); }
         .dimensions-group { grid-column: span 2; }
         
         .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; padding-top: 15px; border-top: 2px solid #f1f5f9; }

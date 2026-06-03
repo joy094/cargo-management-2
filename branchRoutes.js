@@ -519,4 +519,24 @@ router.post("/bulk-import", async (req, res) => {
   }
 });
 
+// --- শিপিং মার্ক থেকে কাস্টমারের নাম অটো-ফিল করার জন্য API --- CN warehouse
+// router.get("/customer-map", async (req, res) => {
+//   try {
+//     const branches = await Branch.find().select("shippingMark name"); // আপনার মডেলে নাম যা আছে (name বা branchName)
+
+//     // একটি ডিকশনারি/অবজেক্ট তৈরি করা হচ্ছে: { "SKL-RONY": "Rony", "JAMAL-01": "Jamal" }
+//     const customerMap = {};
+//     branches.forEach((b) => {
+//       if (b.shippingMark) {
+//         // সব বড় হাতের অক্ষরে সেভ করছি যাতে ম্যাচ করতে সুবিধা হয়
+//         customerMap[b.shippingMark.toUpperCase()] = b.name;
+//       }
+//     });
+
+//     res.json({ success: true, customerMap });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
 export default router;
