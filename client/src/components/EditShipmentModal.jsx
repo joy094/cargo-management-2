@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { translateToChinese } from "../utils/translate"; // 🇨🇳 নতুন: ট্রান্সলেট ফাংশন ইম্পোর্ট
 
 export default function EditShipmentModal({
   isOpen,
@@ -15,6 +16,7 @@ export default function EditShipmentModal({
     shippingMark: "",
     customerName: "",
     productName: "",
+    productNameCn: "", // 🇨🇳 নতুন ফিল্ড
     chinaTrackingNo: "",
     cartonNo: "",
     quantity: 1,
@@ -36,6 +38,7 @@ export default function EditShipmentModal({
         shippingMark: shipment.shippingMark || "",
         customerName: shipment.customerName || "",
         productName: shipment.productName || "",
+        productNameCn: shipment.productNameCn || "", // 🇨🇳 ডাটাবেস থেকে রিসিভ করা
         chinaTrackingNo: shipment.chinaTrackingNo || "",
         cartonNo: shipment.cartonNo || "",
         quantity: shipment.quantity || 1,
@@ -47,7 +50,6 @@ export default function EditShipmentModal({
         packagingCost: shipment.packagingCost || 0,
         receivingCost: shipment.receivingCost || 0,
         note: shipment.note || "",
-        // 📅 রিসিভ ডেট সঠিকভাবে ফরম্যাট করে আনা হচ্ছে
         receivedDate: shipment.receivedDate
           ? new Date(shipment.receivedDate).toISOString().split("T")[0]
           : "",
@@ -68,6 +70,16 @@ export default function EditShipmentModal({
       newFormData.cbm = ((l * w * h) / 1000000).toFixed(3);
     }
     setFormData(newFormData);
+  };
+
+  // 🇨🇳 নতুন: প্রোডাক্ট নেম ট্রান্সলেট করার হ্যান্ডলার
+  const handleProductBlur = async (e) => {
+    const text = e.target.value;
+    if (text) {
+      // যদি আগে থেকে কোনো চায়নিজ নাম না থাকে অথবা ইংরেজি নাম পরিবর্তন করা হয়
+      const translatedText = await translateToChinese(text);
+      setFormData((prev) => ({ ...prev, productNameCn: translatedText }));
+    }
   };
 
   const handleUpdate = async () => {
@@ -120,7 +132,6 @@ export default function EditShipmentModal({
               <option value="By Air Mix Box CN">✈️ By Air Mix Box CN </option>
               <option value="By Air HK">✈️ By Air HK</option>
               <option value="By Air Mix Box HK">✈️ By Air Mix Box HK</option>
-
               <option value="Hand Carry">💼 Hand Carry</option>
               <option value="By Sea">🚢 By Sea </option>
               <option value="Other">🚢 Other</option>
@@ -157,15 +168,30 @@ export default function EditShipmentModal({
               onChange={handleChange}
             />
           </div>
+
           <div className="form-group">
-            <label>Product Name 產品名稱</label>
+            <label>Product Name (EN)</label>
             <input
               type="text"
               name="productName"
               value={formData.productName}
               onChange={handleChange}
+              onBlur={handleProductBlur} // 👈 ফোকাস সরালেই ট্রান্সলেট হবে
             />
           </div>
+
+          {/* 🇨🇳 Product Name (Chinese) */}
+          <div className="form-group">
+            <label>Product Name (CN)</label>
+            <input
+              type="text"
+              name="productNameCn"
+              value={formData.productNameCn}
+              onChange={handleChange}
+              style={{ border: "1px solid #10b981", background: "#f0fdf4" }}
+            />
+          </div>
+
           <div className="form-group">
             <label>Quantity</label>
             <input
@@ -185,6 +211,7 @@ export default function EditShipmentModal({
               onChange={handleChange}
             />
           </div>
+
           <div className="form-group dimensions-group">
             <label>Dimensions (L x W x H)</label>
             <div style={{ display: "flex", gap: "10px" }}>
@@ -211,6 +238,7 @@ export default function EditShipmentModal({
               />
             </div>
           </div>
+
           <div className="form-group">
             <label>CBM (Auto)</label>
             <input
@@ -224,6 +252,7 @@ export default function EditShipmentModal({
               }}
             />
           </div>
+
           <div className="form-group">
             <label>Tracking Number (China)</label>
             <input
@@ -254,7 +283,7 @@ export default function EditShipmentModal({
             />
           </div>
 
-          {/* 📅 নতুন: Received Date Field */}
+          {/* 📅 Received Date Field */}
           <div className="form-group">
             <label>Received Date</label>
             <input

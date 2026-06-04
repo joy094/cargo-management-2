@@ -58,6 +58,7 @@ const shipmentSchema = new mongoose.Schema(
     shippingMark: { type: String, required: true },
     cartonNo: { type: String },
     productName: { type: String },
+    productNameCn: { type: String, default: "" }, // 🇨🇳 নতুন ফিল্ড
     quantity: { type: Number, default: 1 },
     grossWeight: { type: Number }, // চায়না থেকে আসা ওজন
     actualWeight: { type: Number }, // অফিসে মাপা ওজন
@@ -118,13 +119,12 @@ const shipmentSchema = new mongoose.Schema(
     billingDate: { type: Date },
     invoiceId: { type: String },
 
-
     // Shipment Schema এর ভেতরে এই ফিল্ডগুলো যোগ করুন
-category: { type: String, default: "By Air" }, // By Sea, By Air, Hand Carry, HONG KONG PRODUCT
-customerName: { type: String }, // অটো-ফিল হওয়া নাম সেভ করার জন্য
-packagingCost: { type: Number, default: 0 },
-receivingCost: { type: Number, default: 0 },
-note: { type: String },
+    category: { type: String, default: "By Air" }, // By Sea, By Air, Hand Carry, HONG KONG PRODUCT
+    customerName: { type: String }, // অটো-ফিল হওয়া নাম সেভ করার জন্য
+    packagingCost: { type: Number, default: 0 },
+    receivingCost: { type: Number, default: 0 },
+    note: { type: String },
   },
   { timestamps: true },
 );

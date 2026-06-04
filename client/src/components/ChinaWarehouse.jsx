@@ -7,6 +7,7 @@ import CanAccess from "./CanAccess";
 import EditShipmentModal from "./EditShipmentModal";
 import Search from "./Search";
 import UploadExcelModal from "./UploadExcelModal";
+import { translateToChinese } from "../utils/translate"; // উপরে ইম্পোর্ট করুন
 
 export default function ChinaWarehouse() {
   const [unassignedItems, setUnassignedItems] = useState([]);
@@ -40,6 +41,7 @@ export default function ChinaWarehouse() {
     shippingMark: "",
     customerName: "",
     productName: "",
+    productNameCn: "", // 🇨🇳 নতুন ফিল্ড
     cartonNo: "",
     quantity: 1,
     grossWeight: "",
@@ -156,12 +158,20 @@ export default function ChinaWarehouse() {
     setFormData(newFormData);
   };
 
+  // 🇨🇳 নতুন: প্রোডাক্ট নেম ট্রান্সলেট করার হ্যান্ডলার
+  const handleProductBlur = async (e) => {
+    const text = e.target.value;
+    if (text && !formData.productNameCn) {
+      const translatedText = await translateToChinese(text);
+      setFormData((prev) => ({ ...prev, productNameCn: translatedText }));
+    }
+  };
+
   // 🚀 নতুন: সিঙ্গেল ফর্ম সেভ করার লজিক
   const handleSingleSave = async () => {
     if (!formData.shippingMark) return alert("Shipping Mark অবশ্যই দিতে হবে!");
     setLoading(true);
     try {
-      // ব্যাকএন্ড bulk-import অ্যারে সাপোর্ট করে, তাই অবজেক্টটিকে অ্যারের ভেতরে পাঠানো হচ্ছে
       await axios.post("/api/shipments/bulk-import", {
         shipments: [{ ...formData, status: "Warehouse Received" }],
         batchId: null,
@@ -453,13 +463,9 @@ export default function ChinaWarehouse() {
               <option value="By Air Mix Box CN">✈️ By Air Mix Box CN </option>
               <option value="By Air HK">✈️ By Air HK</option>
               <option value="By Air Mix Box HK">✈️ By Air Mix Box HK</option>
-
               <option value="Hand Carry">💼 Hand Carry</option>
               <option value="By Sea">🚢 By Sea </option>
-
               <option value="Other">🚢 Other</option>
-              {/* <option value="By Train">By Train</option>
-              <option value="Express">Express Delivery</option> */}
             </select>
           </div>
 
@@ -574,7 +580,6 @@ export default function ChinaWarehouse() {
                 📤 Upload Excel
               </button>
 
-              {/* 🚀 Add Shipment Button (Single Form) */}
               <button
                 className="bulk-toggle-btn"
                 style={{
@@ -661,7 +666,7 @@ export default function ChinaWarehouse() {
                   >
                     <option value="By Air">✈️ By Air CN </option>
                     <option value="By Air Mix Box CN">
-                      ✈️ By Air Mix Box CN{" "}
+                      ✈️ By Air Mix Box CN
                     </option>
                     <option value="By Air HK">✈️ By Air HK</option>
                     <option value="By Air Mix Box HK">
@@ -705,12 +710,28 @@ export default function ChinaWarehouse() {
                 </div>
 
                 <div className="form-group">
-                  <label>Product Name 產品名稱</label>
+                  <label>Product Name (EN)</label>
                   <input
                     type="text"
                     name="productName"
                     value={formData.productName}
                     onChange={handleEntryChange}
+                    onBlur={handleProductBlur} // 👈 ফোকাস সরালেই ট্রান্সলেট হবে
+                  />
+                </div>
+                {/* Product Name (Chinese) */}
+                <div className="form-group">
+                  <label>Product Name (CN)</label>
+                  <input
+                    type="text"
+                    name="productNameCn"
+                    value={formData.productNameCn}
+                    onChange={handleEntryChange}
+                    placeholder="Auto translates..."
+                    style={{
+                      border: "1px solid #10b981",
+                      background: "#f0fdf4",
+                    }}
                   />
                 </div>
 
@@ -916,7 +937,7 @@ export default function ChinaWarehouse() {
                 <th
                   style={{ padding: "12px", borderBottom: "2px solid #e2e8f0" }}
                 >
-                  Product(EN)
+                  Product
                 </th>
                 <th
                   style={{ padding: "12px", borderBottom: "2px solid #e2e8f0" }}
@@ -950,7 +971,11 @@ export default function ChinaWarehouse() {
                   Rcv Cost
                 </th>
 
-                <th>Rcv Date</th>
+                <th
+                  style={{ padding: "12px", borderBottom: "2px solid #e2e8f0" }}
+                >
+                  Rcv Date
+                </th>
                 <th
                   style={{ padding: "12px", borderBottom: "2px solid #e2e8f0" }}
                 >
@@ -970,7 +995,7 @@ export default function ChinaWarehouse() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan="15"
+                    colSpan="16"
                     style={{
                       textAlign: "center",
                       padding: "30px",
@@ -999,7 +1024,7 @@ export default function ChinaWarehouse() {
                         onChange={() => handleSelectBox(s._id)}
                       />
                     </td>
-                    <td>{idx + 1}</td>
+                    <td style={{ padding: "12px" }}>{idx + 1}</td>
 
                     <td style={{ padding: "12px" }}>
                       <span
@@ -1026,14 +1051,26 @@ export default function ChinaWarehouse() {
                       </span>
                     </td>
 
-                    <td style={{ fontWeight: "bold", color: "#0f172a" }}>
+                    <td
+                      style={{
+                        padding: "12px",
+                        fontWeight: "bold",
+                        color: "#0f172a",
+                      }}
+                    >
                       {s.shippingMark}
                     </td>
-                    <td style={{ color: "#475569", fontWeight: "500" }}>
+                    <td
+                      style={{
+                        padding: "12px",
+                        color: "#475569",
+                        fontWeight: "500",
+                      }}
+                    >
                       {s.customerName || "-"}
                     </td>
 
-                    <td>
+                    <td style={{ padding: "12px" }}>
                       <span
                         style={{
                           background: "#f1f5f9",
@@ -1045,12 +1082,29 @@ export default function ChinaWarehouse() {
                         {s.cartonNo || "-"}
                       </span>
                     </td>
-                    <td>{s.productName || "-"}</td>
-                    <td>
+
+                    <td style={{ padding: "12px" }}>
+                      <div style={{ fontWeight: "bold", color: "#0f172a" }}>
+                        {s.productName || "-"}
+                      </div>
+                      {s.productNameCn && (
+                        <div
+                          style={{
+                            fontSize: "11px",
+                            color: "#10b981",
+                            marginTop: "2px",
+                          }}
+                        >
+                          🇨🇳 {s.productNameCn}
+                        </div>
+                      )}
+                    </td>
+
+                    <td style={{ padding: "12px" }}>
                       <strong>{s.quantity || 1}</strong>
                     </td>
 
-                    <td>
+                    <td style={{ padding: "12px" }}>
                       <input
                         type="number"
                         defaultValue={s.grossWeight || 0}
@@ -1065,29 +1119,54 @@ export default function ChinaWarehouse() {
                       />
                     </td>
 
-                    <td>
+                    <td style={{ padding: "12px" }}>
                       <span className="cbm-badge">{s.cbm || 0}</span>
                     </td>
-                    <td>
+                    <td style={{ padding: "12px" }}>
                       <strong>{s.chinaTrackingNo || "-"}</strong>
                     </td>
-                    <td style={{ color: "#ef4444", fontWeight: "bold" }}>
+                    <td
+                      style={{
+                        padding: "12px",
+                        color: "#ef4444",
+                        fontWeight: "bold",
+                      }}
+                    >
                       ¥{s.packagingCost || 0}
                     </td>
-                    <td style={{ color: "#f59e0b", fontWeight: "bold" }}>
+                    <td
+                      style={{
+                        padding: "12px",
+                        color: "#f59e0b",
+                        fontWeight: "bold",
+                      }}
+                    >
                       ¥{s.receivingCost || 0}
                     </td>
 
-                    <td>
-                      <span className="recivedDate">
+                    <td style={{ padding: "12px" }}>
+                      <span
+                        className="recivedDate"
+                        style={{ fontWeight: "bold", color: "#10b981" }}
+                      >
                         {s.receivedDate
-                          ? new Date(s.receivedDate).toLocaleDateString()
+                          ? (() => {
+                              const d = new Date(s.receivedDate);
+                              const day = String(d.getDate()).padStart(2, "0");
+                              const month = String(d.getMonth() + 1).padStart(
+                                2,
+                                "0",
+                              );
+                              const year = d.getFullYear();
+                              return `${day}-${month}-${year}`;
+                            })()
                           : "-"}
                       </span>
                     </td>
 
                     <td
                       style={{
+                        padding: "12px",
                         maxWidth: "150px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
@@ -1097,7 +1176,7 @@ export default function ChinaWarehouse() {
                       {s.note || "-"}
                     </td>
 
-                    <td style={{ textAlign: "center" }}>
+                    <td style={{ padding: "12px", textAlign: "center" }}>
                       <div
                         style={{
                           display: "flex",
@@ -1147,7 +1226,7 @@ export default function ChinaWarehouse() {
               ) : (
                 <tr>
                   <td
-                    colSpan="15"
+                    colSpan="16"
                     style={{
                       textAlign: "center",
                       padding: "30px",

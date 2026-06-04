@@ -287,6 +287,7 @@ router.post("/shipments/bulk-import", async (req, res) => {
         shippingMark: item.shippingMark || "-",
         cartonNo: item.cartonNo || "-",
         productName: item.productName || "Various Items",
+        productNameCn: item.productNameCn || "", // 🇨🇳 চায়না থেকে আসা পণ্যের নাম (চাইনিজ)
         quantity: Number(item.quantity) || 1,
         grossWeight: Number(item.grossWeight) || 0,
         actualWeight: Number(item.grossWeight) || 0,
