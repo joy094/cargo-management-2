@@ -179,7 +179,7 @@ export default function RoleManagement() {
 
               {/* Batch Permissions */}
               <div className="perm-module">
-                <h4>📦 Batch Module</h4>
+                <h4>📦 Batch & CN Warehouse Module</h4>
                 <div className="checkbox-group">
                   {Object.keys(permissions.batch).map((action) => (
                     <label key={`batch-${action}`} className="checkbox-label">

@@ -13,7 +13,7 @@ export default function ChinaWarehouse() {
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 🚀 Customer Mapping & Category Filter
+  // Customer Mapping & Category Filter
   const [customerMap, setCustomerMap] = useState({});
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("All");
 
@@ -23,7 +23,7 @@ export default function ChinaWarehouse() {
   const [isPushing, setIsPushing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // 🔥 Master Box States
+  // Master Box States
   const [masterBoxes, setMasterBoxes] = useState([]);
   const [selectedMasterBox, setSelectedMasterBox] = useState("");
 
@@ -33,8 +33,8 @@ export default function ChinaWarehouse() {
   const [shipmentToEdit, setShipmentToEdit] = useState(null);
   const [isUploadExcelOpen, setIsUploadExcelOpen] = useState(false);
 
-  // 🚀 ডিফল্ট ভ্যালুসহ ইনিশিয়াল রো স্ট্রাকচার
-  const initialRow = {
+  // 🚀 নতুন: সিঙ্গেল ফর্ম ডাটার জন্য Initial State
+  const initialForm = {
     category: "By Sea",
     chinaTrackingNo: "",
     shippingMark: "",
@@ -43,9 +43,9 @@ export default function ChinaWarehouse() {
     cartonNo: "",
     quantity: 1,
     grossWeight: "",
-    length: 0,
-    width: 0,
-    height: 0,
+    length: "",
+    width: "",
+    height: "",
     cbm: 0,
     packagingCost: 0,
     receivingCost: 0,
@@ -53,17 +53,16 @@ export default function ChinaWarehouse() {
     receivedDate: new Date().toISOString().split("T")[0],
   };
 
-  const [newRows, setNewRows] = useState([{ ...initialRow }]);
+  const [formData, setFormData] = useState({ ...initialForm });
 
   useEffect(() => {
     fetchWarehouseData();
     fetchCustomerMap();
   }, []);
 
-  // 🚀 কাস্টমার ম্যাপ ফেচ করা (আপনার ব্যাকএন্ড রাউট অনুযায়ী লিংক নিশ্চিত করুন, যেমন: /api/customer-map)
   const fetchCustomerMap = async () => {
     try {
-      const res = await axios.get("/api/customer-map"); // যদি কাজ না করে তবে /api/branches/customer-map দিন
+      const res = await axios.get("/api/customer-map");
       if (res.data.success) {
         setCustomerMap(res.data.customerMap);
       }
@@ -72,7 +71,6 @@ export default function ChinaWarehouse() {
     }
   };
 
-  // 🚀 আপনার অরিজিনাল /api/unassigned রাউট ফিরিয়ে আনা হয়েছে
   const fetchWarehouseData = async () => {
     setLoading(true);
     try {
@@ -94,14 +92,11 @@ export default function ChinaWarehouse() {
   const safeLower = (str) => (str ? String(str).toLowerCase() : "");
   const lowerSearch = searchTerm.toLowerCase();
 
-  // 🚀 ফিল্টারিং লজিক
   const filteredItems = useMemo(() => {
     let items = unassignedItems;
-
     if (selectedCategoryFilter !== "All") {
       items = items.filter((s) => s.category === selectedCategoryFilter);
     }
-
     return items.filter(
       (s) =>
         safeLower(s.shippingMark).includes(lowerSearch) ||
@@ -135,50 +130,44 @@ export default function ChinaWarehouse() {
     else setSelectedIds([]);
   };
 
-  const handleInputChange = (index, field, value) => {
-    const rows = [...newRows];
-    rows[index][field] = value;
+  // 🚀 নতুন: সিঙ্গেল ইনপুট চেঞ্জ হ্যান্ডলার
+  const handleEntryChange = (e) => {
+    const { name, value } = e.target;
+    let newFormData = { ...formData, [name]: value };
 
-    // ✨ ম্যাজিক অটো-ফিল কাস্টমার নেম লজিক
-    if (field === "shippingMark") {
+    // Customer Name Auto-fill
+    if (name === "shippingMark") {
       const markUpper = value.trim().toUpperCase();
       if (customerMap[markUpper]) {
-        rows[index].customerName = customerMap[markUpper];
+        newFormData.customerName = customerMap[markUpper];
       } else {
-        rows[index].customerName = ""; // কাস্টমার না পাওয়া গেলে খালি থাকবে যেন ম্যানুয়ালি লেখা যায়
+        newFormData.customerName = "";
       }
     }
 
-    if (["length", "width", "height"].includes(field)) {
-      const l = Number(rows[index].length) || 0;
-      const w = Number(rows[index].width) || 0;
-      const h = Number(rows[index].height) || 0;
-      rows[index].cbm = ((l * w * h) / 1000000).toFixed(3);
+    // CBM Calculation
+    if (["length", "width", "height"].includes(name)) {
+      const l = Number(newFormData.length) || 0;
+      const w = Number(newFormData.width) || 0;
+      const h = Number(newFormData.height) || 0;
+      newFormData.cbm = ((l * w * h) / 1000000).toFixed(3);
     }
-    setNewRows(rows);
+
+    setFormData(newFormData);
   };
 
-  const addNewRow = () => {
-    setNewRows([...newRows, { ...initialRow }]);
-  };
-
-  const removeNewRow = (index) => {
-    const rows = [...newRows];
-    rows.splice(index, 1);
-    setNewRows(rows);
-  };
-
-  const handleBulkSave = async () => {
-    if (newRows.some((r) => !r.shippingMark))
-      return alert("Shipping Mark অবশ্যই দিতে হবে!");
+  // 🚀 নতুন: সিঙ্গেল ফর্ম সেভ করার লজিক
+  const handleSingleSave = async () => {
+    if (!formData.shippingMark) return alert("Shipping Mark অবশ্যই দিতে হবে!");
     setLoading(true);
     try {
+      // ব্যাকএন্ড bulk-import অ্যারে সাপোর্ট করে, তাই অবজেক্টটিকে অ্যারের ভেতরে পাঠানো হচ্ছে
       await axios.post("/api/shipments/bulk-import", {
-        shipments: newRows.map((r) => ({ ...r, status: "Warehouse Received" })),
+        shipments: [{ ...formData, status: "Warehouse Received" }],
         batchId: null,
       });
-      setNewRows([{ ...initialRow }]);
-      setShowBulkEntry(false);
+      setFormData({ ...initialForm }); // ফর্ম রিসেট
+      setShowBulkEntry(false); // মোডাল বন্ধ
       fetchWarehouseData();
     } catch (err) {
       alert("Error saving data");
@@ -422,7 +411,6 @@ export default function ChinaWarehouse() {
           boxShadow: "0 4px 15px rgba(0,0,0,0.02)",
         }}
       >
-        {/* 🛠️ Action Toolbar */}
         <div
           className="toolbar"
           style={{
@@ -461,10 +449,17 @@ export default function ChinaWarehouse() {
               }}
             >
               <option value="All">🌍 All Categories</option>
-              <option value="By Sea">🚢 By Sea</option>
-              <option value="By Air">✈️ By Air</option>
+              <option value="By Air">✈️ By Air CN </option>
+              <option value="By Air Mix Box CN">✈️ By Air Mix Box CN </option>
+              <option value="By Air HK">✈️ By Air HK</option>
+              <option value="By Air Mix Box HK">✈️ By Air Mix Box HK</option>
+
               <option value="Hand Carry">💼 Hand Carry</option>
-              <option value="HONG KONG PRODUCT">🇭🇰 Hong Kong Product</option>
+              <option value="By Sea">🚢 By Sea </option>
+
+              <option value="Other">🚢 Other</option>
+              {/* <option value="By Train">By Train</option>
+              <option value="Express">Express Delivery</option> */}
             </select>
           </div>
 
@@ -578,10 +573,12 @@ export default function ChinaWarehouse() {
               >
                 📤 Upload Excel
               </button>
+
+              {/* 🚀 Add Shipment Button (Single Form) */}
               <button
-                className={`bulk-toggle-btn ${showBulkEntry ? "active" : ""}`}
+                className="bulk-toggle-btn"
                 style={{
-                  background: showBulkEntry ? "#ef4444" : "#3b82f6",
+                  background: "#3b82f6",
                   color: "white",
                   border: "none",
                   padding: "10px 18px",
@@ -589,9 +586,9 @@ export default function ChinaWarehouse() {
                   fontWeight: "bold",
                   cursor: "pointer",
                 }}
-                onClick={() => setShowBulkEntry(!showBulkEntry)}
+                onClick={() => setShowBulkEntry(true)}
               >
-                {showBulkEntry ? "✖ Close Entry" : "📥  Entry"}
+                📥 Entry
               </button>
 
               {selectedIds.length > 0 && (
@@ -615,316 +612,246 @@ export default function ChinaWarehouse() {
           </div>
         </div>
 
-        {/* 📥 Quick Bulk Entry Panel */}
+        {/* 📥 🚀 নতুন আপডেট: এডিট মোডালের মতো সিঙ্গেল এন্ট্রি ফর্ম */}
         {showBulkEntry && (
-          <div
-            className="bulk-entry-panel"
-            style={{
-              padding: "20px",
-              background: "#f0f9ff",
-              borderRadius: "10px",
-              border: "1px solid #bae6fd",
-              marginBottom: "20px",
-            }}
-          >
-            <h3 style={{ margin: "0 0 15px", color: "#0369a1" }}>
-              📥 Add Shipments
-            </h3>
+          <div className="fixed-modal-overlay">
             <div
-              className="table-scroll-wrapper"
-              style={{ overflowX: "auto", paddingBottom: "10px" }}
+              className="fixed-modal-content"
+              style={{ maxWidth: "650px", width: "95%" }}
             >
-              <table
-                className="bulk-table"
+              <div
+                className="modal-header"
                 style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  whiteSpace: "nowrap",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "20px",
+                  borderBottom: "2px solid #f1f5f9",
+                  paddingBottom: "15px",
                 }}
               >
-                <thead>
-                  <tr
-                    style={{
-                      background: "#cbd5e1",
-                      textAlign: "left",
-                      fontSize: "13px",
-                    }}
+                <h2 style={{ margin: 0, color: "#0369a1", fontSize: "20px" }}>
+                  📥 Add New Packaging
+                </h2>
+                <button
+                  onClick={() => {
+                    setFormData({ ...initialForm });
+                    setShowBulkEntry(false);
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    fontSize: "24px",
+                    cursor: "pointer",
+                    color: "#ef4444",
+                    fontWeight: "bold",
+                  }}
+                >
+                  ✖
+                </button>
+              </div>
+
+              <div className="modal-body edit-grid">
+                <div className="form-group">
+                  <label>Category</label>
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleEntryChange}
                   >
-                    <th style={{ padding: "8px" }}>Category</th>
-                    <th style={{ padding: "8px" }}>Tracking(CN)</th>
-                    <th style={{ padding: "8px" }}>Mark*</th>
-                    <th style={{ padding: "8px" }}>Customer Name</th>
-                    <th style={{ padding: "8px" }}>Product</th>
-                    <th style={{ padding: "8px" }}>Carton No</th>
-                    <th style={{ padding: "8px" }}>Qty</th>
-                    <th style={{ padding: "8px" }}>Wt(KG)</th>
-                    <th style={{ padding: "8px" }}>L</th>
-                    <th style={{ padding: "8px" }}>W</th>
-                    <th style={{ padding: "8px" }}>H</th>
-                    <th style={{ padding: "8px" }}>CBM</th>
-                    <th style={{ padding: "8px" }}>Pkg Cost</th>
-                    <th style={{ padding: "8px" }}>Rcv Cost</th>
-                    <th style={{ padding: "8px" }}>Note</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {newRows.map((row, index) => (
-                    <tr key={index}>
-                      <td style={{ padding: "4px" }}>
-                        <select
-                          value={row.category}
-                          onChange={(e) =>
-                            handleInputChange(index, "category", e.target.value)
-                          }
-                          className="compact-input"
-                          style={{ width: "110px" }}
-                        >
-                          <option value="By Sea">By Sea</option>
-                          <option value="By Air">By Air</option>
-                          <option value="Hand Carry">Hand Carry</option>
-                          <option value="HONG KONG PRODUCT">
-                            Hong Kong Product
-                          </option>
-                        </select>
-                      </td>
-                      <td style={{ padding: "4px" }}>
-                        <input
-                          type="text"
-                          value={row.chinaTrackingNo}
-                          onChange={(e) =>
-                            handleInputChange(
-                              index,
-                              "chinaTrackingNo",
-                              e.target.value,
-                            )
-                          }
-                          className="compact-input"
-                          style={{ width: "110px" }}
-                        />
-                      </td>
-                      <td style={{ padding: "4px" }}>
-                        <input
-                          type="text"
-                          value={row.shippingMark}
-                          onChange={(e) =>
-                            handleInputChange(
-                              index,
-                              "shippingMark",
-                              e.target.value,
-                            )
-                          }
-                          className="compact-input"
-                          style={{
-                            width: "100px",
-                            border: "1px solid #0ea5e9",
-                          }}
-                        />
-                      </td>
-                      <td style={{ padding: "4px" }}>
-                        <input
-                          type="text"
-                          value={row.customerName}
-                          onChange={(e) =>
-                            handleInputChange(
-                              index,
-                              "customerName",
-                              e.target.value,
-                            )
-                          }
-                          className="compact-input"
-                          style={{ width: "110px" }}
-                          placeholder="Manual/Auto"
-                        />
-                      </td>
-                      <td style={{ padding: "4px" }}>
-                        <input
-                          type="text"
-                          value={row.productName}
-                          onChange={(e) =>
-                            handleInputChange(
-                              index,
-                              "productName",
-                              e.target.value,
-                            )
-                          }
-                          className="compact-input"
-                          style={{ width: "100px" }}
-                        />
-                      </td>
-                      <td style={{ padding: "4px" }}>
-                        <input
-                          type="text"
-                          value={row.cartonNo}
-                          onChange={(e) =>
-                            handleInputChange(index, "cartonNo", e.target.value)
-                          }
-                          className="compact-input"
-                          style={{ width: "65px" }}
-                        />
-                      </td>
-                      <td style={{ padding: "4px" }}>
-                        <input
-                          type="number"
-                          value={row.quantity}
-                          onChange={(e) =>
-                            handleInputChange(index, "quantity", e.target.value)
-                          }
-                          className="compact-input"
-                          style={{ width: "50px" }}
-                        />
-                      </td>
-                      <td style={{ padding: "4px" }}>
-                        <input
-                          type="number"
-                          value={row.grossWeight}
-                          onChange={(e) =>
-                            handleInputChange(
-                              index,
-                              "grossWeight",
-                              e.target.value,
-                            )
-                          }
-                          className="compact-input"
-                          style={{ width: "65px" }}
-                        />
-                      </td>
-                      <td style={{ padding: "4px" }}>
-                        <input
-                          type="number"
-                          value={row.length}
-                          onChange={(e) =>
-                            handleInputChange(index, "length", e.target.value)
-                          }
-                          className="compact-input"
-                          style={{ width: "45px" }}
-                        />
-                      </td>
-                      <td style={{ padding: "4px" }}>
-                        <input
-                          type="number"
-                          value={row.width}
-                          onChange={(e) =>
-                            handleInputChange(index, "width", e.target.value)
-                          }
-                          className="compact-input"
-                          style={{ width: "45px" }}
-                        />
-                      </td>
-                      <td style={{ padding: "4px" }}>
-                        <input
-                          type="number"
-                          value={row.height}
-                          onChange={(e) =>
-                            handleInputChange(index, "height", e.target.value)
-                          }
-                          className="compact-input"
-                          style={{ width: "45px" }}
-                        />
-                      </td>
-                      <td
-                        style={{
-                          padding: "4px",
-                          fontWeight: "bold",
-                          textAlign: "center",
-                          fontSize: "12px",
-                        }}
-                      >
-                        {row.cbm}
-                      </td>
-                      <td style={{ padding: "4px" }}>
-                        <input
-                          type="number"
-                          value={row.packagingCost}
-                          onChange={(e) =>
-                            handleInputChange(
-                              index,
-                              "packagingCost",
-                              e.target.value,
-                            )
-                          }
-                          className="compact-input"
-                          style={{ width: "65px" }}
-                        />
-                      </td>
-                      <td style={{ padding: "4px" }}>
-                        <input
-                          type="number"
-                          value={row.receivingCost}
-                          onChange={(e) =>
-                            handleInputChange(
-                              index,
-                              "receivingCost",
-                              e.target.value,
-                            )
-                          }
-                          className="compact-input"
-                          style={{ width: "65px" }}
-                        />
-                      </td>
-                      <td style={{ padding: "4px" }}>
-                        <input
-                          type="text"
-                          value={row.note}
-                          onChange={(e) =>
-                            handleInputChange(index, "note", e.target.value)
-                          }
-                          className="compact-input"
-                          style={{ width: "120px" }}
-                          placeholder="Note..."
-                        />
-                      </td>
-                      <td style={{ padding: "4px" }}>
-                        {newRows.length > 1 && (
-                          <button
-                            onClick={() => removeNewRow(index)}
-                            style={{
-                              background: "#ef4444",
-                              color: "white",
-                              border: "none",
-                              borderRadius: "4px",
-                              padding: "5px 8px",
-                              cursor: "pointer",
-                            }}
-                          >
-                            ✖
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
-              <button
-                onClick={addNewRow}
+                    <option value="By Air">✈️ By Air CN </option>
+                    <option value="By Air Mix Box CN">
+                      ✈️ By Air Mix Box CN{" "}
+                    </option>
+                    <option value="By Air HK">✈️ By Air HK</option>
+                    <option value="By Air Mix Box HK">
+                      ✈️ By Air Mix Box HK
+                    </option>
+                    <option value="By Sea">🚢 By Sea </option>
+                    <option value="Hand Carry">💼 Hand Carry</option>
+                    <option value="Other">🚢 Other</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Shipping Mark *</label>
+                  <input
+                    type="text"
+                    name="shippingMark"
+                    value={formData.shippingMark}
+                    onChange={handleEntryChange}
+                    style={{ border: "1px solid #0ea5e9" }}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Customer Name</label>
+                  <input
+                    type="text"
+                    name="customerName"
+                    value={formData.customerName}
+                    onChange={handleEntryChange}
+                    placeholder="Auto-fills if match found"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Carton No.</label>
+                  <input
+                    type="text"
+                    name="cartonNo"
+                    value={formData.cartonNo}
+                    onChange={handleEntryChange}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Product Name 產品名稱</label>
+                  <input
+                    type="text"
+                    name="productName"
+                    value={formData.productName}
+                    onChange={handleEntryChange}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Quantity</label>
+                  <input
+                    type="number"
+                    name="quantity"
+                    value={formData.quantity}
+                    onChange={handleEntryChange}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Gross Weight (KG)</label>
+                  <input
+                    type="number"
+                    name="grossWeight"
+                    value={formData.grossWeight}
+                    onChange={handleEntryChange}
+                  />
+                </div>
+
+                <div className="form-group dimensions-group">
+                  <label>Dimensions (L x W x H)</label>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <input
+                      type="number"
+                      name="length"
+                      placeholder="L"
+                      value={formData.length}
+                      onChange={handleEntryChange}
+                    />
+                    <input
+                      type="number"
+                      name="width"
+                      placeholder="W"
+                      value={formData.width}
+                      onChange={handleEntryChange}
+                    />
+                    <input
+                      type="number"
+                      name="height"
+                      placeholder="H"
+                      value={formData.height}
+                      onChange={handleEntryChange}
+                    />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>CBM (Auto)</label>
+                  <input
+                    type="text"
+                    value={formData.cbm}
+                    readOnly
+                    style={{
+                      background: "#f1f5f9",
+                      fontWeight: "bold",
+                      color: "#0284c7",
+                    }}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Tracking Number (China)</label>
+                  <input
+                    type="text"
+                    name="chinaTrackingNo"
+                    value={formData.chinaTrackingNo}
+                    onChange={handleEntryChange}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Packaging Cost (৳)</label>
+                  <input
+                    type="number"
+                    name="packagingCost"
+                    value={formData.packagingCost}
+                    onChange={handleEntryChange}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Receiving Cost (৳)</label>
+                  <input
+                    type="number"
+                    name="receivingCost"
+                    value={formData.receivingCost}
+                    onChange={handleEntryChange}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Received Date</label>
+                  <input
+                    type="date"
+                    name="receivedDate"
+                    value={formData.receivedDate}
+                    onChange={handleEntryChange}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Note / Remarks</label>
+                  <input
+                    type="text"
+                    name="note"
+                    value={formData.note}
+                    onChange={handleEntryChange}
+                    placeholder="Any instructions..."
+                  />
+                </div>
+              </div>
+
+              <div
+                className="modal-footer"
                 style={{
-                  background: "#475569",
-                  color: "white",
-                  padding: "8px 15px",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
+                  marginTop: "25px",
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "10px",
+                  borderTop: "2px solid #f1f5f9",
+                  paddingTop: "15px",
                 }}
               >
-                + Add New Row
-              </button>
-              <button
-                onClick={handleBulkSave}
-                style={{
-                  background: "#10b981",
-                  color: "white",
-                  padding: "8px 15px",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                }}
-              >
-                {loading ? "Saving..." : "Save All Items"}
-              </button>
+                <button
+                  onClick={() => {
+                    setFormData({ ...initialForm });
+                    setShowBulkEntry(false);
+                  }}
+                  className="cancel-btn"
+                >
+                  ✖ Cancel
+                </button>
+                <button
+                  onClick={handleSingleSave}
+                  className="save-btn"
+                  disabled={loading}
+                >
+                  {loading ? "Saving..." : "💾 Save "}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -969,11 +896,7 @@ export default function ChinaWarehouse() {
                 >
                   Category
                 </th>
-                <th
-                  style={{ padding: "12px", borderBottom: "2px solid #e2e8f0" }}
-                >
-                  Tracking
-                </th>
+
                 <th
                   style={{ padding: "12px", borderBottom: "2px solid #e2e8f0" }}
                 >
@@ -984,15 +907,16 @@ export default function ChinaWarehouse() {
                 >
                   Customer
                 </th>
-                <th
-                  style={{ padding: "12px", borderBottom: "2px solid #e2e8f0" }}
-                >
-                  Product
-                </th>
+
                 <th
                   style={{ padding: "12px", borderBottom: "2px solid #e2e8f0" }}
                 >
                   Carton No
+                </th>
+                <th
+                  style={{ padding: "12px", borderBottom: "2px solid #e2e8f0" }}
+                >
+                  Product(EN)
                 </th>
                 <th
                   style={{ padding: "12px", borderBottom: "2px solid #e2e8f0" }}
@@ -1009,6 +933,12 @@ export default function ChinaWarehouse() {
                 >
                   CBM
                 </th>
+
+                <th
+                  style={{ padding: "12px", borderBottom: "2px solid #e2e8f0" }}
+                >
+                  Tracking
+                </th>
                 <th
                   style={{ padding: "12px", borderBottom: "2px solid #e2e8f0" }}
                 >
@@ -1019,6 +949,8 @@ export default function ChinaWarehouse() {
                 >
                   Rcv Cost
                 </th>
+
+                <th>Rcv Date</th>
                 <th
                   style={{ padding: "12px", borderBottom: "2px solid #e2e8f0" }}
                 >
@@ -1094,16 +1026,13 @@ export default function ChinaWarehouse() {
                       </span>
                     </td>
 
-                    <td>
-                      <strong>{s.chinaTrackingNo || "-"}</strong>
-                    </td>
                     <td style={{ fontWeight: "bold", color: "#0f172a" }}>
                       {s.shippingMark}
                     </td>
                     <td style={{ color: "#475569", fontWeight: "500" }}>
                       {s.customerName || "-"}
                     </td>
-                    <td>{s.productName || "-"}</td>
+
                     <td>
                       <span
                         style={{
@@ -1116,6 +1045,7 @@ export default function ChinaWarehouse() {
                         {s.cartonNo || "-"}
                       </span>
                     </td>
+                    <td>{s.productName || "-"}</td>
                     <td>
                       <strong>{s.quantity || 1}</strong>
                     </td>
@@ -1138,11 +1068,22 @@ export default function ChinaWarehouse() {
                     <td>
                       <span className="cbm-badge">{s.cbm || 0}</span>
                     </td>
+                    <td>
+                      <strong>{s.chinaTrackingNo || "-"}</strong>
+                    </td>
                     <td style={{ color: "#ef4444", fontWeight: "bold" }}>
                       ¥{s.packagingCost || 0}
                     </td>
                     <td style={{ color: "#f59e0b", fontWeight: "bold" }}>
                       ¥{s.receivingCost || 0}
+                    </td>
+
+                    <td>
+                      <span className="recivedDate">
+                        {s.receivedDate
+                          ? new Date(s.receivedDate).toLocaleDateString()
+                          : "-"}
+                      </span>
                     </td>
 
                     <td
@@ -1240,13 +1181,23 @@ export default function ChinaWarehouse() {
 
       <style>{`
         .row-selected { background-color: #eff6ff !important; }
-        .input-editable:focus { border-color: #0ea5e9 !important; outline: none; }
         .cbm-badge { background: #f3e8ff; color: #7e22ce; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
-        .compact-input { padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; outline: none; box-sizing: border-box; }
-        .compact-input:focus { border-color: #0ea5e9; }
-        .table-responsive::-webkit-scrollbar, .table-scroll-wrapper::-webkit-scrollbar { height: 8px; }
-        .table-responsive::-webkit-scrollbar-thumb, .table-scroll-wrapper::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .table-responsive::-webkit-scrollbar-track, .table-scroll-wrapper::-webkit-scrollbar-track { background: #f1f5f9; }
+        .table-responsive::-webkit-scrollbar { height: 8px; }
+        .table-responsive::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .table-responsive::-webkit-scrollbar-track { background: #f1f5f9; }
+
+        /* 🔥 নতুন: ফর্ম মোডালের জন্য CSS */
+        .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group label { font-size: 12px; font-weight: bold; color: #475569; }
+        .form-group input, .form-group select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; transition: 0.2s; width: 100%; box-sizing: border-box; }
+        .form-group input:focus, .form-group select:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1); }
+        .dimensions-group { grid-column: span 2; }
+        .cancel-btn { background: #f1f5f9; color: #475569; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .cancel-btn:hover { background: #e2e8f0; color: #0f172a; }
+        .save-btn { background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .save-btn:hover { background: #059669; }
+        .save-btn:disabled { background: #94a3b8; cursor: not-allowed; }
       `}</style>
     </div>
   );

@@ -407,7 +407,7 @@ const App = () => (
       <Route
         path="/china-warehouse"
         element={
-          <ProtectedRoute module="shipment" action="view">
+          <ProtectedRoute module="batch" action="view">
             <ChinaWarehouse />
           </ProtectedRoute>
         }

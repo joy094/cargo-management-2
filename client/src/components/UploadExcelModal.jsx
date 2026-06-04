@@ -1,7 +1,5 @@
 // src/components/UploadExcelModal.jsx
 
-// src/components/UploadExcelModal.jsx
-
 import React, { useState } from "react";
 import * as XLSX from "xlsx";
 import axios from "axios";
@@ -22,10 +20,14 @@ export default function UploadExcelModal({
     let templateData;
     let fileName;
 
+    // আজকের তারিখ বের করে টেমপ্লেটে দেওয়ার জন্য
+    const today = new Date().toISOString().split("T")[0];
+
     if (batchId) {
-      // 📦 ব্যাচ পেজের জন্য মাস্টার/সাব-বক্স টেমপ্লেট (অপরিবর্তিত)
+      // 📦 ব্যাচ পেজের জন্য মাস্টার/সাব-বক্স টেমপ্লেট
       templateData = [
         {
+          "Received Date": today, // 📅 নতুন কলাম
           "Shipping Mark": "SKL-RONY",
           "Carton No": "100",
           "Box Type": "Master",
@@ -41,6 +43,7 @@ export default function UploadExcelModal({
           Mobile: "01712345678",
         },
         {
+          "Received Date": today,
           "Shipping Mark": "SKL-RONY",
           "Carton No": "100-1",
           "Box Type": "Sub-box",
@@ -58,10 +61,11 @@ export default function UploadExcelModal({
       ];
       fileName = "batch_master_sub_template.xlsx";
     } else {
-      // 🏠 ওয়্যারহাউজের জন্য নতুন আপডেট করা লুজ মাল টেমপ্লেট
+      // 🏠 ওয়্যারহাউজের জন্য লুজ মাল টেমপ্লেট
       templateData = [
         {
-          Category: "By Sea", // নতুন কলাম
+          Category: "By Sea",
+          "Received Date": today, // 📅 নতুন কলাম
           "China Tracking": "YT123456789",
           "Shipping Mark": "JAMAL-01",
           "Customer Name": "Jamal",
@@ -72,12 +76,13 @@ export default function UploadExcelModal({
           L: 40,
           W: 30,
           H: 50,
-          "Packaging Cost": 150, // নতুন কলাম
-          "Receiving Cost": 50, // নতুন কলাম
-          Note: "Fragile items", // নতুন কলাম
+          "Packaging Cost": 150,
+          "Receiving Cost": 50,
+          Note: "Fragile items",
         },
         {
           Category: "By Air",
+          "Received Date": today,
           "China Tracking": "ZTO987654321",
           "Shipping Mark": "KAMAL-02",
           "Customer Name": "Kamal",
@@ -133,8 +138,20 @@ export default function UploadExcelModal({
           parentCartonNo = String(row["Parent Carton No"] || "");
         }
 
+        // 📅 এক্সেলে ডেট থাকলে নিবে, না থাকলে আজকের ডেট বসিয়ে দিবে (Format: YYYY-MM-DD)
+        const defaultDate = new Date().toISOString().split("T")[0];
+
+        // এক্সেল সিরিয়াল ডেট ফরম্যাট ফিক্স করার ছোট লজিক (যদি ক্লায়েন্ট ডেট ফরম্যাট ভুল দেয়)
+        let parsedDate = row["Received Date"] || defaultDate;
+        if (typeof parsedDate === "number") {
+          // Excel Serial Date Conversion
+          parsedDate = new Date(Math.round((parsedDate - 25569) * 86400 * 1000))
+            .toISOString()
+            .split("T")[0];
+        }
+
         return {
-          category: row["Category"] || "By Sea", // নতুন ফিল্ড
+          category: row["Category"] || "By Sea",
           chinaTrackingNo:
             row["China Tracking"] || row["Tracking Number"] || "",
           shippingMark: row["Shipping Mark"] || "",
@@ -147,11 +164,11 @@ export default function UploadExcelModal({
           width: w,
           height: h,
           cbm: calculatedCbm.toFixed(3),
-          packagingCost: Number(row["Packaging Cost"]) || 0, // নতুন ফিল্ড
-          receivingCost: Number(row["Receiving Cost"]) || 0, // নতুন ফিল্ড
-          note: row["Note"] || "", // নতুন ফিল্ড
+          packagingCost: Number(row["Packaging Cost"]) || 0,
+          receivingCost: Number(row["Receiving Cost"]) || 0,
+          note: row["Note"] || "",
+          receivedDate: parsedDate, // 📅 নতুন ফিল্ড
 
-          // সাব-বক্সের জন্য স্পেশাল ফিল্ড
           isMasterCarton: isMaster,
           parentCartonNo: parentCartonNo,
         };
@@ -196,7 +213,7 @@ export default function UploadExcelModal({
     <div className="fixed-modal-overlay" style={{ zIndex: 1000 }}>
       <div
         className="fixed-modal-content"
-        style={{ maxWidth: "1000px", width: "95%" }}
+        style={{ maxWidth: "1050px", width: "95%" }}
       >
         <div
           style={{
@@ -216,9 +233,10 @@ export default function UploadExcelModal({
             style={{
               background: "none",
               border: "none",
-              fontSize: "20px",
+              fontSize: "24px",
               cursor: "pointer",
               color: "#ef4444",
+              fontWeight: "bold",
             }}
           >
             ✖
@@ -250,7 +268,7 @@ export default function UploadExcelModal({
               fontWeight: "bold",
             }}
           >
-            📥 Download {batchId ? "Master/Sub" : "Simple"} Format
+            📥 Download {batchId ? "Master/Sub" : "Warehouse"} Format
           </button>
         </div>
 
@@ -308,15 +326,14 @@ export default function UploadExcelModal({
                 <thead style={{ background: "#003580", color: "white" }}>
                   <tr>
                     <th style={{ padding: "10px" }}>Category</th>
-                    <th style={{ padding: "10px" }}>Tracking</th>
+                    <th style={{ padding: "10px" }}>Rcv Date</th>{" "}
+                    {/* 📅 নতুন কলাম */}
                     <th style={{ padding: "10px" }}>Mark</th>
-                    <th style={{ padding: "10px" }}>Customer</th>
                     <th style={{ padding: "10px" }}>Carton</th>
                     {batchId && <th style={{ padding: "10px" }}>Type</th>}
                     {batchId && <th style={{ padding: "10px" }}>Parent</th>}
                     <th style={{ padding: "10px" }}>Qty/Wt</th>
                     <th style={{ padding: "10px" }}>CBM</th>
-                    {!batchId && <th style={{ padding: "10px" }}>Costs</th>}
                     {!batchId && <th style={{ padding: "10px" }}>Note</th>}
                   </tr>
                 </thead>
@@ -344,17 +361,20 @@ export default function UploadExcelModal({
                           {row.category}
                         </span>
                       </td>
-                      <td style={{ padding: "10px" }}>
-                        {row.chinaTrackingNo || "-"}
-                      </td>
+                      <td
+                        style={{
+                          padding: "10px",
+                          fontWeight: "bold",
+                          color: "#10b981",
+                        }}
+                      >
+                        {row.receivedDate}
+                      </td>{" "}
+                      {/* 📅 রিসিভ ডেট */}
                       <td style={{ padding: "10px", fontWeight: "bold" }}>
                         {row.shippingMark}
                       </td>
-                      <td style={{ padding: "10px", color: "#475569" }}>
-                        {row.customerName}
-                      </td>
                       <td style={{ padding: "10px" }}>{row.cartonNo}</td>
-
                       {batchId && (
                         <>
                           <td style={{ padding: "10px" }}>
@@ -389,7 +409,6 @@ export default function UploadExcelModal({
                           </td>
                         </>
                       )}
-
                       <td style={{ padding: "10px" }}>
                         {row.quantity} Pcs / {row.grossWeight} kg
                       </td>
@@ -402,13 +421,6 @@ export default function UploadExcelModal({
                       >
                         {row.cbm > 0 ? row.cbm : "-"}
                       </td>
-
-                      {!batchId && (
-                        <td style={{ padding: "10px", color: "#475569" }}>
-                          P: ৳{row.packagingCost} <br /> R: ৳{row.receivingCost}
-                        </td>
-                      )}
-
                       {!batchId && (
                         <td
                           style={{
