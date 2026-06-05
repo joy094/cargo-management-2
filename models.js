@@ -124,6 +124,9 @@ const shipmentSchema = new mongoose.Schema(
     customerName: { type: String }, // অটো-ফিল হওয়া নাম সেভ করার জন্য
     packagingCost: { type: Number, default: 0 },
     receivingCost: { type: Number, default: 0 },
+    // 🇧🇩 🔥 এই দুটি নতুন যোগ করুন (ইনভয়েস/বাংলাদেশের এন্ট্রির জন্য)
+    invoicePackagingCost: { type: Number, default: 0 },
+    invoiceReceivingCost: { type: Number, default: 0 },
     note: { type: String },
   },
   { timestamps: true },

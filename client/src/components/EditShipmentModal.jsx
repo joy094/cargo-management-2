@@ -264,7 +264,7 @@ export default function EditShipmentModal({
           </div>
 
           <div className="form-group">
-            <label>Packaging Cost (৳)</label>
+            <label>Packaging Cost (¥)</label>
             <input
               type="number"
               name="packagingCost"
@@ -274,7 +274,7 @@ export default function EditShipmentModal({
           </div>
 
           <div className="form-group">
-            <label>Receiving Cost (৳)</label>
+            <label>Receiving Cost (¥)</label>
             <input
               type="number"
               name="receivingCost"

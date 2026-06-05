@@ -1,3 +1,5 @@
+//src/components/InvoicePrintModal.jsx
+
 import React from "react";
 
 // 🌟 টাকাকে কথায় (Words) রূপান্তর করার ফাংশন (কম্পোনেন্টের বাইরে)
@@ -270,6 +272,26 @@ export default function InvoicePrintModal({
                       <td>Transport / Other Cost</td>
                       <td className="right">
                         + ৳ {(invoiceData.transportCost || 0).toLocaleString()}
+                      </td>
+                    </tr>
+                  )}
+
+                  {/* 🔥 নতুন: Receiving Cost */}
+                  {invoiceData.receivingCost > 0 && (
+                    <tr>
+                      <td>Receiving Cost</td>
+                      <td className="right">
+                        + ৳ {(invoiceData.receivingCost || 0).toLocaleString()}
+                      </td>
+                    </tr>
+                  )}
+
+                  {/* 🔥 নতুন: Packaging Cost */}
+                  {invoiceData.packagingCost > 0 && (
+                    <tr>
+                      <td>Packaging Cost</td>
+                      <td className="right">
+                        + ৳ {(invoiceData.packagingCost || 0).toLocaleString()}
                       </td>
                     </tr>
                   )}

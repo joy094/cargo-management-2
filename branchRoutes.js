@@ -29,8 +29,15 @@ router.get("/pending/:shippingMark", async (req, res) => {
 // ✅ ২. আইটেম অনুযায়ী বিল ইনপুট (রেট, টোটাল, ট্রান্সপোর্ট ও ডিসকাউন্ট সেভ করা)
 router.post("/generate-invoice", async (req, res) => {
   try {
-    // 🔥 req.body থেকে transportBill এবং discount রিসিভ করা হলো
-    const { items, invoiceTotal, discount, transportBill } = req.body;
+    // 🔥 req.body থেকে transportBill, discount এর পাশাপাশি নতুন দুটি কস্ট রিসিভ করা হলো
+    const {
+      items,
+      invoiceTotal,
+      discount,
+      transportBill,
+      receivingCost,
+      packagingCost,
+    } = req.body;
     const invoiceId = `INV-${Date.now()}`;
 
     // ফ্রন্টএন্ড থেকে আসা আইটেমগুলোর রেট ও ইনভয়েস লেভেলের ডাটা আপডেট করা
@@ -41,8 +48,10 @@ router.post("/generate-invoice", async (req, res) => {
         isBilled: true,
         billingDate: new Date(),
         invoiceId: invoiceId,
-        discount: discount || 0, // 🔥 ইনভয়েসের মোট ডিসকাউন্ট আইটেমে সেভ হচ্ছে
-        transportBill: transportBill || 0, // 🔥 ট্রান্সপোর্ট বিল আইটেমে সেভ হচ্ছে
+        discount: discount || 0, // ইনভয়েসের মোট ডিসকাউন্ট আইটেমে সেভ হচ্ছে
+        transportBill: transportBill || 0, // ট্রান্সপোর্ট বিল আইটেমে সেভ হচ্ছে
+        invoiceReceivingCost: receivingCost || 0, // 🔥 BDT কস্ট আলাদা নামে সেভ হবে
+        invoicePackagingCost: packagingCost || 0, // 🔥 BDT কস্ট আলাদা নামে সেভ হবে
       });
     });
 
@@ -85,6 +94,7 @@ router.get("/summary/:shippingMark", async (req, res) => {
     }
 
     // ৩. Shipment থেকে টোটাল বিল, ওজন এবং বক্সের হিসাব
+    // ৩. Shipment থেকে টোটাল বিল, ওজন এবং বক্সের হিসাব (সঠিক লজিক)
     const stats = await Shipment.aggregate([
       {
         $match: {
@@ -92,16 +102,41 @@ router.get("/summary/:shippingMark", async (req, res) => {
           isMasterCarton: { $ne: true },
         },
       },
+      // প্রথম ধাপ: ইনভয়েস আইডি অনুযায়ী গ্রুপ করে খরচগুলো একবার করে নেওয়া
+      {
+        $group: {
+          _id: "$invoiceId",
+          transportBill: { $first: { $ifNull: ["$transportBill", 0] } },
+          receivingCost: { $first: { $ifNull: ["$invoiceReceivingCost", 0] } },
+          packagingCost: { $first: { $ifNull: ["$invoicePackagingCost", 0] } },
+
+          totalBillSum: { $sum: { $ifNull: ["$totalBill", 0] } },
+          totalWeight: {
+            $sum: { $toDouble: { $ifNull: ["$actualWeight", "$grossWeight"] } },
+          },
+          isBilled: { $first: "$isBilled" },
+        },
+      },
+      // দ্বিতীয় ধাপ: সব ইনভয়েসের টোটাল যোগ করা
       {
         $group: {
           _id: null,
           totalShipments: { $sum: 1 },
-          totalWeight: {
-            $sum: { $toDouble: { $ifNull: ["$actualWeight", "$grossWeight"] } },
-          },
+          totalWeight: { $sum: "$totalWeight" },
           totalBilled: {
             $sum: {
-              $cond: [{ $eq: ["$isBilled", true] }, "$totalBill", 0],
+              $cond: [
+                { $eq: ["$isBilled", true] },
+                {
+                  $add: [
+                    "$totalBillSum",
+                    "$transportBill",
+                    "$receivingCost",
+                    "$packagingCost",
+                  ],
+                },
+                0,
+              ],
             },
           },
         },
@@ -314,7 +349,6 @@ router.delete("/:id", async (req, res) => {
 // ==========================================
 // 📦 Shipment & Invoice API Routes
 // ==========================================
-
 // ✅ ইনভয়েস হিস্ট্রি ফেচ করা (সব মার্ক একসাথে)
 router.get("/invoice-history/:shippingMark", async (req, res) => {
   try {
@@ -327,7 +361,7 @@ router.get("/invoice-history/:shippingMark", async (req, res) => {
       $or: [{ shippingMark: searchRegex }, { shippingMarks: searchRegex }],
     });
 
-    let allMarksToSearch = [requestedMark]; // Aggregation এ স্ট্রিং বা রেজেক্স দুটিই কাজ করে, তবে বেস্ট হলো স্ট্রিং পাঠানো।
+    let allMarksToSearch = [requestedMark];
     if (branch && branch.shippingMarks && branch.shippingMarks.length > 0) {
       allMarksToSearch = branch.shippingMarks;
     }
@@ -361,8 +395,17 @@ router.get("/invoice-history/:shippingMark", async (req, res) => {
         $group: {
           _id: "$invoiceId",
           date: { $first: "$billingDate" },
-          transportBill: { $first: { $ifNull: ["$transportBill", 0] } }, // 🔥 ডাটাবেস থেকে ট্রান্সপোর্ট বিল রিড করা হলো
-          discount: { $first: { $ifNull: ["$discount", 0] } }, // 🔥 ডাটাবেস থেকে ডিসকাউন্ট রিড করা হলো
+          transportBill: { $first: { $ifNull: ["$transportBill", 0] } },
+          discount: { $first: { $ifNull: ["$discount", 0] } },
+
+          // 🔥 নতুন: BDT রিসিভিং এবং প্যাকেজিং কস্ট ডাটাবেস থেকে রিড করা হলো
+          invoiceReceivingCost: {
+            $first: { $ifNull: ["$invoiceReceivingCost", 0] },
+          },
+          invoicePackagingCost: {
+            $first: { $ifNull: ["$invoicePackagingCost", 0] },
+          },
+
           totalAmount: { $sum: "$totalBill" },
           totalWeight: { $sum: { $toDouble: "$grossWeight" } },
           items: {
@@ -375,8 +418,7 @@ router.get("/invoice-history/:shippingMark", async (req, res) => {
           },
         },
       },
-      { $sort: { date: -1 } },
-      { $sort: { date: -1 } },
+      { $sort: { date: -1 } }, // একটি সর্ট রেখে বাকিটা রিমুভ করা হয়েছে
     ]);
 
     res.status(200).json({ success: true, history });

@@ -33,7 +33,11 @@ export default function BranchProfile() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [globalRate, setGlobalRate] = useState("");
   const [discount, setDiscount] = useState(0);
+
   const [transportCost, setTransportCost] = useState(0);
+  // 🔥 নতুন: Receiving ও Packaging Cost এর জন্য স্টেট
+  const [receivingCost, setReceivingCost] = useState(0);
+  const [packagingCost, setPackagingCost] = useState(0);
 
   // Modal States
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
@@ -341,11 +345,15 @@ export default function BranchProfile() {
     );
     if (itemsToBill.length === 0)
       return alert("নতুন কোনো আইটেমে রেট বসানো হয়নি!");
-
     setSubmitting(true);
     try {
       const tCost = parseFloat(transportCost) || 0;
+      const rCost = parseFloat(receivingCost) || 0; // 🔥 নতুন
+      const pCost = parseFloat(packagingCost) || 0; // 🔥 নতুন
       const dCost = parseFloat(discount) || 0;
+
+      // 🔥 নতুন: মোট হিসাব
+      const finalTotal = totalBillAmount - dCost + tCost + rCost + pCost;
 
       const payload = {
         shippingMark: activeMark,
@@ -354,9 +362,11 @@ export default function BranchProfile() {
           rate: item.rate,
           total: item.total,
         })),
-        transportBill: tCost, // 🔥 ফিক্সড: ব্যাকএন্ডের expected নাম transportBill এ রিনেম করা হয়েছে
+        transportBill: tCost,
+        receivingCost: rCost, // 🔥 ব্যাকএন্ডে পাঠানোর জন্য
+        packagingCost: pCost, // 🔥 ব্যাকএন্ডে পাঠানোর জন্য
         discount: dCost,
-        invoiceTotal: totalBillAmount - dCost + tCost,
+        invoiceTotal: finalTotal, // আপডেট করা টোটাল
       };
 
       const res = await axios.post("/api/branches/generate-invoice", payload);
@@ -373,14 +383,20 @@ export default function BranchProfile() {
           subTotal: totalBillAmount,
           discount: dCost,
           transportCost: tCost,
-          netPayable: totalBillAmount - dCost + tCost,
+          receivingCost: rCost, // 🔥 প্রিন্ট মোডালের জন্য
+          packagingCost: pCost, // 🔥 প্রিন্ট মোডালের জন্য
+          netPayable: finalTotal,
           previousDue: currentDue || 0,
         });
 
         setIsInvoiceModalOpen(true);
         fetchBranchData(activeMark);
+
+        // স্টেট রিসেট
         setDiscount(0);
         setTransportCost(0);
+        setReceivingCost(0); // 🔥 নতুন
+        setPackagingCost(0); // 🔥 নতুন
       }
     } catch (error) {
       alert("ইনভয়েস তৈরিতে সমস্যা হয়েছে!");
@@ -676,7 +692,55 @@ export default function BranchProfile() {
                           <small>{item.chinaTrackingNo}</small>
                         </td>
                         <td>{item.shippingMark} </td>
-                        <td>{item.cartonNo} </td>
+                        <td>
+                          <div style={{ fontWeight: "bold", color: "#0f172a" }}>
+                            {item.cartonNo || "-"}
+                          </div>
+
+                          {/* 🇨🇳 রিসিভিং ও প্যাকেজিং কস্টের ছোট শেডিং ব্যাজ */}
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "4px",
+                              marginTop: "4px",
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            {item.receivingCost > 0 && (
+                              <span
+                                style={{
+                                  fontSize: "10px",
+                                  background: "#f0f9ff",
+                                  color: "#0369a1",
+                                  padding: "1px 5px",
+                                  borderRadius: "4px",
+                                  border: "1px solid #bae6fd",
+                                  fontWeight: "600",
+                                }}
+                                title="Receiving Cost"
+                              >
+                                R.C: ¥{item.receivingCost}
+                              </span>
+                            )}
+
+                            {item.packagingCost > 0 && (
+                              <span
+                                style={{
+                                  fontSize: "10px",
+                                  background: "#fdf2f8",
+                                  color: "#9d174d",
+                                  padding: "1px 5px",
+                                  borderRadius: "4px",
+                                  border: "1px solid #fbcfe8",
+                                  fontWeight: "600",
+                                }}
+                                title="Packaging Cost"
+                              >
+                                P.C: ¥{item.packagingCost}
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td>{item.calcWeight.toFixed(2)} KG</td>
                         <td>
                           <span
@@ -785,7 +849,6 @@ export default function BranchProfile() {
               </tbody>
             </table>
           </div>
-
           {unbilledItems.length > 0 && (
             <div className="billing-footer-card">
               <div className="f-row">
@@ -805,6 +868,26 @@ export default function BranchProfile() {
                   placeholder="0"
                 />
               </div>
+              {/* 🔥 নতুন: Receiving Cost */}
+              <div className="f-row">
+                <span>Receiving Cost:</span>
+                <input
+                  type="number"
+                  value={receivingCost}
+                  onChange={(e) => setReceivingCost(e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+              {/* 🔥 নতুন: Packaging Cost */}
+              <div className="f-row">
+                <span>Packaging Cost:</span>
+                <input
+                  type="number"
+                  value={packagingCost}
+                  onChange={(e) => setPackagingCost(e.target.value)}
+                  placeholder="0"
+                />
+              </div>
               <div className="f-row">
                 <span>Discount:</span>
                 <input
@@ -814,14 +897,17 @@ export default function BranchProfile() {
                   placeholder="0"
                 />
               </div>
+
               <div className="f-row grand">
                 <span>Current Payable:</span>
                 <h3>
                   ৳{" "}
                   {(
                     totalBillAmount -
-                    (parseFloat(discount) || 0) +
-                    (parseFloat(transportCost) || 0)
+                    Math.abs(parseFloat(discount) || 0) + // 🔥 এখানেও Math.abs দিন
+                    (parseFloat(transportCost) || 0) +
+                    (parseFloat(receivingCost) || 0) +
+                    (parseFloat(packagingCost) || 0)
                   ).toLocaleString()}
                 </h3>
               </div>
@@ -841,7 +927,6 @@ export default function BranchProfile() {
         </div>
       )}
       {/* ================= HISTORY TAB ================= */}
-
       {activeTab === "history" && (
         <InvoiceHistory
           historyData={invoiceHistory}
@@ -852,11 +937,16 @@ export default function BranchProfile() {
           setSelectedBatch={setSelectedBatch}
           uniqueBatches={uniqueBatches}
           onViewInvoice={(inv) => {
-            // এখানে আগেকার সেই লজিকটি বসবে যা মডালের জন্য ডাটা সেট করে
             const subTotal = inv.totalAmount;
             const discountAmt = inv.discount || 0;
             const transportAmt = inv.transportBill || 0;
-            const finalTotal = subTotal + transportAmt - discountAmt;
+
+            const rCost = inv.invoiceReceivingCost || 0; // 🔥 নতুন নাম
+            const pCost = inv.invoicePackagingCost || 0; // 🔥 নতুন নাম
+
+            // 🔥 টোটাল হিসাব আপডেট করা হলো
+            const finalTotal =
+              subTotal + transportAmt + rCost + pCost - discountAmt;
 
             setInvoiceData({
               invoiceId: inv._id,
@@ -873,6 +963,8 @@ export default function BranchProfile() {
               subTotal: subTotal,
               discount: discountAmt,
               transportCost: transportAmt,
+              receivingCost: rCost, // 🔥 মোডালে পাঠানোর জন্য
+              packagingCost: pCost, // 🔥 মোডালে পাঠানোর জন্য
               netPayable: finalTotal,
             });
             setIsInvoiceModalOpen(true);
