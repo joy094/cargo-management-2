@@ -96,6 +96,8 @@ export default function SubItemModal({
             <thead>
               <tr>
                 <th>Shipping Mark *</th>
+
+                <th>Carton No</th>
                 <th>Product</th>
                 <th>China Tracking</th>
                 <th style={{ width: "60px" }}>Qty</th>
@@ -116,6 +118,18 @@ export default function SubItemModal({
                       placeholder="Mark"
                     />
                   </td>
+
+                  <td>
+                    <input
+                      type="text"
+                      value={row.cartonNo}
+                      onChange={(e) =>
+                        handleInputChange(idx, "cartonNo", e.target.value)
+                      }
+                      placeholder="e.g. 100-1"
+                    />
+                  </td>
+
                   <td>
                     <input
                       type="text"

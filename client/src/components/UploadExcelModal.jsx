@@ -128,7 +128,7 @@ export default function UploadExcelModal({
         const calculatedCbm =
           l > 0 && w > 0 && h > 0 ? (l * w * h) / 1000000 : 0;
 
-        let isMaster = true;
+        let isMaster = false;
         let parentCartonNo = "";
 
         // 📦 ব্যাচ পেজ থেকে আপলোড হলে

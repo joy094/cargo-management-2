@@ -29,6 +29,7 @@ export default function BatchDetails() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [showBulkEntry, setShowBulkEntry] = useState(false);
+  const [isMasterMode, setIsMasterMode] = useState(false); // 👈 নতুন স্টেট
   const [expandedRows, setExpandedRows] = useState({});
   const [bills, setBills] = useState({
     airBill: 0,
@@ -215,6 +216,32 @@ export default function BatchDetails() {
       fetchData();
     } catch (err) {
       alert("Weight update failed");
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedBoxIds.length === 0)
+      return alert("কোনো আইটেম সিলেক্ট করা নেই!");
+    if (
+      !window.confirm(
+        `আপনি কি নিশ্চিত যে সিলেক্ট করা ${selectedBoxIds.length}টি আইটেম ডিলিট করবেন?`,
+      )
+    )
+      return;
+
+    setLoading(true);
+    try {
+      // আপনার ব্যাকএন্ডের রাউট অনুযায়ী API কলটি করবেন
+      await axios.post("/api/bulk-delete", {
+        shipmentIds: selectedBoxIds,
+      });
+      alert("সফলভাবে ডিলিট করা হয়েছে! 🗑️");
+      setSelectedBoxIds([]); // সিলেক্টেড আইডিগুলো ক্লিয়ার করা
+      fetchData(); // টেবিল রিফ্রেশ করা
+    } catch (error) {
+      alert("ডিলিট করতে সমস্যা হয়েছে!");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -475,6 +502,23 @@ export default function BatchDetails() {
           {/* ✅ আলাদা করা সার্চ কম্পোনেন্ট */}
           <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
           <div className="action-btns">
+            {/* ✅ নতুন Bulk Delete বাটন */}
+
+            <CanAccess module="shipment" action="delete">
+              {selectedBoxIds.length > 0 && (
+                <button
+                  className="bulk-toggle-btn"
+                  style={{
+                    background: "#ef4444",
+                    color: "white",
+                    marginLeft: "10px",
+                  }}
+                  onClick={handleBulkDelete}
+                >
+                  🗑️ Delete Selected ({selectedBoxIds.length})
+                </button>
+              )}
+            </CanAccess>
             {/* ✅ নতুন Upload Excel বাটন */}
             <CanAccess module="shipment" action="create">
               <button
@@ -489,7 +533,6 @@ export default function BatchDetails() {
                 📤 Upload Excel
               </button>
             </CanAccess>
-
             {/* ✅ নতুন Manage Exception বাটন (যখন বক্স সিলেক্ট করা হবে তখন দেখাবে) */}
             {selectedBoxIds.length > 0 && (
               <button
@@ -504,7 +547,6 @@ export default function BatchDetails() {
             <button className="bulk-qr-btn" onClick={handleBulkQRPrint}>
               🖨️ Bulk Print QR
             </button>
-
             <button className="excel-btn" onClick={exportToExcel}>
               📊 Export Excel
             </button>

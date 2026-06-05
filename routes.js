@@ -612,6 +612,7 @@ router.post("/shipments/add-sub-items", async (req, res) => {
     const preparedSubItems = items.map((item) => ({
       trackingNumber: `MAT-S${Math.floor(100000 + Math.random() * 900000)}`,
       shippingMark: item.shippingMark || masterCarton.shippingMark,
+      cartonNo: item.cartonNo || "-",
       productName: item.productName || "General Item",
       chinaTrackingNo: item.chinaTrackingNo || "-",
       quantity: Number(item.quantity) || 1,

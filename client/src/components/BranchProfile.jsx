@@ -599,6 +599,7 @@ export default function BranchProfile() {
                   </th>
                   <th>SL</th>
                   <th>Product Name</th>
+
                   <th>Tracking(CN)</th>
                   <th>Shiping Mark</th>
                   <th>Carton No</th>
@@ -635,6 +636,16 @@ export default function BranchProfile() {
                         <td>{idx + 1}</td>
                         <td>
                           {item.productName}
+                          <div
+                            style={{
+                              fontSize: "12px",
+                              color: "#666",
+                              marginTop: "2px",
+                            }}
+                          >
+                            Qty: {item.quantity}
+                          </div>
+
                           {item.batchName && (
                             <div
                               style={{
