@@ -64,8 +64,20 @@ export default function InvoiceHistory({
                   </td>
                   <td>{inv.items.length} PCS</td>
                   <td>{inv.totalWeight.toFixed(2)} KG</td>
-                  <td className="row-total">
-                    ৳ {inv.totalAmount.toLocaleString()}
+                  <td>
+                    {(() => {
+                      // এখানেও সেম লজিকে গ্র্যান্ড টোটাল বের করে নিচ্ছি
+                      const subTotal = inv.totalAmount || 0;
+                      const tCost = inv.transportBill || 0;
+                      const rCost = inv.invoiceReceivingCost || 0;
+                      const pCost = inv.invoicePackagingCost || 0;
+                      const dCost = inv.discount || 0;
+
+                      const grandTotal =
+                        subTotal + tCost + rCost + pCost - dCost;
+
+                      return <strong>৳ {grandTotal.toLocaleString()}</strong>;
+                    })()}
                   </td>
                   <td>
                     <button

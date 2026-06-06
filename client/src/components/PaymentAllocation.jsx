@@ -216,6 +216,18 @@ export default function PaymentAllocation() {
     const amountVal = parseFloat(formData.amount);
     if (!amountVal || amountVal <= 0) return alert("সঠিক টাকার পরিমাণ দিন!");
 
+    if (formData.allocatedInvoice) {
+      const selectedInv = invoiceStats.find(
+        (inv) => inv._id === formData.allocatedInvoice,
+      );
+      if (selectedInv && amountVal > selectedInv.dueAmount) {
+        playWarningSound();
+        return alert(
+          `⚠️ ওয়ার্নিং: ইনভয়েস ${selectedInv._id} এর বকেয়া আছে মাত্র ৳${selectedInv.dueAmount.toLocaleString()}। আপনি এর চেয়ে বেশি টাকা ইনপুট দিতে পারবেন না!`,
+        );
+      }
+    }
+
     const finalTxnId = formData.transactionId.trim();
 
     if (finalTxnId && checkDuplicate(finalTxnId)) {
@@ -266,6 +278,52 @@ export default function PaymentAllocation() {
     .filter((txn) => txn.type === "DISCOUNT" || txn.type === "ADJUSTMENT")
     .reduce((acc, curr) => acc + curr.amount, 0);
   const currentDue = totalBilled - totalPaid - totalDiscount;
+
+  // 🚀 আপডেট: প্রতিটি ইনভয়েসের বিস্তারিত হিসাব (Grand Total, Paid, Due)
+  const invoiceStats = useMemo(() => {
+    return customerInvoices.map((inv) => {
+      // এই ইনভয়েসের রেফারেন্সে আসা পেমেন্ট এবং ডিসকাউন্ট বের করা
+      const paidAgainstThis = ledgerHistory
+        .filter(
+          (txn) => txn.allocatedInvoice === inv._id && txn.type === "PAYMENT",
+        )
+        .reduce((acc, curr) => acc + curr.amount, 0);
+
+      const discountAgainstThis = ledgerHistory
+        .filter(
+          (txn) =>
+            txn.allocatedInvoice === inv._id &&
+            (txn.type === "DISCOUNT" || txn.type === "ADJUSTMENT"),
+        )
+        .reduce((acc, curr) => acc + curr.amount, 0);
+
+      const totalReceived = paidAgainstThis + discountAgainstThis;
+
+      // 🔥 ইনভয়েসের আসল গ্র্যান্ড টোটাল হিসাব করা
+      const subTotal = inv.totalAmount || 0;
+      const tCost = inv.transportBill || 0;
+      const rCost = inv.invoiceReceivingCost || 0;
+      const pCost = inv.invoicePackagingCost || 0;
+      const dCost = inv.discount || 0;
+
+      const finalGrandTotal = subTotal + tCost + rCost + pCost - dCost;
+
+      const due = finalGrandTotal - totalReceived;
+
+      return {
+        ...inv,
+        actualGrandTotal: finalGrandTotal, // 👈 নতুন প্রপার্টি হিসেবে যোগ করা হলো
+        paidAmount: totalReceived,
+        dueAmount: due > 0 ? due : 0,
+        isFullyPaid: due <= 0,
+      };
+    });
+  }, [customerInvoices, ledgerHistory]);
+
+  // ফর্মের জন্য বর্তমানে সিলেক্ট করা ইনভয়েসের বিস্তারিত বের করা
+  const selectedInvDetails = invoiceStats.find(
+    (inv) => inv._id === formData.allocatedInvoice,
+  );
 
   // ========================================================
   // 1️⃣ DETAIL VIEW (সম্পূর্ণ নতুন পেজ হিসেবে দেখাবে)
@@ -327,12 +385,71 @@ export default function PaymentAllocation() {
                       onChange={handleInputChange}
                     >
                       <option value="">General Payment / Advance</option>
-                      {customerInvoices.map((inv) => (
-                        <option key={inv._id} value={inv._id}>
-                          {inv._id} (Bill: ৳ {inv.totalAmount.toLocaleString()})
+                      {invoiceStats.map((inv) => (
+                        <option
+                          key={inv._id}
+                          value={inv._id}
+                          disabled={inv.isFullyPaid} // 🔥 ফুল পেইড হলে সিলেক্ট করা যাবে না
+                        >
+                          {inv._id}{" "}
+                          {inv.isFullyPaid
+                            ? "✅ (Fully Paid)"
+                            : `(Due: ৳${inv.dueAmount.toLocaleString()})`}
                         </option>
                       ))}
                     </select>
+
+                    {/* 🚀 নতুন: সিলেক্ট করা ইনভয়েসের বিস্তারিত তথ্য */}
+                    {selectedInvDetails && (
+                      <div
+                        style={{
+                          marginTop: "10px",
+                          padding: "10px",
+                          background: "white",
+                          borderRadius: "6px",
+                          borderLeft: "4px solid #3b82f6",
+                          fontSize: "13px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          <span>Invoice Total:</span>
+                          <strong>
+                            ৳{selectedInvDetails.totalAmount.toLocaleString()}
+                          </strong>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            marginBottom: "4px",
+                            color: "#10b981",
+                          }}
+                        >
+                          <span>Already Paid/Discount:</span>
+                          <strong>
+                            ৳{selectedInvDetails.paidAmount.toLocaleString()}
+                          </strong>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            color: "#ef4444",
+                          }}
+                        >
+                          <span>Remaining Due:</span>
+                          <strong>
+                            ৳{selectedInvDetails.dueAmount.toLocaleString()}
+                          </strong>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="form-group">
@@ -447,11 +564,72 @@ export default function PaymentAllocation() {
                             >
                               {txn.type}
                             </span>
-                            {txn.allocatedInvoice && (
-                              <div className="inv-badge">
-                                Inv: {txn.allocatedInvoice}
-                              </div>
-                            )}
+
+                            {/* 🚀 আপডেট করা ইনভয়েস ব্যাজ ও ডিটেইলস */}
+                            {txn.allocatedInvoice &&
+                              (() => {
+                                // এই ট্রানজেকশনের সাথে যুক্ত ইনভয়েসটি খুঁজে বের করা হচ্ছে
+                                const matchedInv = invoiceStats?.find(
+                                  (inv) => inv._id === txn.allocatedInvoice,
+                                );
+
+                                return (
+                                  <div style={{ marginTop: "8px" }}>
+                                    <div
+                                      className="inv-badge"
+                                      style={{
+                                        display: "inline-block",
+                                        margin: "0",
+                                        padding: "3px 6px",
+                                        background: "#eff6ff",
+                                        border: "1px solid #bfdbfe",
+                                        borderRadius: "4px",
+                                      }}
+                                    >
+                                      🧾 {txn.allocatedInvoice}
+                                    </div>
+
+                                    {matchedInv && (
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          flexWrap: "wrap",
+                                          gap: "8px",
+                                          fontSize: "11px",
+                                          marginTop: "5px",
+                                          fontWeight: "600",
+                                          background: "#f8fafc",
+                                          padding: "4px 8px",
+                                          borderRadius: "4px",
+                                          border: "1px solid #e2e8f0",
+                                        }}
+                                      >
+                                        <span
+                                          title="Total Bill"
+                                          style={{ color: "#475569" }}
+                                        >
+                                          বিল: ৳
+                                          {matchedInv.totalAmount.toLocaleString()}
+                                        </span>
+                                        <span
+                                          title="Total Paid"
+                                          style={{ color: "#10b981" }}
+                                        >
+                                          জমা: ৳
+                                          {matchedInv.paidAmount.toLocaleString()}
+                                        </span>
+                                        <span
+                                          title="Current Due"
+                                          style={{ color: "#ef4444" }}
+                                        >
+                                          বকেয়া: ৳
+                                          {matchedInv.dueAmount.toLocaleString()}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                           </td>
                           <td>
                             <strong>{txn.transactionId || "-"}</strong>

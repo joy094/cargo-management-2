@@ -893,6 +893,7 @@ export default function BranchProfile() {
                 <input
                   type="number"
                   value={discount}
+                  
                   onChange={(e) => setDiscount(e.target.value)}
                   placeholder="0"
                 />
@@ -908,6 +909,7 @@ export default function BranchProfile() {
                     (parseFloat(transportCost) || 0) +
                     (parseFloat(receivingCost) || 0) +
                     (parseFloat(packagingCost) || 0)
+
                   ).toLocaleString()}
                 </h3>
               </div>

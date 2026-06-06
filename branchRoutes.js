@@ -109,6 +109,9 @@ router.get("/summary/:shippingMark", async (req, res) => {
           transportBill: { $first: { $ifNull: ["$transportBill", 0] } },
           receivingCost: { $first: { $ifNull: ["$invoiceReceivingCost", 0] } },
           packagingCost: { $first: { $ifNull: ["$invoicePackagingCost", 0] } },
+          discount: {
+            $first: { $ifNull: ["$discount", 0] },
+          },
 
           totalBillSum: { $sum: { $ifNull: ["$totalBill", 0] } },
           totalWeight: {
@@ -128,11 +131,16 @@ router.get("/summary/:shippingMark", async (req, res) => {
               $cond: [
                 { $eq: ["$isBilled", true] },
                 {
-                  $add: [
-                    "$totalBillSum",
-                    "$transportBill",
-                    "$receivingCost",
-                    "$packagingCost",
+                  $subtract: [
+                    {
+                      $add: [
+                        "$totalBillSum",
+                        "$transportBill",
+                        "$receivingCost",
+                        "$packagingCost",
+                      ],
+                    },
+                    "$discount",
                   ],
                 },
                 0,
@@ -418,6 +426,7 @@ router.get("/invoice-history/:shippingMark", async (req, res) => {
           },
         },
       },
+      
       { $sort: { date: -1 } }, // একটি সর্ট রেখে বাকিটা রিমুভ করা হয়েছে
     ]);
 

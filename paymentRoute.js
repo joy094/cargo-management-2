@@ -1,7 +1,8 @@
 // routes/paymentRoutes.js
 
 import express from "express";
-import { Payment, Branch } from "./models.js"; // 🔥 Branch মডেলটি ইমপোর্ট করা হলো
+
+import { Payment, Branch, Shipment } from "./models.js"; // 🔥 Shipment মডেলটি ইমপোর্ট করুন
 
 const router = express.Router();
 
@@ -40,11 +41,14 @@ router.get("/history/:shippingMark", async (req, res) => {
 });
 
 // ✅ ২. পেমেন্ট/ডিসকাউন্ট অ্যাড রাউট (স্ট্রং স্টেটমেন্ট ফিল্টার সহ)
+// ✅ ২. পেমেন্ট/ডিসকাউন্ট অ্যাড রাউট (Next Profit রিপোর্টের জন্য অটো-ব্যাচ লজিকসহ)
+
+
 router.post("/add-payment", async (req, res) => {
   try {
-    const { shippingMark, amount, type, transactionId, statement } = req.body;
+    const { shippingMark, amount, type, transactionId, statement, allocatedInvoice } = req.body;
 
-    // ট্রানজেকশন আইডি বা স্টেটমেন্ট নাম্বার চেক
+    // ট্রানজেকশন আইডি বা স্টেটমেন্ট নাম্বার চেক (আগের কোড)
     if (transactionId || statement) {
       const query = transactionId
         ? { transactionId }
@@ -52,7 +56,7 @@ router.post("/add-payment", async (req, res) => {
             statement: {
               $regex: new RegExp(
                 `^${statement.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
-                "i",
+                "i"
               ),
             },
           };
@@ -61,20 +65,33 @@ router.post("/add-payment", async (req, res) => {
       if (existingRecord) {
         return res.status(400).json({
           success: false,
-          message:
-            "সতর্কতা: এই ট্রানজেকশন আইডি বা স্টেটমেন্ট নাম্বারটি ইতিমধ্যে ব্যবহৃত হয়েছে!",
+          message: "সতর্কতা: এই ট্রানজেকশন আইডি বা স্টেটমেন্ট নাম্বারটি ইতিমধ্যে ব্যবহৃত হয়েছে!",
         });
       }
     }
 
-    const newPayment = new Payment(req.body);
+    // 🔥 "Next Profit" রিপোর্টের জন্য অটো-ব্যাচ ডিটেকশন লজিক
+    let batchId = null;
+    if (allocatedInvoice) {
+      // এই ইনভয়েস আইডির যেকোনো একটি শিপমেন্ট খুঁজে তার ব্যাচ আইডিটি নিচ্ছি
+      const matchedShipment = await Shipment.findOne({ invoiceId: allocatedInvoice }, "batch");
+      if (matchedShipment) {
+        batchId = matchedShipment.batch; 
+      }
+    }
+
+    // ডাটা সেভ করার সময় ব্যাচ আইডিটিসহ সেভ করছি
+    const newPayment = new Payment({
+      ...req.body,
+      batch: batchId // স্কিমাতে batch ফিল্ডটি থাকতে হবে (ObjectId বা String)
+    });
+
     await newPayment.save();
     res.status(201).json({ success: true, message: "সফলভাবে সেভ হয়েছে।" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
-
 // ✅ ৩. ডিলিট পেমেন্ট/ডিসকাউন্ট রাউট
 router.delete("/delete/:id", async (req, res) => {
   try {

@@ -166,6 +166,17 @@ const PaymentSchema = new Schema(
       unique: true, // সিকিউরিটি: একই ট্রানজেকশন আইডি দ্বিতীয়বার বসানো যাবে না
       sparse: true, // ক্যাশ পেমেন্টের ক্ষেত্রে যদি আইডি না থাকে তবে এরর দেবে না
     },
+
+    // 🔥 Next Profit ও Invoice ট্র্যাকিংয়ের জন্য নতুন ফিল্ড দুটি
+    allocatedInvoice: {
+      type: String,
+      default: null, // ইনভয়েস ছাড়া অ্যাডভান্স পেমেন্ট হলে null থাকবে
+    },
+    batch: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Batch", // আপনার ব্যাচ মডেলের আসল নাম দিন
+      default: null,
+    },
     date: {
       type: Date,
       default: Date.now,
