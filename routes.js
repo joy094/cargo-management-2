@@ -745,4 +745,55 @@ router.post("/bulk-delete", async (req, res) => {
   }
 });
 
+// ✅ ভুল করে এক্সেপশন বা অন্য স্টেটে যাওয়া মাল আবার ওয়ারহাউসে পুশ করার রাউট (Batch Link Fix সহ)
+router.put("/shipments/push-warehouse/:id", async (req, res) => {
+  try {
+    const shipmentId = req.params.id;
+
+    // ১. ডাটাবেস থেকে বক্সটি খুঁজে বের করা
+    const shipment = await Shipment.findById(shipmentId);
+
+    if (!shipment) {
+      return res
+        .status(404)
+        .json({ success: false, message: "বক্সটি খুঁজে পাওয়া যায়নি!" });
+    }
+
+    // ২. ভ্যালিডেশন: ইনভয়েস হয়ে থাকলে ওয়ারহাউসে পুশ করা যাবে না
+    if (shipment.isBilled) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "⚠️ সতর্কতা: এই বক্সটির ইনভয়েস তৈরি হয়ে গেছে! ওয়ারহাউসে ফেরত পাঠাতে চাইলে আগে কাস্টমার প্রোফাইল থেকে বিলটি আনডু (Undo) করুন।",
+      });
+    }
+
+    // 🚀 ৩. ফিক্স: স্ট্যাটাস পরিবর্তনের সাথে সাথে ব্যাচ আইডি ক্লিয়ার (null) করে দেওয়া
+    shipment.status = "Warehouse Received";
+    shipment.batch = null; // 👈 এই লাইনটি বক্সটিকে বর্তমান ব্যাচ থেকে সম্পূর্ণ বের করে দেবে
+    if (shipment.isHeld) shipment.isHeld = false;
+    await shipment.save();
+
+    // 🚀 ৪. সাব-বক্সগুলোর জন্যও স্ট্যাটাসের সাথে সাথে ব্যাচ আইডি ক্লিয়ার (null) করা
+    await Shipment.updateMany(
+      { parentId: shipmentId, isBilled: { $ne: true } },
+      { $set: { status: "Warehouse Received", isHeld: false, batch: null } }, // 👈 batch: null যোগ করা হয়েছে
+    );
+
+    res.status(200).json({
+      success: true,
+      message:
+        "বক্সটি সফলভাবে এই ব্যাচ থেকে বের করে আবার সাধারণ ওয়ারহাউসে ফেরত পাঠানো হয়েছে।",
+    });
+  } catch (error) {
+    console.error("Push Warehouse Error:", error);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "সার্ভার এরর, ওয়ারহাউসে পুশ করতে সমস্যা হয়েছে।",
+      });
+  }
+});
+
 export default router;

@@ -75,24 +75,38 @@ export default function BatchDetails() {
     }
   };
 
-  // ✅ Exception Submit Logic
+  // ✅ Exception & Push Warehouse Submit Logic
   const handleExceptionSubmit = async () => {
     if (exceptionData.action === "MOVE" && !exceptionData.targetBatchId) {
       return alert("অনুগ্রহ করে একটি টার্গেট ব্যাচ সিলেক্ট করুন!");
     }
+
     try {
-      await axios.put("/api/batches/manage-exception", {
-        shipmentIds: selectedBoxIds,
-        action: exceptionData.action,
-        reason: exceptionData.reason,
-        targetBatchId: exceptionData.targetBatchId,
-      });
-      alert("অ্যাকশন সফলভাবে সম্পন্ন হয়েছে!");
+      // 🔥 যদি ইউজার Push Warehouse সিলেক্ট করে
+      if (exceptionData.action === "PUSH_WAREHOUSE") {
+        // সবগুলো সিলেক্টেড বক্সের জন্য আমাদের তৈরি করা পুশ এপিআই-তে রিকোয়েস্ট পাঠানো
+        const pushPromises = selectedBoxIds.map((id) =>
+          axios.put(`/api/shipments/push-warehouse/${id}`),
+        );
+        await Promise.all(pushPromises);
+        alert("সিলেক্ট করা বক্সগুলো সফলভাবে ওয়ারহাউসে ফেরত পাঠানো হয়েছে! ↩️");
+      }
+      // 🔥 অন্যান্য এক্সেপশন (Hold, Release, Move) এর জন্য
+      else {
+        await axios.put("/api/batches/manage-exception", {
+          shipmentIds: selectedBoxIds,
+          action: exceptionData.action,
+          reason: exceptionData.reason,
+          targetBatchId: exceptionData.targetBatchId,
+        });
+        alert("অ্যাকশন সফলভাবে সম্পন্ন হয়েছে!");
+      }
+
       setIsExceptionModalOpen(false);
-      setSelectedBoxIds([]);
-      fetchData(); // ডেটা রিফ্রেশ
+      setSelectedBoxIds([]); // সিলেকশন ক্লিয়ার করা
+      fetchData(); // টেবিল রিফ্রেশ করা
     } catch (err) {
-      alert("সমস্যা হয়েছে! আবার চেষ্টা করুন।");
+      alert(err.response?.data?.message || "সমস্যা হয়েছে! আবার চেষ্টা করুন।");
     }
   };
   const toggleRow = (rowId) =>
@@ -1169,6 +1183,11 @@ export default function BatchDetails() {
                 </option>
                 <option value="RELEASE">
                   ▶️ Release Box (হোল্ড থেকে মুক্ত করা)
+                </option>
+
+                {/* 🚀 নতুন যুক্ত করা হলো */}
+                <option value="PUSH_WAREHOUSE">
+                  ↩️ Push to Warehouse 
                 </option>
                 <option value="MOVE">
                   🚚 Move to Another Batch (ফ্লাইট মিস হলে)
