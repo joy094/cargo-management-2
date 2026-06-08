@@ -1,14 +1,14 @@
-//src/components/AddBranch.jsx
+// src/components/AddBranch.jsx
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import CanAccess from "./CanAccess";
 import * as XLSX from "xlsx";
+import "./AddBranch.css"; // 🔥 নতুন CSS ফাইল ইম্পোর্ট
 
 export default function AddBranch() {
   const [branches, setBranches] = useState([]);
-  // 🔥 নতুন স্টেট: ব্যাচ লিস্ট এবং সিলেক্ট করা ব্যাচের জন্য
   const [batches, setBatches] = useState([]);
   const [selectedBatch, setSelectedBatch] = useState("");
 
@@ -33,15 +33,14 @@ export default function AddBranch() {
 
   useEffect(() => {
     fetchBranches();
-    fetchBatches(); // 🔥 পেজ লোড হলে ব্যাচগুলোও নিয়ে আসবে
+    fetchBatches();
   }, []);
 
-  // 🔥 ব্যাচ লিস্ট আনার ফাংশন
   const fetchBatches = async () => {
     try {
       const res = await axios.get("/api/batches");
       if (res.data.success) {
-        setBatches(res.data.batches || res.data.data); // আপনার API এর রেসপন্স অনুযায়ী
+        setBatches(res.data.batches || res.data.data);
       } else if (Array.isArray(res.data)) {
         setBatches(res.data);
       }
@@ -50,7 +49,6 @@ export default function AddBranch() {
     }
   };
 
-  // 🔥 ব্যাচ অনুযায়ী ফিল্টার করে ব্রাঞ্চ আনার লজিক যুক্ত করা হলো
   const fetchBranches = async (batchId = "") => {
     try {
       const url = batchId ? `/api/branches?batch=${batchId}` : "/api/branches";
@@ -63,11 +61,10 @@ export default function AddBranch() {
     }
   };
 
-  // ব্যাচ সিলেক্ট করলে ফায়ার হবে
   const handleBatchChange = (e) => {
     const batchId = e.target.value;
     setSelectedBatch(batchId);
-    fetchBranches(batchId); // নতুন ব্যাচ অনুযায়ী ডাটা আনবে
+    fetchBranches(batchId);
   };
 
   const handleInputChange = (e) => {
@@ -107,7 +104,7 @@ export default function AddBranch() {
       }
 
       resetForm();
-      fetchBranches(selectedBatch); // সেভ করার পর ফিল্টার ঠিক রাখবে
+      fetchBranches(selectedBatch);
     } catch (error) {
       console.error(error);
       alert(
@@ -150,13 +147,12 @@ export default function AddBranch() {
       return;
     try {
       await axios.delete(`/api/branches/${id}`);
-      fetchBranches(selectedBatch); // ডিলিটের পর ফিল্টার ঠিক রাখবে
+      fetchBranches(selectedBatch);
     } catch (error) {
       alert("ডিলিট করতে সমস্যা হয়েছে!");
     }
   };
 
-  // ===================== EXCEL LOGIC =====================
   const downloadTemplate = () => {
     const templateData = [
       {
@@ -234,15 +230,9 @@ export default function AddBranch() {
 
   return (
     <div className="manage-branch-container">
-      <div
-        className="header-section"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div>
+      {/* Header Section */}
+      <div className="header-section">
+        <div className="header-text">
           <h2>🏢 Branch & Customer Management</h2>
           <p>
             একই পেজ থেকে কাস্টমার যুক্ত করুন, এডিট করুন এবং তাদের প্রোফাইল দেখুন
@@ -251,19 +241,8 @@ export default function AddBranch() {
 
         <CanAccess module="branch" action="create">
           <button
+            className="excel-upload-btn"
             onClick={() => setIsExcelModalOpen(true)}
-            style={{
-              background: "#10b981",
-              color: "white",
-              padding: "10px 20px",
-              borderRadius: "8px",
-              border: "none",
-              fontWeight: "bold",
-              cursor: "pointer",
-              display: "flex",
-              gap: "8px",
-              alignItems: "center",
-            }}
           >
             📤 Excel Bulk Upload
           </button>
@@ -286,6 +265,7 @@ export default function AddBranch() {
                 required
               />
             </div>
+
             <div className="form-group">
               <label>Shipping Marks (Comma separated) *</label>
               <textarea
@@ -297,10 +277,11 @@ export default function AddBranch() {
                 rows="2"
                 style={{ textTransform: "uppercase" }}
               />
-              <small style={{ color: "#64748b", fontSize: "11px" }}>
+              <small className="help-text">
                 একাধিক মার্ক থাকলে কমা (,) দিয়ে লিখুন।
               </small>
             </div>
+
             <div className="form-group">
               <label>Phone Number</label>
               <input
@@ -311,6 +292,7 @@ export default function AddBranch() {
                 placeholder="e.g. 017XXXXX..."
               />
             </div>
+
             <div className="form-group">
               <label>Address</label>
               <textarea
@@ -349,42 +331,14 @@ export default function AddBranch() {
           </form>
         </div>
 
-        {/* Right Side: List */}
+        {/* Right Side: List Table */}
         <div className="list-card">
-          <div
-            className="list-header"
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
+          <div className="list-header">
             <h3>Registered Branches ({branches.length})</h3>
 
-            {/* 🔥 নতুন Batch Filter Dropdown */}
-            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-              <span
-                style={{
-                  fontSize: "13px",
-                  fontWeight: "bold",
-                  color: "#475569",
-                }}
-              >
-                Filter:
-              </span>
-              <select
-                value={selectedBatch}
-                onChange={handleBatchChange}
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: "6px",
-                  border: "1px solid #cbd5e1",
-                  outline: "none",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                  color: "#0f172a",
-                }}
-              >
+            <div className="filter-group">
+              <span>Filter:</span>
+              <select value={selectedBatch} onChange={handleBatchChange}>
                 <option value="">🌍 All Batches</option>
                 {batches &&
                   batches.length > 0 &&
@@ -397,7 +351,7 @@ export default function AddBranch() {
             </div>
           </div>
 
-          <div className="table-responsive">
+          <div className="table-responsive-container">
             <table className="branch-table">
               <thead>
                 <tr>
@@ -420,13 +374,7 @@ export default function AddBranch() {
                         </small>
                       </td>
                       <td>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: "5px",
-                          }}
-                        >
+                        <div className="mark-badge-container">
                           {branch.shippingMarks &&
                           branch.shippingMarks.length > 0 ? (
                             branch.shippingMarks.map((mark, i) => (
@@ -451,8 +399,6 @@ export default function AddBranch() {
                               branch.shippingMarks.length > 0
                                 ? branch.shippingMarks[0]
                                 : branch.shippingMark;
-
-                            // 🔥 নতুন ট্যাবে প্রোফাইল খোলার কোড (window.open)
                             const url = `/branch-profile?mark=${encodeURIComponent(markToPass)}`;
                             window.open(url, "_blank", "noopener,noreferrer");
                           }}
@@ -495,113 +441,33 @@ export default function AddBranch() {
 
       {/* ✅ Excel Upload Modal */}
       {isExcelModalOpen && (
-        <div
-          className="fixed-modal-overlay"
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 1000,
-          }}
-        >
-          <div
-            className="fixed-modal-content"
-            style={{
-              background: "white",
-              padding: "30px",
-              borderRadius: "12px",
-              width: "500px",
-              maxWidth: "90%",
-            }}
-          >
-            <h3 style={{ marginTop: 0 }}>📤 Bulk Upload Customers</h3>
-            <p
-              style={{
-                color: "#64748b",
-                fontSize: "14px",
-                marginBottom: "20px",
-              }}
-            >
+        <div className="modal-overlay">
+          <div className="excel-modal-content">
+            <h3>📤 Bulk Upload Customers</h3>
+            <p className="modal-desc">
               এক ক্লিকে একাধিক ব্রাঞ্চ/কাস্টমার যুক্ত করুন
             </p>
 
-            <button
-              onClick={downloadTemplate}
-              style={{
-                width: "100%",
-                background: "#34495e",
-                color: "white",
-                padding: "10px",
-                borderRadius: "8px",
-                border: "none",
-                cursor: "pointer",
-                marginBottom: "20px",
-                fontWeight: "bold",
-              }}
-            >
+            <button className="download-btn" onClick={downloadTemplate}>
               📥 1. Download Excel Format
             </button>
 
-            <div
-              style={{
-                border: "2px dashed #0ea5e9",
-                padding: "20px",
-                textAlign: "center",
-                borderRadius: "8px",
-                background: "#f0f9ff",
-                position: "relative",
-              }}
-            >
+            <div className="upload-box">
               <input
                 type="file"
                 accept=".xlsx, .xls"
                 onChange={handleFileUpload}
-                style={{
-                  position: "absolute",
-                  width: "100%",
-                  height: "100%",
-                  top: 0,
-                  left: 0,
-                  opacity: 0,
-                  cursor: "pointer",
-                }}
               />
-              <strong style={{ color: "#0ea5e9" }}>
-                2. Select Filled Excel File
-              </strong>
+              <strong>2. Select Filled Excel File</strong>
             </div>
 
             {excelData.length > 0 && (
-              <div
-                style={{
-                  marginTop: "20px",
-                  background: "#f1f5f9",
-                  padding: "15px",
-                  borderRadius: "8px",
-                  textAlign: "center",
-                }}
-              >
+              <div className="upload-summary">
                 <strong>{excelData.length} Customers Found!</strong>
                 <button
                   onClick={handleBulkImport}
                   disabled={uploading}
-                  style={{
-                    width: "100%",
-                    background: "#10b981",
-                    color: "white",
-                    padding: "12px",
-                    borderRadius: "8px",
-                    border: "none",
-                    cursor: "pointer",
-                    marginTop: "10px",
-                    fontWeight: "bold",
-                  }}
+                  className="confirm-upload-btn"
                 >
                   {uploading ? "Uploading..." : "🚀 Confirm & Upload"}
                 </button>
@@ -609,19 +475,10 @@ export default function AddBranch() {
             )}
 
             <button
+              className="modal-cancel-btn"
               onClick={() => {
                 setIsExcelModalOpen(false);
                 setExcelData([]);
-              }}
-              style={{
-                width: "100%",
-                background: "#f1f5f9",
-                color: "#475569",
-                padding: "10px",
-                borderRadius: "8px",
-                border: "none",
-                cursor: "pointer",
-                marginTop: "15px",
               }}
             >
               Cancel
@@ -629,61 +486,6 @@ export default function AddBranch() {
           </div>
         </div>
       )}
-
-      {/* CSS Styles */}
-      <style>{`
-        .manage-branch-container { padding: 30px; background: #f4f7fa; min-height: 100vh; font-family: 'Inter', sans-serif; }
-        .header-section { margin-bottom: 25px; }
-        .header-section h2 { margin: 0; color: #0f172a; font-size: 26px; }
-        .header-section p { margin: 5px 0 0; color: #64748b; font-size: 14px; }
-
-        .content-grid { display: grid; grid-template-columns: 350px 1fr; gap: 25px; align-items: start; }
-        
-        .form-card, .list-card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); }
-        .form-card h3, .list-card h3 { margin: 0 0 20px; color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
-
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 6px; }
-        .form-group input, .form-group textarea { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; transition: 0.2s; }
-        .form-group input:focus, .form-group textarea:focus { border-color: #0ea5e9; }
-        
-        .form-actions { display: flex; gap: 10px; margin-top: 15px; }
-        .submit-btn { flex: 1; background: #0ea5e9; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .submit-btn:hover { background: #0284c7; }
-        .update-btn { background: #f59e0b; }
-        .update-btn:hover { background: #d97706; }
-        .cancel-btn { background: #f1f5f9; color: #475569; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .cancel-btn:hover { background: #e2e8f0; }
-
-        .list-card { max-height: calc(100vh - 150px); display: flex; flex-direction: column; }
-        .table-responsive { overflow-y: auto; flex: 1; padding-right: 5px; }
-        .branch-table { width: 100%; border-collapse: collapse; }
-        .branch-table th { background: #f8fafc; padding: 15px; text-align: left; font-size: 13px; color: #475569; border-bottom: 2px solid #e2e8f0; position: sticky; top: 0; z-index: 1; }
-        .branch-table td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; color: #0f172a; vertical-align: middle; }
-        
-        .contact-text { color: #64748b; font-size: 12px; font-family: monospace; }
-        .mark-badge { background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 900; border: 1px solid #bae6fd; }
-        
-        .action-btns { display: flex; gap: 8px; }
-        .action-btn { border: none; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; }
-        .profile-btn { background: #8b5cf6; color: white; }
-        .profile-btn:hover { background: #7c3aed; }
-        .edit-btn { background: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
-        .edit-btn:hover { background: #fde68a; }
-        .delete-btn { background: #fee2e2; color: #ef4444; }
-        .delete-btn:hover { background: #fca5a5; }
-
-        .no-data { text-align: center; color: #64748b; padding: 30px !important; }
-
-        .table-responsive::-webkit-scrollbar { width: 6px; }
-        .table-responsive::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .table-responsive::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-        @media (max-width: 1000px) {
-          .content-grid { grid-template-columns: 1fr; }
-          .list-card { max-height: none; }
-        }
-      `}</style>
     </div>
   );
 }

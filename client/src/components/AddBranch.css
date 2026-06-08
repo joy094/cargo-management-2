@@ -1,0 +1,470 @@
+/* ==========================================
+   Global Container
+========================================== */
+.manage-branch-container {
+  padding: 20px;
+  background: #f4f7f9;
+  min-height: 100vh;
+  font-family: "Hind Siliguri", "Inter", sans-serif;
+}
+
+/* ==========================================
+   Header Section
+========================================== */
+.header-section {
+  background: #ffffff;
+  padding: 25px 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.header-text h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.header-text p {
+  margin: 5px 0 0;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.excel-upload-btn {
+  background: #10b981;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.excel-upload-btn:hover {
+  background: #059669;
+  transform: translateY(-2px);
+}
+
+/* ==========================================
+   Content Grid (Form on left, List on right)
+========================================== */
+.content-grid {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ==========================================
+   Card Styling (Form & List)
+========================================== */
+.form-card,
+.list-card {
+  background: white;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  border: 1px solid #f1f5f9;
+}
+
+.form-card h3,
+.list-card h3 {
+  margin: 0 0 20px;
+  color: #0f172a;
+  border-bottom: 2px solid #f1f5f9;
+  padding-bottom: 10px;
+  font-size: 1.2rem;
+}
+
+/* ==========================================
+   Form Styling
+========================================== */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+  background: #f8fafc;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: #3b82f6;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.help-text {
+  color: #64748b;
+  font-size: 0.75rem;
+  display: block;
+  margin-top: 5px;
+}
+
+/* Buttons inside form */
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.submit-btn {
+  flex: 1;
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.submit-btn:hover {
+  background: #1d4ed8;
+}
+
+.update-btn {
+  background: #f59e0b;
+}
+.update-btn:hover {
+  background: #d97706;
+}
+
+.cancel-btn {
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  padding: 12px 15px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cancel-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* ==========================================
+   List Section (Table)
+========================================== */
+.list-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-group span {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.filter-group select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  outline: none;
+  cursor: pointer;
+  font-weight: 600;
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+/* Responsive Table Container */
+.table-responsive-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 15px;
+}
+
+.branch-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap; /* টেক্সট ভেঙে যেন নিচে না যায় */
+}
+
+.branch-table th {
+  background: #f8fafc;
+  padding: 12px 15px;
+  text-align: left;
+  font-size: 0.85rem;
+  color: #64748b;
+  border-bottom: 2px solid #e2e8f0;
+  text-transform: uppercase;
+}
+
+.branch-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #0f172a;
+  vertical-align: middle;
+}
+
+.contact-text {
+  color: #64748b;
+  font-size: 0.8rem;
+  font-family: monospace;
+}
+
+.mark-badge-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-width: 250px; /* বেশি মার্ক থাকলে নিচে নিচে যাবে */
+}
+
+.mark-badge {
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  border: 1px solid #bae6fd;
+}
+
+/* Action Buttons */
+.action-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.action-btn {
+  border: none;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-btn {
+  background: #8b5cf6;
+  color: white;
+}
+.profile-btn:hover {
+  background: #7c3aed;
+}
+.edit-btn {
+  background: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+.edit-btn:hover {
+  background: #fde68a;
+}
+.delete-btn {
+  background: #fee2e2;
+  color: #ef4444;
+}
+.delete-btn:hover {
+  background: #fca5a5;
+}
+
+/* ==========================================
+   Modal Styling (Excel Upload)
+========================================== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.excel-modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 450px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.excel-modal-content h3 {
+  margin: 0 0 5px;
+  color: #0f172a;
+}
+.modal-desc {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.download-btn {
+  width: 100%;
+  background: #334155;
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 15px;
+}
+
+.upload-box {
+  border: 2px dashed #3b82f6;
+  padding: 25px;
+  border-radius: 8px;
+  background: #eff6ff;
+  position: relative;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.upload-box input {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.upload-summary {
+  margin-top: 20px;
+  background: #f1f5f9;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.confirm-upload-btn {
+  width: 100%;
+  background: #10b981;
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.modal-cancel-btn {
+  width: 100%;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 15px;
+}
+
+/* ==========================================
+   Responsive Breakpoints
+========================================== */
+@media screen and (max-width: 1000px) {
+  .content-grid {
+    grid-template-columns: 1fr; /* ডেক্সটপ বাদে ১ কলাম */
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .manage-branch-container {
+    padding: 15px 10px;
+    margin-bottom: 80px; /* Bottom Nav এর জন্য জায়গা */
+  }
+
+  .header-section {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 20px 15px;
+  }
+
+  .excel-upload-btn {
+    width: 100%;
+    margin-top: 15px;
+    justify-content: center;
+  }
+
+  .form-card,
+  .list-card {
+    padding: 15px;
+  }
+
+  .list-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .filter-group select {
+    width: 100%;
+  }
+
+  .form-actions {
+    flex-direction: column; /* মোবাইলে বাটন নিচে নিচে */
+  }
+}
