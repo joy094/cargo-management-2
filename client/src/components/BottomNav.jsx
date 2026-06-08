@@ -12,10 +12,10 @@ const BottomNav = () => {
         <span className="label">ড্যাশবোর্ড</span>
       </NavLink>
 
-      <NavLink to="/shipment-list" className="nav-item">
+      {/* <NavLink to="/shipment-list" className="nav-item">
         <i className="fa-solid fa-box-open nav-icon"></i>
         <span className="label">শিপমেন্ট</span>
-      </NavLink>
+      </NavLink> */}
 
       <NavLink to="/payment-allocation" className="nav-item">
         <i className="fa-solid fa-file-invoice-dollar nav-icon"></i>
