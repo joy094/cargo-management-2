@@ -1,243 +1,213 @@
-/* ১. গুগল ফন্টটি ইমপোর্ট করুন */
+/* ১. গুগল ফন্টটি ইমপোর্ট করা হলো */
 @import url("https://fonts.googleapis.com/css2?family=Tiro+Bangla&display=swap");
 
-/* --- Global Styling Reset --- */
+/* ==========================================
+   Global Styling Reset & Variables
+========================================== */
 :root {
-  --primary-blue: #003580;
-  --dark-blue: #002152;
+  /* Primary Colors (Header ও Footer এর সাথে সামঞ্জস্য রেখে) */
+  --primary-blue: #2563eb;
+  --dark-blue: #0f172a;
   --accent-gold: #ffcc00;
+
+  /* Backgrounds & Text */
   --bg-light: #f4f7fa;
   --white: #ffffff;
-  --text-main: #2c3e50;
-  --success: #27ae60;
-  --danger: #e53935;
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+
+  /* Status Colors (Cargo Specific) */
+  --success-bg: #dcfce7;
+  --success-text: #166534;
+  --warning-bg: #fef08a;
+  --warning-text: #854d0e;
+  --transit-bg: #e0f2fe;
+  --transit-text: #075985;
+  --danger: #ef4444;
+}
+
+/* সব ডিভাইসে লেআউটের সাইজিং ঠিক রাখার জন্য গ্লোবাল রিসেট */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font-family: "Tiro Bangla",  "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  padding: 0;
+  font-family:
+    "Tiro Bangla",
+    system-ui,
+    -apple-system,
+    sans-serif;
   background-color: var(--bg-light);
   color: var(--text-main);
-}
 
-/* --- 3D Gradient Header --- */
-header {
-  background: linear-gradient(
-    to bottom,
-    #00439c,
-    var(--primary-blue),
-    var(--dark-blue)
-  );
-  color: var(--white);
-  padding: 0;
-  text-align: center;
-  height: 75px;
-  box-shadow:
-    0 4px 6px rgba(0, 0, 0, 0.15),
-    0 10px 20px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
-  position: sticky;
-  top: 0;
-}
-
-/* --- Navigation --- */
-nav {
+  /* পুরো পেজটিকে Flexbox করা হয়েছে যাতে কন্টেন্ট কম থাকলেও Footer সবসময় নিচে থাকে */
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-.logo-text {
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-.nav-links {
-  display: flex;
-  align-items: center;
-}
-
-nav a {
-  color: var(--white);
-  margin: 0 15px;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 16px;
-  padding: 8px 12px;
-  transition: all 0.3s ease;
-  border-radius: 6px;
-}
-
-nav a:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--accent-gold);
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
-}
-
-nav a.active {
-  border-bottom: 3px solid var(--accent-gold);
-  color: var(--accent-gold);
-}
-
-/* --- Main Content Area --- */
+/* ==========================================
+   Main Content Area
+========================================== */
 main {
-  padding: 30px 20px;
-  min-height: calc(100vh - 180px);
-  max-width: 1900px;
+  flex: 1; /* ফুটারকে নিচে ঠেলে দেওয়ার জন্য */
+  padding: 2rem;
+  width: 100%;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
-/* --- Status Badges (Cargo Specific) --- */
+/* মোবাইল স্ক্রিনের জন্য Main Area এর প্যাডিং অপ্টিমাইজেশন */
+@media screen and (max-width: 768px) {
+  main {
+    padding: 1rem;
+  }
+}
+
+/* ==========================================
+   Status Badges (Cargo Specific)
+========================================== */
 .status-badge {
-  padding: 5px 12px;
+  padding: 0.35rem 0.75rem;
   border-radius: 20px;
-  font-size: 12px;
-  font-weight: bold;
+  font-size: 0.85rem;
+  font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
 }
+
 .status-badge.booked {
-  background: #fff3cd;
-  color: #856404;
+  background: var(--warning-bg);
+  color: var(--warning-text);
 }
+
 .status-badge.transit {
-  background: #d1ecf1;
-  color: #0c5460;
+  background: var(--transit-bg);
+  color: var(--transit-text);
 }
+
 .status-badge.delivered {
-  background: #d4edda;
-  color: #155724;
+  background: var(--success-bg);
+  color: var(--success-text);
 }
 
-/* --- Footer --- */
-footer {
-  background-color: var(--dark-blue);
-  color: var(--white);
-  text-align: center;
-  padding: 15px 0;
-  width: 100%;
-  box-shadow: inset 0 5px 15px rgba(0, 0, 0, 0.4);
-  position: relative;
-  bottom: 0;
-}
-
-footer p {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.6;
-  opacity: 0.8;
-}
-
-/* --- Login Page --- */
+/* ==========================================
+   Login Page (Fully Responsive)
+========================================== */
 .login-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  padding: 20px;
+  background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+  padding: 1.5rem;
 }
 
 .login-card {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   background: var(--white);
   border-radius: 16px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
-  padding: 40px;
+  box-shadow:
+    0 10px 25px rgba(0, 0, 0, 0.05),
+    0 20px 48px rgba(0, 0, 0, 0.05);
+  padding: 2.5rem;
 }
 
 .login-brand {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 2rem;
 }
 
 .login-brand h1 {
   color: var(--primary-blue);
   margin: 0;
-  font-size: 24px;
+  font-size: 1.75rem;
+  font-weight: 800;
   text-transform: uppercase;
 }
 
 .login-brand .sub {
-  color: #64748b;
-  font-size: 14px;
-  margin-top: 5px;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
 }
 
 .login-form label {
   display: block;
-  margin-top: 20px;
+  margin-bottom: 0.5rem;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 0.95rem;
+  color: var(--text-main);
 }
 
 .login-form input {
   width: 100%;
-  padding: 12px;
-  margin-top: 8px;
-  border: 2px solid #edf2f7;
-  border-radius: 10px;
-  font-size: 16px;
-  box-sizing: border-box;
-  transition: border-color 0.3s;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background-color: #f8fafc;
 }
 
 .login-form input:focus {
   border-color: var(--primary-blue);
+  background-color: var(--white);
   outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); /* ফোকাস করলে সুন্দর গ্লো ইফেক্ট */
 }
 
+/* Global Button Style */
 .btn {
   width: 100%;
-  padding: 14px;
-  margin-top: 25px;
+  padding: 0.85rem;
   background: var(--primary-blue);
-  color: white;
+  color: var(--white);
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   font-weight: 700;
-  font-size: 16px;
+  font-size: 1rem;
   cursor: pointer;
-  transition:
-    transform 0.2s,
-    background 0.3s;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
 }
 
 .btn:hover {
-  background: var(--dark-blue);
+  background: #1d4ed8;
   transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
 }
 
-.btn-logout {
-  padding: 8px 16px;
-  background: var(--danger);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-left: 20px;
+.btn:active {
+  transform: translateY(0);
 }
 
-.btn-logout:hover {
-  background: #c62828;
-}
-
-/* --- Utilities --- */
+/* ==========================================
+   Utilities
+========================================== */
 .text-center {
   text-align: center;
 }
+
 .mt-20 {
-  margin-top: 20px;
+  margin-top: 1.25rem;
 }
+
+/* নাম্বার ইনপুট ফিল্ড থেকে আপ/ডাউন অ্যারো সরানো (ক্রোম, সাফারি, মজিলা ফায়ারফক্স সবকিছুর জন্য) */
 .no-spin::-webkit-outer-spin-button,
 .no-spin::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+
+.no-spin[type="number"] {
+  -moz-appearance: textfield;
 }

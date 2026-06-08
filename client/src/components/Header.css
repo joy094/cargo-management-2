@@ -1,0 +1,263 @@
+/* ==========================================
+   Global Header Variables
+========================================== */
+:root {
+  --primary-color: #2563eb; /* প্রফেশনাল ব্লু */
+  --primary-hover: #1d4ed8;
+  --bg-color: rgba(255, 255, 255, 0.95);
+  --text-dark: #1e293b;
+  --text-gray: #64748b;
+  --header-height: 70px;
+  --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+/* ==========================================
+   Main Header Style (Glassmorphism effect)
+========================================== */
+.main-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--bg-color);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-sm);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+}
+
+.nav-container {
+  width: 100%;
+  max-width: 1400px; /* বড় স্ক্রিনের জন্য লিমিট */
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ==========================================
+   Logo
+========================================== */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.logo-icon {
+  font-size: 1.8rem;
+}
+
+.logo-text {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  letter-spacing: -0.5px;
+}
+
+/* ==========================================
+   Desktop Navigation Links
+========================================== */
+.nav-menu {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-menu li a {
+  text-decoration: none;
+  color: var(--text-gray);
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.nav-menu li a:hover {
+  color: var(--primary-color);
+  background: rgba(37, 99, 235, 0.05);
+}
+
+/* React Router Active Link Class */
+.nav-menu li a.active {
+  color: var(--primary-color);
+  background: rgba(37, 99, 235, 0.1);
+  font-weight: 600;
+}
+
+/* ==========================================
+   Buttons (Desktop)
+========================================== */
+.logout-btn-desktop {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+.logout-btn-desktop:hover {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3);
+}
+
+.logout-btn-desktop:active {
+  transform: translateY(0);
+}
+
+/* ==========================================
+   Mobile/Tablet Visibility Defaults
+========================================== */
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 1001; /* মেনুর উপরে থাকার জন্য */
+}
+
+.mobile-only {
+  display: none;
+}
+
+.menu-overlay {
+  display: none;
+}
+
+/* ==========================================
+   Responsive Design (Tablet & Mobile)
+   Breakpoints: 1024px (Small Laptops & Tablets)
+========================================== */
+@media screen and (max-width: 1350px) {
+  .nav-container {
+    padding: 0 1rem;
+  }
+
+  /* Hamburger Icon Styling */
+  .menu-toggle {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 24px;
+    height: 18px;
+  }
+
+  .menu-toggle span {
+    display: block;
+    height: 2px;
+    width: 100%;
+    background-color: var(--text-dark);
+    border-radius: 2px;
+    transition: all 0.3s ease;
+  }
+
+  /* Hamburger Animation to 'X' */
+  .menu-toggle.open span:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+  }
+  .menu-toggle.open span:nth-child(2) {
+    opacity: 0;
+  }
+  .menu-toggle.open span:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+  }
+
+  .desktop-only {
+    display: none; /* ডেক্সটপ বাটন হাইড */
+  }
+
+  .mobile-only {
+    display: block; /* মোবাইল বাটন শো */
+    margin-top: auto; /* বাটনটি একদম নিচে রাখার জন্য */
+    padding-top: 2rem;
+  }
+
+  /* Side Drawer Menu Style 
+     ডান পাশ থেকে স্লাইড হয়ে আসবে
+  */
+  .nav-menu {
+    position: fixed;
+    top: 0;
+    right: -280px; /* শুরুতে স্ক্রিনের বাইরে থাকবে */
+    width: 280px;
+    height: 100vh;
+    background-color: white;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--header-height) 1.5rem 2rem 1.5rem;
+    box-shadow: -4px 0 15px rgba(0, 0, 0, 0.1);
+    transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+    gap: 0.5rem;
+    overflow-y: auto;
+  }
+
+  .nav-menu.active {
+    right: 0; /* ক্লিক করলে স্ক্রিনে আসবে */
+  }
+
+  .nav-menu li {
+    width: 100%;
+  }
+
+  .nav-menu li a {
+    display: block;
+    width: 100%;
+    padding: 0.8rem 1rem;
+    font-size: 1rem;
+  }
+
+  /* Mobile Logout Button */
+  .logout-btn-mobile {
+    width: 100%;
+    background-color: #fee2e2;
+    color: #ef4444;
+    border: none;
+    padding: 0.8rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .logout-btn-mobile:hover {
+    background-color: #fca5a5;
+    color: #991b1b;
+  }
+
+  /* Dark Overlay Behind the Menu */
+  .menu-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 999;
+  }
+}
+
+/* ==========================================
+   Small Mobile Phones (< 480px)
+========================================== */
+@media screen and (max-width: 480px) {
+  .nav-menu {
+    width: 75vw; /* ছোট স্ক্রিনে মেনুর সাইজ আরেকটু মানানসই করা হলো */
+  }
+}

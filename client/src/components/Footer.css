@@ -1,0 +1,137 @@
+/* ==========================================
+   Global Footer Styling
+========================================== */
+.main-footer {
+  background-color: #0f172a; /* একটি প্রিমিয়াম ডার্ক ব্লু/নেভি কালার */
+  color: #f8fafc;
+  padding: 3rem 0 1.5rem 0;
+  margin-top: auto; /* যদি পুরো পেজটি flexbox হয়, তবে এটি ফুটারকে একদম নিচে রাখবে */
+  border-top: 4px solid #2563eb; /* হেডারের সাথে মিল রেখে উপরে একটি ব্লু বর্ডার */
+}
+
+.footer-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* ==========================================
+   Top Section (Brand & Contact)
+========================================== */
+.footer-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.footer-icon {
+  font-size: 1.5rem;
+}
+
+.footer-logo h4 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+}
+
+.footer-tagline {
+  color: #94a3b8;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.footer-contact {
+  text-align: right;
+  color: #cbd5e1;
+  font-size: 0.95rem;
+}
+
+.footer-contact p {
+  margin: 0.35rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* ==========================================
+   Divider & Bottom Section
+========================================== */
+.footer-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 1.5rem 0;
+}
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.footer-bottom p {
+  margin: 0;
+}
+
+/* আপনার নামটিকে সুন্দরভাবে হাইলাইট করা হয়েছে */
+.developer-credit strong {
+  color: #38bdf8; /* স্কাই ব্লু কালার */
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: color 0.3s ease;
+}
+
+.developer-credit strong:hover {
+  color: #ffffff;
+  cursor: pointer;
+}
+
+/* ==========================================
+   Responsive Design (Tablets & Mobiles)
+========================================== */
+@media screen and (max-width: 768px) {
+  .footer-container {
+    padding: 0 1.5rem;
+  }
+
+  .footer-top {
+    flex-direction: column;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .footer-logo {
+    justify-content: center;
+  }
+
+  .footer-contact {
+    text-align: center;
+  }
+
+  .footer-contact p {
+    justify-content: center;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+  }
+}
