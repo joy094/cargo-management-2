@@ -1,8 +1,9 @@
-//src/components/EditShipmentModal.jsx
+// src/components/EditShipmentModal.jsx
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { translateToChinese } from "../utils/translate"; // 🇨🇳 নতুন: ট্রান্সলেট ফাংশন ইম্পোর্ট
+import "./EditModal.css"; // 🔥 আলাদা করা CSS ফাইল ইম্পোর্ট
 
 export default function EditShipmentModal({
   isOpen,
@@ -16,7 +17,7 @@ export default function EditShipmentModal({
     shippingMark: "",
     customerName: "",
     productName: "",
-    productNameCn: "", // 🇨🇳 নতুন ফিল্ড
+    productNameCn: "",
     chinaTrackingNo: "",
     cartonNo: "",
     quantity: 1,
@@ -38,7 +39,7 @@ export default function EditShipmentModal({
         shippingMark: shipment.shippingMark || "",
         customerName: shipment.customerName || "",
         productName: shipment.productName || "",
-        productNameCn: shipment.productNameCn || "", // 🇨🇳 ডাটাবেস থেকে রিসিভ করা
+        productNameCn: shipment.productNameCn || "",
         chinaTrackingNo: shipment.chinaTrackingNo || "",
         cartonNo: shipment.cartonNo || "",
         quantity: shipment.quantity || 1,
@@ -72,11 +73,9 @@ export default function EditShipmentModal({
     setFormData(newFormData);
   };
 
-  // 🇨🇳 নতুন: প্রোডাক্ট নেম ট্রান্সলেট করার হ্যান্ডলার
   const handleProductBlur = async (e) => {
     const text = e.target.value;
     if (text) {
-      // যদি আগে থেকে কোনো চায়নিজ নাম না থাকে অথবা ইংরেজি নাম পরিবর্তন করা হয়
       const translatedText = await translateToChinese(text);
       setFormData((prev) => ({ ...prev, productNameCn: translatedText }));
     }
@@ -109,6 +108,7 @@ export default function EditShipmentModal({
   return (
     <div className="fixed-modal-overlay">
       <div className="fixed-modal-content">
+        {/* Fixed Header */}
         <div className="modal-header">
           <h2>✏️ Edit Shipment</h2>
           <p>
@@ -119,6 +119,7 @@ export default function EditShipmentModal({
           </p>
         </div>
 
+        {/* Scrollable Body */}
         <div className="modal-body edit-grid">
           <div className="form-group">
             <label>Category</label>
@@ -176,11 +177,10 @@ export default function EditShipmentModal({
               name="productName"
               value={formData.productName}
               onChange={handleChange}
-              onBlur={handleProductBlur} // 👈 ফোকাস সরালেই ট্রান্সলেট হবে
+              onBlur={handleProductBlur}
             />
           </div>
 
-          {/* 🇨🇳 Product Name (Chinese) */}
           <div className="form-group">
             <label>Product Name (CN)</label>
             <input
@@ -214,7 +214,7 @@ export default function EditShipmentModal({
 
           <div className="form-group dimensions-group">
             <label>Dimensions (L x W x H)</label>
-            <div style={{ display: "flex", gap: "10px" }}>
+            <div className="dimensions-inputs">
               <input
                 type="number"
                 name="length"
@@ -283,7 +283,6 @@ export default function EditShipmentModal({
             />
           </div>
 
-          {/* 📅 Received Date Field */}
           <div className="form-group">
             <label>Received Date</label>
             <input
@@ -307,6 +306,7 @@ export default function EditShipmentModal({
           </div>
         </div>
 
+        {/* Fixed Footer */}
         <div className="modal-footer">
           <button className="cancel-btn" onClick={onClose}>
             ✖ Cancel
@@ -320,27 +320,6 @@ export default function EditShipmentModal({
           </button>
         </div>
       </div>
-
-      <style>{`
-        .fixed-modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 9999; }
-        .fixed-modal-content { background: #fff; width: 90%; max-width: 650px; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; animation: modalFadeIn 0.3s ease-in-out; }
-        @keyframes modalFadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-        .modal-header { border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 20px; }
-        .modal-header h2 { margin: 0; font-size: 20px; color: #0f172a; }
-        .modal-header p { margin: 5px 0 0; font-size: 13px; color: #64748b; }
-        .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .form-group { display: flex; flex-direction: column; gap: 5px; }
-        .form-group label { font-size: 12px; font-weight: bold; color: #475569; }
-        .form-group input, .form-group select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; transition: 0.2s; }
-        .form-group input:focus, .form-group select:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1); }
-        .dimensions-group { grid-column: span 2; }
-        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; padding-top: 15px; border-top: 2px solid #f1f5f9; }
-        .cancel-btn { background: #f1f5f9; color: #475569; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .cancel-btn:hover { background: #e2e8f0; color: #0f172a; }
-        .save-btn { background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .save-btn:hover { background: #059669; }
-        .save-btn:disabled { background: #94a3b8; cursor: not-allowed; }
-      `}</style>
     </div>
   );
 }

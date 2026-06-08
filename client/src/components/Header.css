@@ -1,36 +1,27 @@
 /* ==========================================
-   Global Header Variables
-========================================== */
-:root {
-  --primary-color: #2563eb; /* প্রফেশনাল ব্লু */
-  --primary-hover: #1d4ed8;
-  --bg-color: rgba(255, 255, 255, 0.95);
-  --text-dark: #1e293b;
-  --text-gray: #64748b;
-  --header-height: 70px;
-  --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-}
-
-/* ==========================================
-   Main Header Style (Glassmorphism effect)
+   Global Header Styling
 ========================================== */
 .main-header {
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: var(--bg-color);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: var(--shadow-sm);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  height: var(--header-height);
+  /* 3D Background Effect */
+  background: linear-gradient(145deg, #ffffff, #f8fafc);
+  /* 3D Box Shadow */
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.08),
+    inset 0 -3px 0 rgba(37, 99, 235, 0.1);
+  border-bottom: 1px solid #e2e8f0;
+  height: 75px;
   display: flex;
   align-items: center;
+  /* Primary Font Application */
+  font-family: "Hind Siliguri", sans-serif;
 }
 
 .nav-container {
   width: 100%;
-  max-width: 1400px; /* বড় স্ক্রিনের জন্য লিমিট */
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 2rem;
   display: flex;
@@ -44,19 +35,26 @@
 .logo {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.logo:hover {
+  transform: scale(1.02);
 }
 
 .logo-icon {
   font-size: 1.8rem;
+  /* 3D Text Shadow for Icon */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .logo-text {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: var(--text-dark);
-  letter-spacing: -0.5px;
+  color: #1e293b;
+  letter-spacing: 0.5px;
 }
 
 /* ==========================================
@@ -65,7 +63,7 @@
 .nav-menu {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -73,53 +71,81 @@
 
 .nav-menu li a {
   text-decoration: none;
-  color: var(--text-gray);
-  font-size: 0.95rem;
-  font-weight: 500;
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
+  color: #475569;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
   transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px; /* আইকন এবং টেক্সটের মাঝে ফাঁকা জায়গা */
+}
+
+/* আইকনের কালার */
+.nav-icon {
+  color: #64748b;
+  font-size: 1.1rem;
+  transition: color 0.3s ease;
 }
 
 .nav-menu li a:hover {
-  color: var(--primary-color);
+  color: #2563eb;
   background: rgba(37, 99, 235, 0.05);
 }
 
-/* React Router Active Link Class */
+.nav-menu li a:hover .nav-icon {
+  color: #2563eb;
+}
+
+/* Active Link State */
 .nav-menu li a.active {
-  color: var(--primary-color);
+  color: #2563eb;
   background: rgba(37, 99, 235, 0.1);
-  font-weight: 600;
+  box-shadow: inset 0 -2px 0 #2563eb;
+}
+
+.nav-menu li a.active .nav-icon {
+  color: #2563eb;
 }
 
 /* ==========================================
-   Buttons (Desktop)
+   Buttons (Desktop - 3D Style)
 ========================================== */
-.logout-btn-desktop {
-  background-color: #ef4444;
+.logout-btn-3d {
+  background: linear-gradient(145deg, #ef4444, #dc2626);
   color: white;
   border: none;
-  padding: 0.5rem 1.25rem;
+  padding: 0.6rem 1.25rem;
   border-radius: 8px;
   font-weight: 600;
+  font-family: "Hind Siliguri", sans-serif;
+  font-size: 1rem;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  /* 3D Button Effect */
+  box-shadow:
+    0 4px 0 #991b1b,
+    0 5px 10px rgba(239, 68, 68, 0.4);
 }
 
-.logout-btn-desktop:hover {
-  background-color: #dc2626;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3);
+.logout-btn-3d:hover {
+  transform: translateY(2px);
+  box-shadow:
+    0 2px 0 #991b1b,
+    0 3px 6px rgba(239, 68, 68, 0.4);
 }
 
-.logout-btn-desktop:active {
-  transform: translateY(0);
+.logout-btn-3d:active {
+  transform: translateY(4px);
+  box-shadow: none;
 }
 
 /* ==========================================
-   Mobile/Tablet Visibility Defaults
+   Responsive Design (Tablet & Mobile)
 ========================================== */
 .menu-toggle {
   display: none;
@@ -127,45 +153,40 @@
   border: none;
   cursor: pointer;
   padding: 0;
-  z-index: 1001; /* মেনুর উপরে থাকার জন্য */
+  z-index: 1001;
 }
 
 .mobile-only {
   display: none;
 }
-
 .menu-overlay {
   display: none;
 }
 
-/* ==========================================
-   Responsive Design (Tablet & Mobile)
-   Breakpoints: 1024px (Small Laptops & Tablets)
-========================================== */
-@media screen and (max-width: 1350px) {
+@media screen and (max-width: 1400px) {
   .nav-container {
     padding: 0 1rem;
   }
 
-  /* Hamburger Icon Styling */
+  /* 3D Hamburger Menu Icon */
   .menu-toggle {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    width: 24px;
-    height: 18px;
+    width: 28px;
+    height: 20px;
   }
 
   .menu-toggle span {
     display: block;
-    height: 2px;
+    height: 3px;
     width: 100%;
-    background-color: var(--text-dark);
-    border-radius: 2px;
+    background: linear-gradient(to right, #1e293b, #334155);
+    border-radius: 3px;
     transition: all 0.3s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   }
 
-  /* Hamburger Animation to 'X' */
   .menu-toggle.open span:nth-child(1) {
     transform: translateY(8px) rotate(45deg);
   }
@@ -173,33 +194,31 @@
     opacity: 0;
   }
   .menu-toggle.open span:nth-child(3) {
-    transform: translateY(-8px) rotate(-45deg);
+    transform: translateY(-9px) rotate(-45deg);
   }
 
   .desktop-only {
-    display: none; /* ডেক্সটপ বাটন হাইড */
+    display: none;
   }
-
   .mobile-only {
-    display: block; /* মোবাইল বাটন শো */
-    margin-top: auto; /* বাটনটি একদম নিচে রাখার জন্য */
+    display: block;
+    margin-top: auto;
     padding-top: 2rem;
+    border-top: 1px solid #e2e8f0;
   }
 
-  /* Side Drawer Menu Style 
-     ডান পাশ থেকে স্লাইড হয়ে আসবে
-  */
+  /* Mobile Side Menu */
   .nav-menu {
     position: fixed;
     top: 0;
-    right: -280px; /* শুরুতে স্ক্রিনের বাইরে থাকবে */
-    width: 280px;
+    right: -300px;
+    width: 300px;
     height: 100vh;
-    background-color: white;
+    background-color: #ffffff;
     flex-direction: column;
     align-items: flex-start;
-    padding: var(--header-height) 1.5rem 2rem 1.5rem;
-    box-shadow: -4px 0 15px rgba(0, 0, 0, 0.1);
+    padding: 85px 1.5rem 2rem 1.5rem;
+    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
     transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1000;
     gap: 0.5rem;
@@ -207,39 +226,57 @@
   }
 
   .nav-menu.active {
-    right: 0; /* ক্লিক করলে স্ক্রিনে আসবে */
+    right: 0;
   }
-
   .nav-menu li {
     width: 100%;
   }
 
   .nav-menu li a {
-    display: block;
     width: 100%;
     padding: 0.8rem 1rem;
-    font-size: 1rem;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    background: #f8fafc;
+    margin-bottom: 5px;
+    border: 1px solid transparent;
   }
 
-  /* Mobile Logout Button */
+  .nav-menu li a.active {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    box-shadow: inset 4px 0 0 #2563eb;
+  }
+
+  /* Mobile Logout Button (Red Arrow) */
   .logout-btn-mobile {
     width: 100%;
-    background-color: #fee2e2;
+    background-color: #fef2f2;
     color: #ef4444;
-    border: none;
+    border: 1px solid #fecaca;
     padding: 0.8rem;
     border-radius: 8px;
-    font-weight: 600;
+    font-weight: 700;
+    font-family: "Hind Siliguri", sans-serif;
+    font-size: 1.1rem;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
     transition: all 0.2s ease;
   }
 
-  .logout-btn-mobile:hover {
-    background-color: #fca5a5;
-    color: #991b1b;
+  .logout-icon {
+    color: #ef4444;
+    font-size: 1.2rem;
   }
 
-  /* Dark Overlay Behind the Menu */
+  .logout-btn-mobile:hover {
+    background-color: #fee2e2;
+    border-color: #fca5a5;
+  }
+
   .menu-overlay {
     display: block;
     position: fixed;
@@ -247,17 +284,8 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(2px);
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(3px);
     z-index: 999;
-  }
-}
-
-/* ==========================================
-   Small Mobile Phones (< 480px)
-========================================== */
-@media screen and (max-width: 480px) {
-  .nav-menu {
-    width: 75vw; /* ছোট স্ক্রিনে মেনুর সাইজ আরেকটু মানানসই করা হলো */
   }
 }

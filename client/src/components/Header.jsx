@@ -4,7 +4,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import CanAccess from "./CanAccess";
-import "./Header.css"; // 🔥 CSS ফাইলটি ইম্পোর্ট করা হলো
+import "./Header.css";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -13,7 +13,6 @@ const Header = () => {
 
   const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
-  // মেনু ওপেন থাকলে ব্যাকগ্রাউন্ড স্ক্রল বন্ধ করার জন্য (ঐচ্ছিক কিন্তু ভালো প্র্যাকটিস)
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = "hidden";
@@ -22,7 +21,6 @@ const Header = () => {
     }
   }, [isMobileMenuOpen]);
 
-  // গ্লোবালি স্ক্রল করে নাম্বার চেঞ্জ হওয়া বন্ধ করার ম্যাজিক কোড
   useEffect(() => {
     const disableNumberScroll = (event) => {
       if (document.activeElement.type === "number") {
@@ -41,11 +39,16 @@ const Header = () => {
         <nav className="nav-container">
           {/* Logo Section */}
           <div className="logo" onClick={() => navigate("/")}>
-            <div className="logo-icon">📦</div> {/* একটি আইকন দেওয়া হলো */}
+            <div className="logo-icon">
+              <i
+                className="fa-solid fa-boxes-packing"
+                style={{ color: "#2563eb" }}
+              ></i>
+            </div>
             <div className="logo-text">LOGO</div>
           </div>
 
-          {/* Hamburger Menu for Mobile & Tablet */}
+          {/* Hamburger Menu Toggle */}
           <button
             className={`menu-toggle ${isMobileMenuOpen ? "open" : ""}`}
             onClick={toggleMenu}
@@ -60,7 +63,7 @@ const Header = () => {
           <ul className={`nav-menu ${isMobileMenuOpen ? "active" : ""}`}>
             <li>
               <NavLink to="/" onClick={() => setIsMobileMenuOpen(false)}>
-                ড্যাশবোর্ড
+                <i className="fa-solid fa-house nav-icon"></i> ড্যাশবোর্ড
               </NavLink>
             </li>
 
@@ -70,6 +73,7 @@ const Header = () => {
                   to="/branch/new"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
+                  <i className="fa-solid fa-users nav-icon"></i>{" "}
                   ব্রাঞ্চ/কাস্টমার
                 </NavLink>
               </li>
@@ -81,6 +85,7 @@ const Header = () => {
                   to="/unassigned"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
+                  <i className="fa-solid fa-circle-exclamation nav-icon"></i>{" "}
                   মিসিং শিপিং মার্ক
                 </NavLink>
               </li>
@@ -92,7 +97,8 @@ const Header = () => {
                   to="/batches"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  শিপমেন্ট ব্যাচ
+                  <i className="fa-solid fa-layer-group nav-icon"></i> শিপমেন্ট
+                  ব্যাচ
                 </NavLink>
               </li>
             </CanAccess>
@@ -103,7 +109,8 @@ const Header = () => {
                   to="/china-warehouse"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  CN ওয়ারহাউজ
+                  <i className="fa-solid fa-warehouse nav-icon"></i> CN
+                  ওয়ারহাউজ
                 </NavLink>
               </li>
             </CanAccess>
@@ -114,6 +121,7 @@ const Header = () => {
                   to="/payment-allocation"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
+                  <i className="fa-solid fa-file-invoice-dollar nav-icon"></i>{" "}
                   পেমেন্ট
                 </NavLink>
               </li>
@@ -125,7 +133,8 @@ const Header = () => {
                   to="/admin/roles"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  রোল & পারমিশন
+                  <i className="fa-solid fa-user-shield nav-icon"></i> রোল &
+                  পারমিশন
                 </NavLink>
               </li>
             )}
@@ -140,6 +149,7 @@ const Header = () => {
                   }}
                   className="logout-btn-mobile"
                 >
+                  <i className="fa-solid fa-arrow-right-from-bracket logout-icon"></i>{" "}
                   লগআউট
                 </button>
               </li>
@@ -149,15 +159,15 @@ const Header = () => {
           {/* Desktop Logout (Hidden on mobile) */}
           {user && (
             <div className="desktop-only">
-              <button onClick={logout} className="logout-btn-desktop">
-                লগআউট
+              <button onClick={logout} className="logout-btn-3d">
+                <i className="fa-solid fa-arrow-right-from-bracket"></i> লগআউট
               </button>
             </div>
           )}
         </nav>
       </header>
 
-      {/* Mobile Menu Overlay - বাইরে ক্লিক করলে মেনু বন্ধ হওয়ার জন্য */}
+      {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div
           className="menu-overlay"

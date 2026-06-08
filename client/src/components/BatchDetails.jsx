@@ -813,7 +813,7 @@ export default function BatchDetails() {
                           </span>
                         )}
                       </td>
-                      <td>{s.productName || "-"}</td>
+                      <td className="product-name-cell">{s.productName || "-"}</td>
                       <td>{s.cartonNo || "-"}</td>
                       <td>
                         <strong>{stats.qty}</strong>
@@ -963,7 +963,7 @@ export default function BatchDetails() {
                                   </span>
                                 )}
                               </td>
-                              <td>{sub.productName || "-"}</td>
+                              <td className="product-name-cell">{sub.productName || "-"}</td>
                               <td>-</td>
                               <td>{sub.quantity || 1}</td>
                               <td>{sub.grossWeight || 0} KG</td>

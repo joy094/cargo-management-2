@@ -1,84 +1,96 @@
-/* --- Bottom Navigation Styling --- */
+/* ==========================================
+   Mobile Bottom Navigation
+========================================== */
+
+/* ডেক্সটপ বা বড় স্ক্রিনে এটি সম্পূর্ণ লুকানো থাকবে */
 .mobile-bottom-nav {
-  display: none; /* ডিফল্টভাবে পিসিতে হাইড থাকবে */
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 70px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px); /* গ্লাস ইফেক্ট */
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.15); /* ৩ডি শ্যাডো */
-  z-index: 1001;
-  padding-bottom: env(safe-area-inset-bottom); /* আইফোনের জন্য */
+  display: none;
+  font-family: "Hind Siliguri", sans-serif;
 }
 
-.nav-item {
-  text-decoration: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: #64748b;
-  transition: 0.3s;
-  flex: 1;
-}
-
-.nav-item .icon {
-  font-size: 20px;
-  margin-bottom: 4px;
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.nav-item .label {
-  font-size: 12px;
-  font-weight: 600;
-}
-
-/* অ্যাক্টিভ লিংক স্টাইল */
-.nav-item.active {
-  color: #003580;
-}
-
-.nav-item.active .icon {
-  transform: translateY(-8px) scale(1.2); /* ৩ডি জাম্প ইফেক্ট */
-  background: #ffcc00;
-  width: 45px;
-  height: 45px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  box-shadow: 0 8px 15px rgba(0, 53, 128, 0.2);
-}
-
-.nav-item.active .label {
-  color: #003580;
-  font-weight: 800;
-}
-
-/* রেসপনসিভ লজিক */
-@media (min-width: 851px) {
-  .mobile-bottom-nav {
-    display: none !important; /* পিসিতে দেখাবে না */
-  }
-}
-
-@media (max-width: 850px) {
+/* শুধুমাত্র মোবাইল স্ক্রিনের জন্য (৭৬৮px বা তার নিচে) */
+@media screen and (max-width: 768px) {
   .mobile-bottom-nav {
     display: flex;
+    justify-content: space-around;
+    align-items: center;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+
+    /* Glassmorphism Effect */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+
+    box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05);
+    border-top: 1px solid #e2e8f0;
+    z-index: 9999;
+
+    /* iOS ডিভাইসের নিচের হোম বারের জন্য সেফ এরিয়া */
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
-  /* বটম নেভিগেশন যাতে মেইন কন্টেন্ট ঢেকে না ফেলে */
-  main {
-    padding-bottom: 80px !important;
+  /* Nav Item Layout */
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: #64748b;
+    width: 25%;
+    height: 100%;
+    position: relative;
+    transition: all 0.3s ease;
+    -webkit-tap-highlight-color: transparent; /* ক্লিক করলে ডিফল্ট ব্লু ব্যাকগ্রাউন্ড রিমুভ */
   }
 
-  /* মোবাইলে ফুটার হাইড করে দেয়া ভালো কারণ বটম নেভ আছে */
-  .main-footer {
-    display: none;
+  .nav-icon {
+    font-size: 1.3rem;
+    margin-bottom: 4px;
+    transition:
+      transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+      color 0.3s ease;
+  }
+
+  .label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: color 0.3s ease;
+  }
+
+  /* ==========================================
+     Active State (যখন ইউজার ওই পেজে থাকবে)
+  ========================================== */
+  .nav-item.active {
+    color: #2563eb;
+  }
+
+  .nav-item.active .nav-icon {
+    color: #2563eb;
+    transform: translateY(-3px) scale(1.1); /* হালকা উপরে উঠবে এবং একটু বড় হবে */
+  }
+
+  /* Active Indicator (উপরে একটি নীল রঙের লাইন) */
+  .nav-item.active::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 35px;
+    height: 3px;
+    background: #2563eb;
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+  }
+
+  /* বাটনে ক্লিক করার সময় হালকা ব্যাকগ্রাউন্ড ইফেক্ট */
+  .nav-item:active {
+    background-color: rgba(37, 99, 235, 0.05);
   }
 }

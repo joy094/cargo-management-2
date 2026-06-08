@@ -650,7 +650,7 @@ export default function BranchProfile() {
                           />
                         </td>
                         <td>{idx + 1}</td>
-                        <td>
+                        <td className="product-name-cell">
                           {item.productName}
                           <div
                             style={{

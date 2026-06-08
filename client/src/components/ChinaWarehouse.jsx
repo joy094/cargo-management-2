@@ -1083,7 +1083,10 @@ export default function ChinaWarehouse() {
                       </span>
                     </td>
 
-                    <td style={{ padding: "12px" }}>
+                    <td
+                      className="product-name-cell"
+                      style={{ padding: "12px" }}
+                    >
                       <div style={{ fontWeight: "bold", color: "#0f172a" }}>
                         {s.productName || "-"}
                       </div>
@@ -1277,6 +1280,51 @@ export default function ChinaWarehouse() {
         .save-btn { background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .save-btn:hover { background: #059669; }
         .save-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        /* ==========================================
+   Responsive Table Scroll Fix
+========================================== */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto; /* এটি ডান-বামে স্ক্রলবার আনবে */
+  -webkit-overflow-scrolling: touch; /* মোবাইলে স্মুথ স্ক্রলিংয়ের জন্য */
+  
+  /* টেবিলের নিচে স্ক্রলবারের জায়গা রাখার জন্য হালকা প্যাডিং */
+  padding-bottom: 10px; 
+}
+
+/* নিশ্চিত করুন টেবিলটি যেন পুরো জায়গা নেয় এবং কলামগুলো ঠিকমতো আচরণ করে */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap; /* ডিফল্টভাবে টেক্সট যেন না ভাঙে, শুধু নির্দিষ্ট কলাম ছাড়া */
+}
+
+/* ==========================================
+   Product Name Text Wrap Fix
+========================================== */
+.product-name-cell {
+  /* কলামের সর্বোচ্চ এবং সর্বনিম্ন প্রস্থ নির্ধারণ */
+  max-width: 150px; 
+  min-width: 120px;
+  
+  /* লম্বা টেক্সটকে ভেঙে নিচে নামতে বাধ্য করা */
+  white-space: normal; 
+  word-wrap: break-word; 
+  overflow-wrap: break-word;
+  word-break: break-all; /* অতিরিক্ত বড় শব্দ (যাতে কোনো স্পেস নেই) ভাঙার জন্য */
+  
+  /* দেখতে সুন্দর লাগার জন্য হালকা প্যাডিং এবং লাইন হাইট */
+  padding: 8px !important;
+  line-height: 1.4;
+}
+
+/* চাইলে Shipping Mark এর কলামেও একই স্টাইল দিতে পারেন যদি সেটিও বড় হয়ে যায় */
+.mark-cell {
+  max-width: 180px;
+  white-space: normal;
+  word-wrap: break-word;
+}
       `}</style>
     </div>
   );
