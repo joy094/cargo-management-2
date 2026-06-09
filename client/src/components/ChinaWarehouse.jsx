@@ -200,7 +200,7 @@ export default function ChinaWarehouse() {
   const handleDelete = async (shipmentId) => {
     if (
       !window.confirm(
-        "আপনি কি নিশ্চিত যে এই ওয়্যারহাউজ এন্ট্রিটি ডিলিট করতে চান?",
+        "Are you sure you want to delete this warehouse entry?",
       )
     )
       return;
@@ -208,7 +208,7 @@ export default function ChinaWarehouse() {
       await axios.delete(`/api/shipments/${shipmentId}`);
       fetchWarehouseData();
     } catch (err) {
-      alert("ডিলিট করতে সমস্যা হয়েছে!");
+      alert("Failed to delete shipment!");
     }
   };
 
@@ -232,8 +232,8 @@ export default function ChinaWarehouse() {
 
   const handlePushToBatch = async () => {
     if (selectedIds.length === 0)
-      return alert("দয়া করে অন্তত একটি মাল সিলেক্ট করুন!");
-    if (!targetBatch) return alert("দয়া করে একটি টার্গেট ব্যাচ সিলেক্ট করুন!");
+      return alert("Please select at least one shipment!");
+    if (!targetBatch) return alert("Please select a target batch!");
 
     const masterName = selectedMasterBox
       ? masterBoxes.find((m) => m._id === selectedMasterBox)?.cartonNo ||
@@ -242,7 +242,7 @@ export default function ChinaWarehouse() {
 
     if (
       !window.confirm(
-        `সিলেক্ট করা ${selectedIds.length}টি মাল "${masterName}" হিসেবে ব্যাচে পুশ করতে চান?`,
+        `Selected ${selectedIds.length} shipments to be pushed to batch "${masterName}"?`,
       )
     )
       return;
@@ -255,7 +255,7 @@ export default function ChinaWarehouse() {
       });
 
       if (res.data.success) {
-        alert("সফলভাবে ব্যাচে যুক্ত করা হয়েছে! 🚀");
+        alert("Successfully pushed to batch! 🚀");
         setSelectedIds([]);
         setTargetBatch("");
         setSelectedMasterBox("");
@@ -263,7 +263,7 @@ export default function ChinaWarehouse() {
         fetchWarehouseData();
       }
     } catch (error) {
-      alert("ব্যাচে পুশ করতে সমস্যা হয়েছে!");
+      alert("Failed to push shipments to batch!");
     } finally {
       setIsPushing(false);
     }
@@ -271,10 +271,10 @@ export default function ChinaWarehouse() {
 
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0)
-      return alert("দয়া করে অন্তত একটি মাল সিলেক্ট করুন!");
+      return alert("Please select at least one shipment to delete!");
     if (
       !window.confirm(
-        `আপনি কি নিশ্চিত যে সিলেক্ট করা ${selectedIds.length}টি মাল ডিলিট করতে চান?`,
+        `Are you sure you want to delete the selected ${selectedIds.length} shipments?`,
       )
     )
       return;
@@ -285,12 +285,12 @@ export default function ChinaWarehouse() {
         shipmentIds: selectedIds,
       });
       if (res.data.success) {
-        alert("সফলভাবে ডিলিট করা হয়েছে! 🗑️");
+        alert("Successfully deleted shipments! 🗑️");
         setSelectedIds([]);
         fetchWarehouseData();
       }
     } catch (error) {
-      alert("ডিলিট করতে সমস্যা হয়েছে!");
+      alert("Failed to delete shipments!");
     } finally {
       setLoading(false);
     }
@@ -330,7 +330,8 @@ export default function ChinaWarehouse() {
             🏠 China Warehouse
           </h1>
           <p style={{ margin: "5px 0 0", color: "#64748b", fontSize: "14px" }}>
-            আনঅ্যাসাইনড মাল রিসিভ করুন এবং ব্যাচে বা মাস্টার বক্সে পুশ করুন
+            Receive unassigned shipments and push them to batches or master
+            boxes
           </p>
         </div>
       </div>

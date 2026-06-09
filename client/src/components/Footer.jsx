@@ -36,7 +36,7 @@ const Footer = () => {
         <div className="footer-bottom">
           <p>&copy; {new Date().getFullYear()} সর্বস্বত্ব সংরক্ষিত</p>
           <p className="developer-credit">
-            ডিজাইন ও ডেভেলপমেন্ট: <strong>এমডি জাকারিয়া</strong>
+            ডিজাইন ও ডেভেলপমেন্ট: <strong><a href="https://github.com/joy094">এমডি জাকারিয়া</a></strong>
           </p>
         </div>
       </div>

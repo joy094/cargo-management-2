@@ -26,10 +26,51 @@ router.get("/pending/:shippingMark", async (req, res) => {
   }
 });
 
-// ✅ ২. আইটেম অনুযায়ী বিল ইনপুট (রেট, টোটাল, ট্রান্সপোর্ট ও ডিসকাউন্ট সেভ করা)
+// // ✅ ২. আইটেম অনুযায়ী বিল ইনপুট (রেট, টোটাল, ট্রান্সপোর্ট ও ডিসকাউন্ট সেভ করা)
+// router.post("/generate-invoice", async (req, res) => {
+//   try {
+//     // 🔥 req.body থেকে transportBill, discount এর পাশাপাশি নতুন দুটি কস্ট রিসিভ করা হলো
+//     const {
+//       items,
+//       invoiceTotal,
+//       discount,
+//       transportBill,
+//       receivingCost,
+//       packagingCost,
+//     } = req.body;
+//     const invoiceId = `INV-${Date.now()}`;
+
+//     // ফ্রন্টএন্ড থেকে আসা আইটেমগুলোর রেট ও ইনভয়েস লেভেলের ডাটা আপডেট করা
+//     const updatePromises = items.map((item) => {
+//       return Shipment.findByIdAndUpdate(item.id, {
+//         perKgRate: item.rate,
+//         totalBill: item.total,
+//         isBilled: true,
+//         billingDate: new Date(),
+//         invoiceId: invoiceId,
+//         discount: discount || 0, // ইনভয়েসের মোট ডিসকাউন্ট আইটেমে সেভ হচ্ছে
+//         transportBill: transportBill || 0, // ট্রান্সপোর্ট বিল আইটেমে সেভ হচ্ছে
+//         invoiceReceivingCost: receivingCost || 0, // 🔥 BDT কস্ট আলাদা নামে সেভ হবে
+//         invoicePackagingCost: packagingCost || 0, // 🔥 BDT কস্ট আলাদা নামে সেভ হবে
+//       });
+//     });
+
+//     await Promise.all(updatePromises);
+
+//     res.status(200).json({
+//       success: true,
+//       message: "ইনভয়েস তৈরি হয়েছে",
+//       invoiceId,
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ success: false, message: "ইনভয়েস সেভ করা যায়নি" });
+//   }
+// });
+
+// ✅ ২. আইটেম অনুযায়ী বিল ইনপুট (কাস্টম ইনভয়েস নাম্বার সহ)
 router.post("/generate-invoice", async (req, res) => {
   try {
-    // 🔥 req.body থেকে transportBill, discount এর পাশাপাশি নতুন দুটি কস্ট রিসিভ করা হলো
     const {
       items,
       invoiceTotal,
@@ -37,8 +78,59 @@ router.post("/generate-invoice", async (req, res) => {
       transportBill,
       receivingCost,
       packagingCost,
+      shippingMark, // 🔥 ফ্রন্টএন্ড থেকে পাঠানো শিপিং মার্কটি রিসিভ করা হলো
     } = req.body;
-    const invoiceId = `INV-${Date.now()}`;
+
+    // ==========================================
+    // 🚀 স্মার্ট ইনভয়েস জেনারেটর (JAM-26-0001)
+    // ==========================================
+    let custCode = "INV"; // ডিফল্ট কোড
+
+    if (shippingMark) {
+      // ১. শিপিং মার্ক দিয়ে ব্রাঞ্চ/কাস্টমার খোঁজা
+      const searchRegex = new RegExp(`^${shippingMark}$`, "i");
+      const branch = await Branch.findOne({
+        $or: [{ shippingMark: searchRegex }, { shippingMarks: searchRegex }],
+      });
+
+      if (branch && branch.branchName) {
+        // কাস্টমারের নামের প্রথম ৩ অক্ষর (স্পেস থাকলে বাদ দিয়ে, বড় হাতের অক্ষরে)
+        custCode = branch.branchName
+          .replace(/\s+/g, "")
+          .substring(0, 3)
+          .toUpperCase();
+      } else {
+        // যদি ব্রাঞ্চ না থাকে, তবে শিপিং মার্কেরই প্রথম ৩ অক্ষর নিবে
+        custCode = shippingMark
+          .replace(/\s+/g, "")
+          .substring(0, 3)
+          .toUpperCase();
+      }
+    }
+
+    // ২. বর্তমান বছরের লাস্ট ২ ডিজিট (যেমন: 2026 থেকে 26)
+    const year = new Date().getFullYear().toString().slice(-2);
+    const prefix = `${custCode}-${year}-`; // যেমন: JAM-26-
+
+    // ৩. ডেটাবেজে এই কাস্টমারের এই বছরের আগের ইনভয়েসগুলো খোঁজা
+    // (Sort করে সবচেয়ে শেষের ইনভয়েসটি বের করা হচ্ছে)
+    const lastShipment = await Shipment.findOne({
+      invoiceId: { $regex: `^${prefix}` },
+    }).sort({ invoiceId: -1 });
+
+    let nextSerial = 1;
+    if (lastShipment && lastShipment.invoiceId) {
+      // আগের ইনভয়েস (JAM-26-0005) থেকে লাস্ট অংশ (0005) আলাদা করে ১ যোগ করা
+      const lastSerialPart = lastShipment.invoiceId.split("-")[2];
+      if (lastSerialPart) {
+        nextSerial = parseInt(lastSerialPart, 10) + 1;
+      }
+    }
+
+    // ৪. জিরো প্যাডিং করে ৪ ডিজিট বানানো (যেমন: 6 থেকে 0006)
+    const serialStr = nextSerial.toString().padStart(4, "0");
+    const invoiceId = `${prefix}${serialStr}`; // চূড়ান্ত ইনভয়েস: JAM-26-0006
+    // ==========================================
 
     // ফ্রন্টএন্ড থেকে আসা আইটেমগুলোর রেট ও ইনভয়েস লেভেলের ডাটা আপডেট করা
     const updatePromises = items.map((item) => {
@@ -47,11 +139,11 @@ router.post("/generate-invoice", async (req, res) => {
         totalBill: item.total,
         isBilled: true,
         billingDate: new Date(),
-        invoiceId: invoiceId,
-        discount: discount || 0, // ইনভয়েসের মোট ডিসকাউন্ট আইটেমে সেভ হচ্ছে
-        transportBill: transportBill || 0, // ট্রান্সপোর্ট বিল আইটেমে সেভ হচ্ছে
-        invoiceReceivingCost: receivingCost || 0, // 🔥 BDT কস্ট আলাদা নামে সেভ হবে
-        invoicePackagingCost: packagingCost || 0, // 🔥 BDT কস্ট আলাদা নামে সেভ হবে
+        invoiceId: invoiceId, // 🔥 নতুন স্মার্ট ইনভয়েস নাম্বার বসবে
+        discount: discount || 0,
+        transportBill: transportBill || 0,
+        invoiceReceivingCost: receivingCost || 0,
+        invoicePackagingCost: packagingCost || 0,
       });
     });
 
@@ -426,7 +518,7 @@ router.get("/invoice-history/:shippingMark", async (req, res) => {
           },
         },
       },
-      
+
       { $sort: { date: -1 } }, // একটি সর্ট রেখে বাকিটা রিমুভ করা হয়েছে
     ]);
 

@@ -893,7 +893,6 @@ export default function BranchProfile() {
                 <input
                   type="number"
                   value={discount}
-                  
                   onChange={(e) => setDiscount(e.target.value)}
                   placeholder="0"
                 />
@@ -909,7 +908,6 @@ export default function BranchProfile() {
                     (parseFloat(transportCost) || 0) +
                     (parseFloat(receivingCost) || 0) +
                     (parseFloat(packagingCost) || 0)
-
                   ).toLocaleString()}
                 </h3>
               </div>
@@ -980,6 +978,25 @@ export default function BranchProfile() {
           activeMark={activeMark}
           summary={summary}
           invoiceHistory={invoiceHistory}
+        />
+      )}
+
+      {/* 🔥 ফিক্সড এডিট মোডাল কোড */}
+      {showEditModal && editingShipment && (
+        <EditShipmentModal
+          isOpen={showEditModal}
+          shipment={
+            editingShipment
+          } /* 👈 এখানে shipmentData এর বদলে shipment হবে */
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingShipment(null);
+          }}
+          onSuccess={() => {
+            setShowEditModal(false);
+            setEditingShipment(null);
+            fetchBranchData(activeMark); // ডাটা আপডেট হওয়ার পর টেবিল রিফ্রেশ হবে
+          }}
         />
       )}
       {/* ✅ একদম নিচে থাকা পুরানো বিশাল কোডটি সরিয়ে শুধু এই লাইনটি বসান */}

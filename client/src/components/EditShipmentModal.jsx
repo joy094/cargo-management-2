@@ -32,6 +32,22 @@ export default function EditShipmentModal({
     receivedDate: "",
   });
 
+  // 🔥 নতুন: Customer Map স্টেট এবং ডাটা ফেচ
+  const [customerMap, setCustomerMap] = useState({});
+
+  useEffect(() => {
+    if (isOpen) {
+      axios
+        .get("/api/customer-map")
+        .then((res) => {
+          if (res.data.success) {
+            setCustomerMap(res.data.customerMap);
+          }
+        })
+        .catch((err) => console.error("Customer map fetch error:", err));
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     if (shipment) {
       setFormData({
@@ -64,15 +80,26 @@ export default function EditShipmentModal({
     const { name, value } = e.target;
     let newFormData = { ...formData, [name]: value };
 
+    // 🔥 ম্যাজিক: Shipping Mark চেঞ্জ হলে Customer Name অটোমেটিক বসে যাবে
+    if (name === "shippingMark") {
+      const markUpper = value.trim().toUpperCase();
+      if (customerMap[markUpper]) {
+        newFormData.customerName = customerMap[markUpper];
+      } else {
+        newFormData.customerName = ""; // লিস্টে না থাকলে ফাঁকা হয়ে যাবে
+      }
+    }
+
+    // CBM Calculation
     if (["length", "width", "height"].includes(name)) {
       const l = Number(newFormData.length) || 0;
       const w = Number(newFormData.width) || 0;
       const h = Number(newFormData.height) || 0;
       newFormData.cbm = ((l * w * h) / 1000000).toFixed(3);
     }
+
     setFormData(newFormData);
   };
-
   const handleProductBlur = async (e) => {
     const text = e.target.value;
     if (text) {
