@@ -6,6 +6,7 @@
 }
 .header-flex {
   display: flex;
+  flex-wrap: wrap; /* জায়গা না পেলে পুরো ব্যাজটি নিচে নামবে */
   align-items: center;
   gap: 20px;
   margin-bottom: 25px;
