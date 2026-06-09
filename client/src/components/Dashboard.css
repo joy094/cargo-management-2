@@ -1,11 +1,15 @@
+/* Google Font Import - Inter */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
 /* ==========================================
    Global Dashboard Container
 ========================================== */
 .dashboard-container {
   padding: 20px;
-  background: #f4f7f9; /* ছবির মতো হালকা ব্যাকগ্রাউন্ড */
+  background: #f4f7f9;
   min-height: 100vh;
-  font-family: "Hind Siliguri", "Inter", sans-serif;
+  /* 🔥 প্রফেশনাল ফন্ট Inter যুক্ত করা হলো */
+  font-family: "Inter", "Hind Siliguri", sans-serif;
 }
 
 .loading-screen {
@@ -49,7 +53,7 @@
 
 /* Due List Button (Dark Style) */
 .due-list-btn {
-  background: #0f172a; /* ডার্ক নেভি কালার */
+  background: #0f172a;
   color: white;
   padding: 10px 18px;
   border-radius: 8px;
@@ -84,25 +88,44 @@
   grid-template-columns: repeat(4, 1fr);
 }
 
-/* White Card Style (Overriding Gradients) */
-.stat-card,
-.blue-gradient,
-.green-gradient,
-.red-gradient {
-  background: #ffffff !important; /* গ্রেডিয়েন্ট সরিয়ে সাদা করা হলো */
-  color: #0f172a !important; /* ডার্ক টেক্সট */
+/* 🔥 Financial Cards Color Updates */
+.stat-card {
   display: flex;
   align-items: center;
   padding: 20px 15px;
   border-radius: 12px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
   transition: transform 0.3s ease;
-  border: 1px solid #f1f5f9;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
 }
 
 .stat-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* Blue Card (Total Billed) */
+.stat-card.blue-gradient {
+  border-left: 5px solid #3b82f6;
+}
+
+/* Green Card (Total Collected) */
+.stat-card.green-gradient {
+  background-color: #f0fdf4 !important;
+  border-left: 5px solid #10b981;
+}
+.stat-card.green-gradient h3 {
+  color: #065f46 !important;
+}
+
+/* Red Card (Total Market Due) */
+.stat-card.red-gradient {
+  background-color: #fef2f2 !important;
+  border-left: 5px solid #ef4444;
+}
+.stat-card.red-gradient h3 {
+  color: #b91c1c !important;
 }
 
 .stat-card .icon {
@@ -257,7 +280,7 @@
 }
 
 /* ==========================================
-   Modal (Due List) - Omitted for brevity, keep your existing ones
+   Modal (Due List) & Table Text Wrapping
 ========================================== */
 .modal-overlay {
   position: fixed;
@@ -272,6 +295,7 @@
   align-items: center;
   z-index: 1000;
 }
+
 .due-modal-content {
   background: white;
   width: 90%;
@@ -283,6 +307,7 @@
   flex-direction: column;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 }
+
 .due-modal-header {
   display: flex;
   justify-content: space-between;
@@ -291,6 +316,7 @@
   border-bottom: 2px solid #f1f5f9;
   padding-bottom: 15px;
 }
+
 .close-x {
   background: #f1f5f9;
   border: none;
@@ -301,33 +327,57 @@
   border-radius: 50%;
   color: #64748b;
 }
+
 .due-list-scrollable {
   overflow-y: auto;
   overflow-x: auto;
   flex-grow: 1;
 }
+
+/* 🔥 লম্বা শিপিং মার্ক ভাঙার জন্য টেবিল লেআউট ফিক্স */
 .due-table {
   width: 100%;
   border-collapse: collapse;
-  white-space: nowrap;
+  table-layout: fixed; /* কলামের সাইজ ফিক্সড রাখবে */
 }
+
 .due-table th {
   background: #f8fafc;
   padding: 12px;
   text-align: left;
   position: sticky;
   top: 0;
+  z-index: 10;
 }
+
 .due-table td {
   padding: 12px;
   border-bottom: 1px solid #f1f5f9;
+  word-wrap: break-word; /* বড় শব্দ ভাঙবে */
+  overflow-wrap: break-word;
 }
+
 .due-amount-cell {
   color: #dc2626;
   font-weight: 800;
 }
 .high-priority-row {
   background: #fff1f2;
+}
+
+/* 🔥 Shipping Mark Tag Update */
+.mark-tag {
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  display: inline-block;
+  white-space: normal;
+  max-width: 110px; /* ১০-১২ অক্ষরের পর নিচে চলে আসবে */
+  word-break: break-all;
+  text-align: center;
 }
 
 /* ==========================================
@@ -344,11 +394,11 @@
   }
 }
 
-/* Mobile Devices (আপনার ছবির লেআউট) */
+/* Mobile Devices */
 @media screen and (max-width: 768px) {
   .dashboard-container {
     padding: 15px 10px;
-    margin-bottom: 80px; /* BottomNav এর জন্য জায়গা রাখা হলো */
+    margin-bottom: 80px;
   }
 
   .dashboard-header {
@@ -363,7 +413,6 @@
     padding: 12px;
   }
 
-  /* 🔥 ম্যাজিক লেআউট: মোবাইলে পাশাপাশি ২টি কার্ড */
   .top-grid,
   .secondary-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -372,7 +421,7 @@
 
   .stat-card,
   .stat-box {
-    flex-direction: column; /* আইকন উপরে, টেক্সট নিচে */
+    flex-direction: column;
     align-items: flex-start;
     padding: 15px;
     gap: 10px;

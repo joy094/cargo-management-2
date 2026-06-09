@@ -25,39 +25,76 @@
   font-weight: bold;
 }
 
+/* ==========================================
+   Branch Profile: Stat Cards Fix
+========================================== */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  margin-bottom: 30px;
-}
-.stat-card {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-  border-left: 5px solid;
-}
-.stat-card span {
-  font-size: 14px;
-  font-weight: bold;
-  color: #64748b;
-}
-.stat-card h3 {
-  margin: 10px 0 0;
-  font-size: 28px;
-  color: #0f172a;
-}
-.stat-card.blue {
-  border-color: #3b82f6;
-}
-.stat-card.green {
-  border-color: #10b981;
-}
-.stat-card.red {
-  border-color: #ef4444;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 15px;
+  margin-bottom: 25px;
+  width: 100%;
 }
 
+.stat-card {
+  display: flex;
+  flex-direction: column; /* 🔥 মূল ম্যাজিক: লেখাগুলো নিচে নিচে বসাবে */
+  justify-content: center;
+  align-items: flex-start; /* লেখাগুলোকে বাম পাশে সমান রাখবে */
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  border: 1px solid #e2e8f0;
+  gap: 8px; /* টাইটেল এবং টাকার অংকের মাঝে সুন্দর ফাঁকা জায়গা */
+  transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* টাইটেলের স্টাইল (Total Billed Amount ইত্যাদি) */
+.stat-card span {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+/* টাকার অংকের স্টাইল (৳ 9,000) */
+.stat-card h3 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+/* কার্ডের বাম পাশের রঙিন বর্ডার */
+.stat-card.blue {
+  border-left: 5px solid #3b82f6;
+}
+.stat-card.green {
+  border-left: 5px solid #10b981;
+}
+.stat-card.orange {
+  border-left: 5px solid #f59e0b;
+}
+.stat-card.gray {
+  border-left: 5px solid #64748b;
+}
+
+/* বকেয়া (Due) থাকলে কার্ড হালকা লাল দেখাবে */
+.stat-card.red {
+  border-left: 5px solid #ef4444;
+  background-color: #fef2f2;
+}
+.stat-card.red h3 {
+  color: #b91c1c;
+}
 .tab-navigation {
   display: flex;
   gap: 15px;

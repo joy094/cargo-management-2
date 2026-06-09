@@ -1,6 +1,11 @@
 /* ১. গুগল ফন্টটি ইমপোর্ট করা হলো */
 @import url("https://fonts.googleapis.com/css2?family=Tiro+Bangla&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+body {
+  font-family: "sans-serif,Inter";
+}
 
 /* ==========================================
    Global Styling Reset & Variables
@@ -35,7 +40,7 @@
 }
 
 * {
-  font-family: "Hind Siliguri", sans-serif;
+  font-family:"Hind Siliguri", sans-serif;
 }
 body {
   margin: 0;
