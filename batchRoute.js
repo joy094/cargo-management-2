@@ -252,5 +252,4 @@ router.get("/:id/master-boxes", async (req, res) => {
   }
 });
 
-
 export default router;

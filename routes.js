@@ -58,14 +58,14 @@ router.get("/customers/:id", async (req, res) => {
   try {
     const customer = await Customer.findById(req.params.id).populate("agency");
     if (!customer)
-      return res.status(404).json({ error: "কাস্টমার পাওয়া যায়নি!" });
+      return res.status(404).json({ error: "Customer not found!" });
 
     const shipments = await Shipment.find({ customer: customer._id }).sort({
       createdAt: -1,
     });
     res.json({ customer, shipments });
   } catch (err) {
-    res.status(500).json({ error: "ডাটা লোড করা যায়নি।" });
+    res.status(500).json({ error: "Failed to load data." });
   }
 });
 
@@ -123,7 +123,7 @@ router.get("/agencies/:id", async (req, res) => {
     );
     res.json({ agency, shipments });
   } catch (err) {
-    res.status(500).json({ error: "ডাটা লোড করা যায়নি।" });
+    res.status(500).json({ error: "Failed to load data." });
   }
 });
 
@@ -359,7 +359,7 @@ router.put("/shipments/:id/weight", async (req, res) => {
   try {
     const { actualWeight } = req.body;
     await Shipment.findByIdAndUpdate(req.params.id, { actualWeight });
-    res.json({ success: true, message: "ওজন সফলভাবে আপডেট হয়েছে।" });
+    res.json({ success: true, message: "Weight updated successfully." });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -373,7 +373,7 @@ router.put("/shipments/bulk-assign-agency", async (req, res) => {
       { _id: { $in: shipmentIds } },
       { $set: { agency: agencyId } },
     );
-    res.json({ success: true, message: "ব্রাঞ্চ সফলভাবে আপডেট করা হয়েছে।" });
+    res.json({ success: true, message: "Branch updated successfully." });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -395,14 +395,38 @@ router.get("/shipments", async (req, res) => {
 router.delete("/shipments/:id", async (req, res) => {
   try {
     const shipmentId = req.params.id;
-    // প্রথমে মূল মালটি ডিলিট করা
-    await Shipment.findByIdAndDelete(shipmentId);
-    // যদি এটি মাস্টার বক্স হয়, তবে এর ভেতরের সব সাব-বক্সও ডিলিট করা
-    await Shipment.deleteMany({ parentId: shipmentId });
 
-    res.json({ success: true, message: "সফলভাবে ডিলিট হয়েছে!" });
+    // ১. প্রথমে ডাটাবেস থেকে বক্সটি খুঁজে বের করা
+    const shipment = await Shipment.findById(shipmentId);
+    if (!shipment) {
+      return res.status(404).json({ error: "Box not found!" });
+    }
+
+    // 🔥 ২. ইনভয়েস চেক করা (বিল হয়ে থাকলে ডিলিট হবে না)
+    if (shipment.isBilled) {
+      return res.status(400).json({ 
+        error: "⛔ This box has an invoice created, so it cannot be deleted!" 
+      });
+    }
+
+    // ৩. মাস্টার বক্স হলে এর ভেতরের সাব-বক্সগুলোর ইনভয়েস চেক করা
+    if (shipment.isMasterCarton) {
+      const billedSubItems = await Shipment.find({ parentId: shipmentId, isBilled: true });
+      if (billedSubItems.length > 0) {
+        return res.status(400).json({ 
+          error: "⛔ This master box has some items with invoices created, so it cannot be deleted!" 
+        });
+      }
+      // ইনভয়েস না থাকলে ভেতরের সাব-বক্সগুলো ডিলিট করা
+      await Shipment.deleteMany({ parentId: shipmentId });
+    }
+
+    // ৪. মূল মালটি ডিলিট করা
+    await Shipment.findByIdAndDelete(shipmentId);
+
+    res.json({ success: true, message: "Box successfully deleted!" });
   } catch (error) {
-    res.status(500).json({ error: "ডিলিট করতে সমস্যা হয়েছে।" });
+    res.status(500).json({ error: "Failed to delete the box." });
   }
 });
 
@@ -412,7 +436,7 @@ router.post("/direct-bulk", authMiddleware, async (req, res) => {
     const { items, shippingMark } = req.body; // items হলো টেবিলের ডাটাগুলোর অ্যারে
 
     if (!items || items.length === 0) {
-      return res.status(400).json({ error: "কোনো ডাটা প্রদান করা হয়নি!" });
+      return res.status(400).json({ error: "No data provided!" });
     }
 
     const savedShipments = [];
@@ -447,11 +471,11 @@ router.post("/direct-bulk", authMiddleware, async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: `${savedShipments.length} টি ডাইরেক্ট শিপমেন্ট সফলভাবে যোগ হয়েছে।`,
+      message: `${savedShipments.length} direct shipments successfully added.`,
     });
   } catch (error) {
     console.error("Direct Bulk Entry Error:", error);
-    res.status(500).json({ error: "সার্ভারে সমস্যা হয়েছে!" });
+    res.status(500).json({ error: "Server error occurred." });
   }
 });
 
@@ -478,7 +502,7 @@ router.post("/payments/allocate", async (req, res) => {
     if (lockExists)
       return res
         .status(400)
-        .json({ error: "এই স্টেটমেন্ট নম্বরটি ইতিমধ্যে ব্যবহৃত হয়েছে।" });
+        .json({ error: "This statement number is already in use." });
 
     const statement = await BankStatement.create({
       paymentType,
@@ -520,7 +544,7 @@ router.post("/payments/allocate", async (req, res) => {
     statement.isFinalized = true;
     await statement.save();
 
-    res.json({ success: true, message: "পেমেন্ট সফলভাবে এন্ট্রি করা হয়েছে।" });
+    res.json({ success: true, message: "Payment allocation successful." });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -529,7 +553,7 @@ router.post("/payments/allocate", async (req, res) => {
 router.delete("/statements/:id", async (req, res) => {
   try {
     const statement = await BankStatement.findById(req.params.id);
-    if (!statement) return res.status(404).json({ error: "স্টেটমেন্ট নেই।" });
+    if (!statement) return res.status(404).json({ error: "Statement not found." });
 
     const allocations = await PaymentAllocation.find({
       statement: statement._id,
@@ -548,7 +572,7 @@ router.delete("/statements/:id", async (req, res) => {
 
     res.json({
       success: true,
-      message: "স্টেটমেন্ট এবং পেমেন্ট রোলব্যাক করা হয়েছে।",
+      message: "Statement and payments successfully rolled back.",
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -587,11 +611,11 @@ router.put("/batches/:id/status", async (req, res) => {
 
     res.json({
       success: true,
-      message: `ব্যাচ এবং সকল শিপমেন্ট এখন ${status} স্টেজে আছে।`,
+      message: `Batch and all shipments are now in${status} stage.`,
       batch: updatedBatch,
     });
   } catch (err) {
-    res.status(500).json({ error: "স্ট্যাটাস আপডেট করা যায়নি।" });
+    res.status(500).json({ error: "Failed to update status." });
   }
 });
 
@@ -601,12 +625,12 @@ router.post("/shipments/add-sub-items", async (req, res) => {
     const { items, parentId } = req.body;
 
     if (!items || !items.length || !parentId) {
-      return res.status(400).json({ error: "তথ্য পাওয়া যায়নি!" });
+      return res.status(400).json({ error: "Data not found!" });
     }
 
     const masterCarton = await Shipment.findById(parentId);
     if (!masterCarton) {
-      return res.status(404).json({ error: "বক্সটি খুঁজে পাওয়া যায়নি।" });
+      return res.status(404).json({ error: "Box not found!" });
     }
 
     const preparedSubItems = items.map((item) => ({
@@ -635,10 +659,10 @@ router.post("/shipments/add-sub-items", async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "পার্সেল যুক্ত হয়েছে এবং মাস্টার বক্স আপডেট হয়েছে।",
+      message: "Parcel added and master box updated.",
     });
   } catch (err) {
-    res.status(500).json({ error: "সার্ভারে সমস্যা হয়েছে।" });
+    res.status(500).json({ error: "Server error." });
   }
 });
 
@@ -652,7 +676,7 @@ router.put("/shipments/edit/:id", async (req, res) => {
     );
     res.json({ success: true, shipment: updatedShipment });
   } catch (error) {
-    res.status(500).json({ error: "ডেটা আপডেট করতে সমস্যা হয়েছে।" });
+    res.status(500).json({ error: "Failed to update data." });
   }
 });
 
@@ -682,7 +706,7 @@ router.get("/shipments/qr-details/:id", async (req, res) => {
     });
   } catch (error) {
     console.error("QR Details Fetch Error:", error);
-    res.status(500).json({ success: false, message: "সার্ভার এরর!" });
+    res.status(500).json({ success: false, message: "Server error!" });
   }
 });
 
@@ -734,12 +758,40 @@ router.post("/bulk-delete", async (req, res) => {
     const { shipmentIds } = req.body;
 
     if (!shipmentIds || shipmentIds.length === 0) {
-      return res.status(400).json({ error: "কোনো আইডি সিলেক্ট করা হয়নি।" });
+      return res.status(400).json({ error: "No shipment IDs provided." });
     }
 
-    await Shipment.deleteMany({ _id: { $in: shipmentIds } });
+    // 🔥 ১. চেক করা হচ্ছে সিলেক্ট করা কোনো মালের ইনভয়েস হয়েছে কি না
+    const billedShipments = await Shipment.find({
+      _id: { $in: shipmentIds },
+      isBilled: true,
+    });
 
-    res.json({ success: true, message: "সফলভাবে ডিলিট করা হয়েছে।" });
+    if (billedShipments.length > 0) {
+      return res.status(400).json({
+        error:
+          "⛔ The selected items include billed shipments! Billed items cannot be deleted.",
+      });
+    }
+
+    // ২. মাস্টার বক্সের সাব-বক্সগুলোর ইনভয়েস চেক করা (নিরাপত্তার জন্য)
+    const billedSubShipments = await Shipment.find({
+      parentId: { $in: shipmentIds },
+      isBilled: true,
+    });
+
+    if (billedSubShipments.length > 0) {
+      return res.status(400).json({
+        error:
+          "⛔ The selected master box contains billed shipments! These items cannot be deleted.",
+      });
+    }
+
+    // ৩. কোনো ইনভয়েস না থাকলে সব একসাথে ডিলিট হবে
+    await Shipment.deleteMany({ _id: { $in: shipmentIds } });
+    await Shipment.deleteMany({ parentId: { $in: shipmentIds } });
+
+    res.json({ success: true, message: "Successfully deleted." });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -764,11 +816,11 @@ router.put("/shipments/push-warehouse/:id", async (req, res) => {
       return res.status(400).json({
         success: false,
         message:
-          "⚠️ সতর্কতা: এই বক্সটির ইনভয়েস তৈরি হয়ে গেছে! ওয়ারহাউসে ফেরত পাঠাতে চাইলে আগে কাস্টমার প্রোফাইল থেকে বিলটি আনডু (Undo) করুন।",
+          "⚠️ Warning: This box has an invoice created! To return it to the warehouse, please undo the invoice from the customer profile.",
       });
     }
 
-    // 🚀 ৩. ফিক্স: স্ট্যাটাস পরিবর্তনের সাথে সাথে ব্যাচ আইডি ক্লিয়ার (null) করে দেওয়া
+    // 🚀 ৩. ফিক্স: স্ট্যাটাস পরিবর্তনের সাথে সাথে ব্যাচ আইডি ক্লিয়ার (null) করে দেওয়া
     shipment.status = "Warehouse Received";
     shipment.batch = null; // 👈 এই লাইনটি বক্সটিকে বর্তমান ব্যাচ থেকে সম্পূর্ণ বের করে দেবে
     if (shipment.isHeld) shipment.isHeld = false;
@@ -783,17 +835,43 @@ router.put("/shipments/push-warehouse/:id", async (req, res) => {
     res.status(200).json({
       success: true,
       message:
-        "বক্সটি সফলভাবে এই ব্যাচ থেকে বের করে আবার সাধারণ ওয়ারহাউসে ফেরত পাঠানো হয়েছে।",
+        "Box successfully removed from the batch and returned to the general warehouse.",
     });
   } catch (error) {
     console.error("Push Warehouse Error:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "সার্ভার এরর, ওয়ারহাউসে পুশ করতে সমস্যা হয়েছে।",
-      });
+    res.status(500).json({
+      success: false,
+      message: "Server error, failed to push to warehouse.",
+    });
   }
 });
 
+// --- ✅ সিলেক্ট করা বিদ্যমান বক্সগুলোকে মাস্টার বক্সে রূপান্তর করা ---
+router.put("/make-master", async (req, res) => {
+  try {
+    const { shipmentIds } = req.body;
+
+    if (!shipmentIds || shipmentIds.length === 0) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No items selected." });
+    }
+
+    // 🔥 সিলেক্ট করা আইডিগুলোর isMasterCarton ফিল্ডটি true করে দেওয়া হচ্ছে
+    await Shipment.updateMany(
+      { _id: { $in: shipmentIds } },
+      { $set: { isMasterCarton: true } },
+    );
+
+    res.json({
+      success: true,
+      message: "Successfully converted to Master Box.",
+    });
+  } catch (error) {
+    console.error("Make Master Box Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to convert to master box." });
+  }
+});
 export default router;

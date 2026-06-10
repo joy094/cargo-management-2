@@ -71,14 +71,14 @@ export default function BatchDetails() {
       setAllBatches(res.data.filter((b) => b._id !== id));
       setIsExceptionModalOpen(true);
     } catch (err) {
-      alert("ব্যাচ লিস্ট লোড করতে সমস্যা হয়েছে।");
+      alert("Failed to load batch list.");
     }
   };
 
   // ✅ Exception & Push Warehouse Submit Logic
   const handleExceptionSubmit = async () => {
     if (exceptionData.action === "MOVE" && !exceptionData.targetBatchId) {
-      return alert("অনুগ্রহ করে একটি টার্গেট ব্যাচ সিলেক্ট করুন!");
+      return alert("Please select a target batch!");
     }
 
     try {
@@ -89,7 +89,7 @@ export default function BatchDetails() {
           axios.put(`/api/shipments/push-warehouse/${id}`),
         );
         await Promise.all(pushPromises);
-        alert("সিলেক্ট করা বক্সগুলো সফলভাবে ওয়ারহাউসে ফেরত পাঠানো হয়েছে! ↩️");
+        alert("Selected boxes successfully pushed back to warehouse! ↩️");
       }
       // 🔥 অন্যান্য এক্সেপশন (Hold, Release, Move) এর জন্য
       else {
@@ -99,14 +99,17 @@ export default function BatchDetails() {
           reason: exceptionData.reason,
           targetBatchId: exceptionData.targetBatchId,
         });
-        alert("অ্যাকশন সফলভাবে সম্পন্ন হয়েছে!");
+        alert("Action completed successfully!");
       }
 
       setIsExceptionModalOpen(false);
       setSelectedBoxIds([]); // সিলেকশন ক্লিয়ার করা
       fetchData(); // টেবিল রিফ্রেশ করা
     } catch (err) {
-      alert(err.response?.data?.message || "সমস্যা হয়েছে! আবার চেষ্টা করুন।");
+      alert(
+        err.response?.data?.message ||
+          "Failed to complete action. Please try again.",
+      );
     }
   };
   const toggleRow = (rowId) =>
@@ -143,7 +146,7 @@ export default function BatchDetails() {
   };
 
   const handleBatchStatusChange = async (newStatus) => {
-    if (!window.confirm(`স্ট্যাটাস পরিবর্তন করে "${newStatus}" করবেন?`)) return;
+    if (!window.confirm(`Change status to "${newStatus}"?`)) return;
     try {
       await axios.put(`/api/batches/${id}/status`, { status: newStatus });
       fetchData();
@@ -191,7 +194,7 @@ export default function BatchDetails() {
 
   const handleBulkSave = async () => {
     if (newRows.some((r) => !r.shippingMark))
-      return alert("Shipping Mark অবশ্যই দিতে হবে!");
+      return alert("Shipping Mark is required!");
     setLoading(true);
     try {
       await axios.post("/api/shipments/bulk-import", {
@@ -233,12 +236,44 @@ export default function BatchDetails() {
     }
   };
 
-  const handleBulkDelete = async () => {
-    if (selectedBoxIds.length === 0)
-      return alert("কোনো আইটেম সিলেক্ট করা নেই!");
+  // ✅ বিদ্যমান বক্সকে মাস্টার বক্সে রূপান্তর করার ফাংশন
+  const handleMakeMasterBox = async () => {
+    if (selectedBoxIds.length === 0) {
+      return alert("Please select items to make them Master Boxes!");
+    }
+
     if (
       !window.confirm(
-        `আপনি কি নিশ্চিত যে সিলেক্ট করা ${selectedBoxIds.length}টি আইটেম ডিলিট করবেন?`,
+        `Are you sure you want to convert ${selectedBoxIds.length} selected item(s) into Master Box(es)?`,
+      )
+    ) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await axios.put("/api/make-master", {
+        shipmentIds: selectedBoxIds,
+      });
+
+      if (res.data.success) {
+        alert("Successfully converted to Master Box! 📦");
+        setSelectedBoxIds([]); // সিলেকশন ক্লিয়ার করা
+        fetchData(); // টেবিল রিফ্রেশ করা
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || "Failed to convert to master box");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedBoxIds.length === 0)
+      return alert("No items selected! Please select items to delete.");
+    if (
+      !window.confirm(
+        `Are you sure you want to delete the selected ${selectedBoxIds.length} items?`,
       )
     )
       return;
@@ -249,11 +284,11 @@ export default function BatchDetails() {
       await axios.post("/api/bulk-delete", {
         shipmentIds: selectedBoxIds,
       });
-      alert("সফলভাবে ডিলিট করা হয়েছে! 🗑️");
-      setSelectedBoxIds([]); // সিলেক্টেড আইডিগুলো ক্লিয়ার করা
+      alert("Selected items successfully deleted! 🗑️");
+      setSelectedBoxIds([]); // সিলেক্টেড আইডিগুলো ক্লিয়ার করা
       fetchData(); // টেবিল রিফ্রেশ করা
     } catch (error) {
-      alert("ডিলিট করতে সমস্যা হয়েছে!");
+      alert("Failed to delete items!");
     } finally {
       setLoading(false);
     }
@@ -261,15 +296,15 @@ export default function BatchDetails() {
 
   const handleDelete = async (shipmentId, isMaster) => {
     const msg = isMaster
-      ? "এটি একটি মাস্টার বক্স! এটি ডিলিট করলে এর ভেতরের সব সাব-বক্সও ডিলিট হয়ে যাবে। আপনি কি নিশ্চিত?"
-      : "আপনি কি এই পার্সেলটি ডিলিট করতে চান?";
+      ? "This is a master box! Deleting it will also delete all its sub-boxes. Are you sure?"
+      : "Are you sure you want to delete this parcel?";
     if (!window.confirm(msg)) return;
 
     try {
       await axios.delete(`/api/shipments/${shipmentId}`);
       fetchData();
     } catch (err) {
-      alert("ডিলিট করতে সমস্যা হয়েছে!");
+      alert("Failed to delete!");
     }
   };
 
@@ -516,9 +551,24 @@ export default function BatchDetails() {
           {/* ✅ আলাদা করা সার্চ কম্পোনেন্ট */}
           <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
           <div className="action-btns">
+            {/* ✅ নতুন Upload Excel বাটন */}
+            <CanAccess module="batch" action="create">
+              <button
+                className="excel-btn"
+                style={{
+                  background: "#10b981",
+                  color: "white",
+                  borderColor: "#059669",
+                }}
+                onClick={() => setIsUploadExcelOpen(true)}
+              >
+                📤 Upload Excel
+              </button>
+            </CanAccess>
+
             {/* ✅ নতুন Bulk Delete বাটন */}
 
-            <CanAccess module="shipment" action="delete">
+            <CanAccess module="batch" action="delete">
               {selectedBoxIds.length > 0 && (
                 <button
                   className="bulk-toggle-btn"
@@ -533,20 +583,6 @@ export default function BatchDetails() {
                 </button>
               )}
             </CanAccess>
-            {/* ✅ নতুন Upload Excel বাটন */}
-            <CanAccess module="shipment" action="create">
-              <button
-                className="excel-btn"
-                style={{
-                  background: "#10b981",
-                  color: "white",
-                  borderColor: "#059669",
-                }}
-                onClick={() => setIsUploadExcelOpen(true)}
-              >
-                📤 Upload Excel
-              </button>
-            </CanAccess>
             {/* ✅ নতুন Manage Exception বাটন (যখন বক্স সিলেক্ট করা হবে তখন দেখাবে) */}
             {selectedBoxIds.length > 0 && (
               <button
@@ -557,6 +593,25 @@ export default function BatchDetails() {
                 ⚠️ Manage Exceptions ({selectedBoxIds.length})
               </button>
             )}
+
+            {/* ✅ Make Master Box Button */}
+            {selectedBoxIds.length > 0 && (
+              <CanAccess module="shipment" action="edit">
+                <button
+                  className="bulk-toggle-btn"
+                  style={{
+                    background: "#0284c7",
+                    color: "white",
+                    marginLeft: "10px",
+                  }}
+                  onClick={handleMakeMasterBox}
+                  disabled={loading}
+                >
+                  📦 Make Master ({selectedBoxIds.length})
+                </button>
+              </CanAccess>
+            )}
+
             {/* ✅ নতুন Bulk QR Print বাটন */}
             <button className="bulk-qr-btn" onClick={handleBulkQRPrint}>
               🖨️ Bulk Print QR
@@ -570,7 +625,7 @@ export default function BatchDetails() {
                   className={`bulk-toggle-btn ${showBulkEntry ? "active" : ""}`}
                   onClick={() => setShowBulkEntry(!showBulkEntry)}
                 >
-                  {showBulkEntry ? "Close Entry" : "📥 Quick Bulk Entry"}
+                  {showBulkEntry ? "Close Entry" : "📥 Bulk Entry"}
                 </button>
               </CanAccess>
             )}
@@ -813,7 +868,9 @@ export default function BatchDetails() {
                           </span>
                         )}
                       </td>
-                      <td className="product-name-cell">{s.productName || "-"}</td>
+                      <td className="product-name-cell">
+                        {s.productName || "-"}
+                      </td>
                       <td>{s.cartonNo || "-"}</td>
                       <td>
                         <strong>{stats.qty}</strong>
@@ -868,7 +925,7 @@ export default function BatchDetails() {
                               ✏️
                             </button>
                           </CanAccess>
-                          <CanAccess module="batch" action="delete">
+                          {/* <CanAccess module="batch" action="delete">
                             <button
                               onClick={() =>
                                 handleDelete(s._id, s.isMasterCarton)
@@ -877,7 +934,7 @@ export default function BatchDetails() {
                             >
                               🗑️
                             </button>
-                          </CanAccess>
+                          </CanAccess> */}
 
                           {!s.parentId && (
                             <button
@@ -963,7 +1020,9 @@ export default function BatchDetails() {
                                   </span>
                                 )}
                               </td>
-                              <td className="product-name-cell">{sub.productName || "-"}</td>
+                              <td className="product-name-cell">
+                                {sub.productName || "-"}
+                              </td>
                               <td>-</td>
                               <td>{sub.quantity || 1}</td>
                               <td>{sub.grossWeight || 0} KG</td>
@@ -1000,7 +1059,7 @@ export default function BatchDetails() {
                                       ✏️
                                     </button>
                                   </CanAccess>
-                                  <CanAccess module="batch" action="delete">
+                                  {/* <CanAccess module="batch" action="delete">
                                     <button
                                       onClick={() =>
                                         handleDelete(sub._id, false)
@@ -1009,7 +1068,7 @@ export default function BatchDetails() {
                                     >
                                       🗑️
                                     </button>
-                                  </CanAccess>
+                                  </CanAccess> */}
                                 </div>
                               </td>
                             </tr>
@@ -1179,18 +1238,16 @@ export default function BatchDetails() {
                 style={{ width: "100%", padding: "10px" }}
               >
                 <option value="HOLD">
-                  ⏸️ Hold Box (কাস্টমস বা অন্য কারণে)
+                  ⏸️ Hold Box (Customs or Other Reasons)
                 </option>
                 <option value="RELEASE">
-                  ▶️ Release Box (হোল্ড থেকে মুক্ত করা)
+                  ▶️ Release Box (Release from Hold)
                 </option>
 
                 {/* 🚀 নতুন যুক্ত করা হলো */}
-                <option value="PUSH_WAREHOUSE">
-                  ↩️ Push to Warehouse 
-                </option>
+                <option value="PUSH_WAREHOUSE">↩️ Push to Warehouse</option>
                 <option value="MOVE">
-                  🚚 Move to Another Batch (ফ্লাইট মিস হলে)
+                  ✈️Move to Another Batch (If Flight Missed)
                 </option>
               </select>
             </div>

@@ -44,7 +44,7 @@ export default function BatchList() {
       // 🔥 চেক করা হচ্ছে ব্যাকএন্ড থেকে সঠিক ডাটা (Array) আসছে কি না
       if (!Array.isArray(res.data)) {
         console.error("Backend Error:", res.data);
-        alert("ব্যাকএন্ড এরর: " + (res.data.error || "Unknown Error"));
+        alert("Backend Error: " + (res.data.error || "Unknown Error"));
         return;
       }
 
@@ -54,7 +54,7 @@ export default function BatchList() {
       setBatches(sortedData);
     } catch (err) {
       console.error("Error fetching batches:", err);
-      alert("সার্ভারের সাথে কানেক্ট করা যাচ্ছে না বা সার্ভার বন্ধ আছে!");
+      alert("Failed to connect to the server or the server is down!");
     }
   };
 
@@ -92,7 +92,7 @@ export default function BatchList() {
       });
       fetchBatches();
     } catch (err) {
-      alert("ব্যাচ তৈরি করতে সমস্যা হয়েছে।");
+      alert("Failed to create the batch.");
     }
   };
 
@@ -105,18 +105,18 @@ export default function BatchList() {
       setEditingBatch(null);
       fetchBatches();
     } catch (err) {
-      alert("ব্যাচ আপডেট করতে সমস্যা হয়েছে।");
+      alert("Failed to update the batch.");
     }
   };
 
   const deleteBatch = async (id) => {
-    if (!window.confirm("আপনি কি নিশ্চিতভাবে এই ব্যাচটি ডিলিট করতে চান?"))
+    if (!window.confirm("Are you sure you want to delete this batch?"))
       return;
     try {
       await axios.delete(`/api/batches/${id}`);
       fetchBatches();
     } catch (err) {
-      alert("ডিলিট করা সম্ভব হয়নি।");
+      alert("Failed to delete the batch.");
     }
   };
 
@@ -124,12 +124,12 @@ export default function BatchList() {
     <div className="batch-page">
       <div className="batch-header">
         <div className="title-area">
-          <h1>✈️ ব্যাচ ও ফ্লাইট ম্যানেজমেন্ট</h1>
-          <p>নতুন ফ্লাইট গ্রুপ করুন এবং ব্যাচ ভিত্তিক কস্টিং চেক করুন</p>
+          <h1>✈️ Batch & Flight Management</h1>
+          <p>Create and manage batches and flights</p>
         </div>
         <CanAccess module="batch" action="create">
           <button className="add-batch-btn" onClick={() => setShowModal(true)}>
-            + নতুন ব্যাচ তৈরি করুন
+            + New Batch
           </button>
         </CanAccess>
       </div>
@@ -138,13 +138,13 @@ export default function BatchList() {
         <table className="beautiful-table">
           <thead>
             <tr>
-              <th>ব্যাচ / ফ্লাইটের নাম</th>
-              <th>রুট ও পোর্ট</th>
-              <th>ফ্লাইট নম্বর</th>
-              <th>ফ্লাইট তারিখ</th>
-              <th>মোট কার্টুন সংখ্যা</th>
-              <th>স্ট্যাটাস</th>
-              <th className="action-col">অ্যাকশন</th>
+              <th>Batch</th>
+              <th>Route & Port</th>
+              <th>Flight Number</th>
+              <th>Flight Date</th>
+              <th>Total Cartons</th>
+              <th>Status</th>
+              <th className="action-col">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -184,7 +184,7 @@ export default function BatchList() {
                 </td>
 
                 <td>
-                  <span className="count-badge">{b.shipmentCount || 0} টি</span>
+                  <span className="count-badge">{b.shipmentCount || 0} 📦</span>
                 </td>
                 <td>
                   <span
@@ -243,13 +243,13 @@ export default function BatchList() {
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h2>নতুন চালান গ্রুপ করুন</h2>
+            <h2>Create New Batch</h2>
             <form onSubmit={handleCreateBatch}>
               <div className="input-group">
-                <label>ব্যাচের নাম *</label>
+                <label>Batch Name *</label>
                 <input
                   required
-                  placeholder="যেমন: MAY-20-DXB"
+                  placeholder="Example: MAY-20-DXB"
                   value={newBatch.batchName}
                   onChange={(e) =>
                     setNewBatch({ ...newBatch, batchName: e.target.value })
@@ -259,7 +259,7 @@ export default function BatchList() {
 
               <div className="grid-2">
                 <div className="input-group">
-                  <label>Route (রুট) *</label>
+                  <label>Route *</label>
                   <select
                     value={newBatch.shipmentType}
                     onChange={handleRouteSelect}
@@ -272,7 +272,7 @@ export default function BatchList() {
                 </div>
 
                 <div className="input-group">
-                  <label>Origin Port (পোর্ট) *</label>
+                  <label>Origin Port  *</label>
                   <select
                     value={newBatch.originPort}
                     onChange={(e) =>
@@ -291,9 +291,9 @@ export default function BatchList() {
 
               <div className="grid-2">
                 <div className="input-group">
-                  <label>ফ্লাইট নম্বর</label>
+                  <label>Flight Number</label>
                   <input
-                    placeholder="যেমন: EK582"
+                    placeholder="Example: EK582"
                     value={newBatch.flightNumber}
                     onChange={(e) =>
                       setNewBatch({ ...newBatch, flightNumber: e.target.value })
@@ -301,7 +301,7 @@ export default function BatchList() {
                   />
                 </div>
                 <div className="input-group">
-                  <label>ফ্লাইট তারিখ *</label>
+                  <label>Flight Date *</label>
                   <input
                     type="date"
                     required
@@ -319,10 +319,10 @@ export default function BatchList() {
                   className="cancel-btn"
                   onClick={() => setShowModal(false)}
                 >
-                  বাতিল
+                  Cancel
                 </button>
                 <button type="submit" className="save-btn">
-                  সেভ করুন
+                  Save
                 </button>
               </div>
             </form>
@@ -334,10 +334,10 @@ export default function BatchList() {
       {showEditModal && editingBatch && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h2>ব্যাচ আপডেট করুন</h2>
+            <h2>Update Batch</h2>
             <form onSubmit={handleUpdateBatch}>
               <div className="input-group">
-                <label>ব্যাচের নাম *</label>
+                <label>Batch Name *</label>
                 <input
                   required
                   value={editingBatch.batchName}
@@ -352,7 +352,7 @@ export default function BatchList() {
 
               <div className="grid-2">
                 <div className="input-group">
-                  <label>Route (রুট) *</label>
+                  <label>Route  *</label>
                   <select
                     value={editingBatch.shipmentType || "Air"}
                     onChange={handleEditRouteSelect}
@@ -365,7 +365,7 @@ export default function BatchList() {
                 </div>
 
                 <div className="input-group">
-                  <label>Origin Port (পোর্ট) *</label>
+                  <label>Origin Port  *</label>
                   <select
                     value={editingBatch.originPort}
                     onChange={(e) =>
@@ -389,7 +389,7 @@ export default function BatchList() {
 
               <div className="grid-2">
                 <div className="input-group">
-                  <label>ফ্লাইট নম্বর</label>
+                  <label>Flight Number</label>
                   <input
                     value={editingBatch.flightNumber}
                     onChange={(e) =>
@@ -401,7 +401,7 @@ export default function BatchList() {
                   />
                 </div>
                 <div className="input-group">
-                  <label>ফ্লাইট তারিখ *</label>
+                  <label>Flight  Date *</label>
                   <input
                     type="date"
                     required
@@ -425,14 +425,14 @@ export default function BatchList() {
                     setEditingBatch(null);
                   }}
                 >
-                  বাতিল
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="save-btn"
                   style={{ background: "#eab308" }}
                 >
-                  আপডেট করুন
+                  Update
                 </button>
               </div>
             </form>

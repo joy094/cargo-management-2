@@ -47,7 +47,7 @@ export default function Dashboard() {
       <div className="dashboard-header">
         <div className="header-titles">
           <h2>🚀 System Dashboard</h2>
-          <p>কার্গো এবং এজেন্সি ম্যানেজমেন্ট ওভারভিউ</p>
+          <p></p>
         </div>
         <div className="header-actions">
           <button className="due-list-btn" onClick={handleShowDueList}>

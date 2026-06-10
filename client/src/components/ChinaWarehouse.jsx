@@ -1237,7 +1237,7 @@ export default function ChinaWarehouse() {
                       color: "#94a3b8",
                     }}
                   >
-                    চায়না ওয়্যারহাউজে কোনো মাল নেই
+                    No shipment boxes found in warehouse.
                   </td>
                 </tr>
               )}

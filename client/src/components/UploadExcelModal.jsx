@@ -254,7 +254,7 @@ export default function UploadExcelModal({
           <p style={{ color: "#64748b", margin: 0 }}>
             {batchId
               ? "বর্তমান ব্যাচে সরাসরি ডাটা যুক্ত হবে।"
-              : "ওয়্যারহাউজে লুজ মাল হিসেবে যুক্ত হবে।"}
+              : "Will be added to the warehouse as loose goods."}
           </p>
           <button
             onClick={downloadTemplate}
@@ -299,7 +299,7 @@ export default function UploadExcelModal({
             }}
           />
           <p style={{ color: "#0369a1", fontWeight: "bold", margin: 0 }}>
-            এক্সেল ফাইলটি এখানে সিলেক্ট করুন
+            Click or Drag Excel File Here to Upload
           </p>
         </div>
 

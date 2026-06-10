@@ -63,7 +63,7 @@ const Header = () => {
           <ul className={`nav-menu ${isMobileMenuOpen ? "active" : ""}`}>
             <li>
               <NavLink to="/" onClick={() => setIsMobileMenuOpen(false)}>
-                <i className="fa-solid fa-house nav-icon"></i> ড্যাশবোর্ড
+                <i className="fa-solid fa-house nav-icon"></i> Dashboard
               </NavLink>
             </li>
 
@@ -74,12 +74,12 @@ const Header = () => {
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <i className="fa-solid fa-users nav-icon"></i>{" "}
-                  ব্রাঞ্চ/কাস্টমার
+                  Customers
                 </NavLink>
               </li>
             </CanAccess>
 
-            <CanAccess module="shipment" action="view">
+            {/* <CanAccess module="shipment" action="view">
               <li>
                 <NavLink
                   to="/unassigned"
@@ -89,7 +89,7 @@ const Header = () => {
                   মিসিং শিপিং মার্ক
                 </NavLink>
               </li>
-            </CanAccess>
+            </CanAccess> */}
 
             <CanAccess module="batch" action="view">
               <li>
@@ -97,8 +97,8 @@ const Header = () => {
                   to="/batches"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  <i className="fa-solid fa-layer-group nav-icon"></i> শিপমেন্ট
-                  ব্যাচ
+                  <i className="fa-solid fa-layer-group nav-icon"></i> Shipment Batches
+                  
                 </NavLink>
               </li>
             </CanAccess>
@@ -110,7 +110,7 @@ const Header = () => {
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <i className="fa-solid fa-warehouse nav-icon"></i> CN
-                  ওয়ারহাউজ
+                  Warehouse
                 </NavLink>
               </li>
             </CanAccess>
@@ -122,7 +122,7 @@ const Header = () => {
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <i className="fa-solid fa-file-invoice-dollar nav-icon"></i>{" "}
-                  পেমেন্ট
+                  Payment
                 </NavLink>
               </li>
             </CanAccess>
@@ -133,8 +133,8 @@ const Header = () => {
                   to="/admin/roles"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  <i className="fa-solid fa-user-shield nav-icon"></i> রোল &
-                  পারমিশন
+                  <i className="fa-solid fa-user-shield nav-icon"></i> Roll &
+                  Permissions
                 </NavLink>
               </li>
             )}
@@ -150,7 +150,7 @@ const Header = () => {
                   className="logout-btn-mobile"
                 >
                   <i className="fa-solid fa-arrow-right-from-bracket logout-icon"></i>{" "}
-                  লগআউট
+                 Logout
                 </button>
               </li>
             )}
@@ -160,7 +160,7 @@ const Header = () => {
           {user && (
             <div className="desktop-only">
               <button onClick={logout} className="logout-btn-3d">
-                <i className="fa-solid fa-arrow-right-from-bracket"></i> লগআউট
+                <i className="fa-solid fa-arrow-right-from-bracket"></i> Logout
               </button>
             </div>
           )}

@@ -18,14 +18,14 @@ const Footer = () => {
               <h4>Saba & Rihan Enterprise</h4>
             </div>
             <p className="footer-tagline">
-              নির্ভরযোগ্য কারগো এবং লজিস্টিক সেবা
+              Reliable Cargo and Logistics Services
             </p>
           </div>
 
           {/* ঐচ্ছিক: প্রফেশনাল লুকের জন্য কিছু ডেমো কন্টাক্ট ইনফো (আপনি চাইলে বাদ দিতে বা পরিবর্তন করতে পারেন) */}
           <div className="footer-contact">
             <p>📧 info@saba-rihan.com</p>
-            <p>📞 +880 1XXX-XXXXXX</p>
+            <p>📞 +880 1841389672</p>
           </div>
         </div>
 
@@ -34,9 +34,9 @@ const Footer = () => {
 
         {/* Bottom Section */}
         <div className="footer-bottom">
-          <p>&copy; {new Date().getFullYear()} সর্বস্বত্ব সংরক্ষিত</p>
+          <p>&copy; {new Date().getFullYear()} All Rights Reserved</p>
           <p className="developer-credit">
-            ডিজাইন ও ডেভেলপমেন্ট: <strong><a href="https://github.com/joy094">এমডি জাকারিয়া</a></strong>
+            Design & Development: <strong><a href="https://github.com/joy094">MD. JAKARIA</a></strong>
           </p>
         </div>
       </div>

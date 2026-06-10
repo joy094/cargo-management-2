@@ -6,7 +6,7 @@ export default function Search({ searchTerm, setSearchTerm }) {
     <div className="search-wrapper">
       <input
         type="text"
-        placeholder="Shipping Mark, Tracking, Product বা Carton No দিয়ে খুঁজুন..."
+        placeholder=" Find by Shipping Mark, Tracking, Product or Carton No  ..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         style={{

@@ -169,8 +169,19 @@ input[type="number"] {
 .toolbar {
   display: flex;
   justify-content: space-between;
+  align-items: center; /* 🔥 এটি বাটনগুলোকে লম্বাটে হতে বাধা দেবে */
+  flex-wrap: wrap; /* 🔥 স্ক্রিনে জায়গা না পেলে বাটনগুলো সুন্দর করে নিচে নামবে */
   margin-bottom: 25px;
   gap: 15px;
+}
+
+/* 🔥 নতুন যুক্ত করুন */
+.action-btns {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap; /* বাটন বেশি হলে সংকুচিত না হয়ে নিচে নামবে */
+  gap: 12px; /* বাটনগুলোর মাঝখানে সমান দূরত্ব রাখবে */
+  justify-content: flex-end; /* বাটনগুলোকে ডানদিকে চাপিয়ে রাখবে */
 }
 .search-wrapper input {
   padding: 12px 20px;

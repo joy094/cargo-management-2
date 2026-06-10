@@ -106,7 +106,7 @@ const App = () => (
       <Route
         path="/unassigned"
         element={
-          <ProtectedRoute module="shipment" action="view">
+          <ProtectedRoute module="branch" action="view">
             <UnassignedShipments />
           </ProtectedRoute>
         }

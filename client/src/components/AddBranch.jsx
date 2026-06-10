@@ -31,6 +31,25 @@ export default function AddBranch() {
 
   const navigate = useNavigate();
 
+  const [unassignedCount, setUnassignedCount] = useState(0);
+
+  useEffect(() => {
+    fetchBranches();
+    fetchBatches();
+    fetchUnassignedCount(); // এটি নতুন যুক্ত হয়েছে
+  }, []);
+
+  const fetchUnassignedCount = async () => {
+    try {
+      const res = await axios.get("/api/branches/unassigned-shipments");
+      if (Array.isArray(res.data)) {
+        setUnassignedCount(res.data.length);
+      }
+    } catch (err) {
+      console.error("Error fetching unassigned count:", err);
+    }
+  };
+
   useEffect(() => {
     fetchBranches();
     fetchBatches();
@@ -230,12 +249,27 @@ export default function AddBranch() {
 
   return (
     <div className="manage-branch-container">
+      {/* 🔥 Animated Missing Shipping Mark Alert */}
+      {unassignedCount > 0 && (
+        <div
+          className="unassigned-alert-banner"
+          onClick={() => navigate("/unassigned")}
+        >
+          <span className="alert-icon">⚠️</span>
+          <div className="alert-text">
+            <strong>{unassignedCount}</strong> Unassigned Shipping Mark(s)
+            detected! Please assign them to a branch.
+          </div>
+          <span className="arrow-action">View All ➡️</span>
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="header-section">
         <div className="header-text">
           <h2>🏢 Branch & Customer Management</h2>
           <p>
-            একই পেজ থেকে কাস্টমার যুক্ত করুন, এডিট করুন এবং তাদের প্রোফাইল দেখুন
+            
           </p>
         </div>
 

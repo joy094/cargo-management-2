@@ -270,22 +270,33 @@
   border: 1px solid #bae6fd;
 }
 
+
 /* Action Buttons */
 .action-btns {
   display: flex;
-  gap: 6px;
+  gap: 8px;
+  align-items: center; /* 🔥 বাটনগুলোকে লম্বাটে (stretch) হতে বাধা দেবে */
+  justify-content: flex-start;
 }
 
 .action-btn {
   border: none;
-  padding: 8px 10px;
+  width: 37px; /* 🔥 বাটনের নির্দিষ্ট চওড়া */
+  height: 37px; /* 🔥 বাটনের নির্দিষ্ট উচ্চতা */
+  padding: 0; /* অতিরিক্ত প্যাডিং বাতিল করা হলো */
   border-radius: 6px;
   cursor: pointer;
-  font-size: 1rem;
-  transition: 0.2s;
+  font-size: 14px; /* আইকনের সাইজ পারফেক্ট রাখার জন্য */
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0; /* ছোট স্ক্রিনে যেন আইকনগুলো চ্যাপ্টা না হয়ে যায় */
+}
+
+/* আইকন হোভার ইফেক্ট আরেকটু স্মুথ করার জন্য (ঐচ্ছিক) */
+.action-btn:hover {
+  transform: scale(1.05); /* হোভার করলে হালকা বড় হবে */
 }
 
 .profile-btn {
@@ -468,3 +479,54 @@
     flex-direction: column; /* মোবাইলে বাটন নিচে নিচে */
   }
 }
+
+/* 🚨 Animated Warning Banner */
+.unassigned-alert-banner {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: "Inter", sans-serif;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(239, 68, 68, 0.25);
+  margin-bottom: 25px;
+  animation: beautiful-shake 1.5s infinite ease-in-out;
+  font-weight: 500;
+}
+
+.unassigned-alert-banner:hover {
+  transform: scale(1.01);
+}
+
+.alert-text strong {
+  background: white;
+  color: #ef4444;
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-right: 8px;
+}
+
+@keyframes beautiful-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-4px);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+/* অন্যান্য বিদ্যমান CSS নিচে থাকবে... */
