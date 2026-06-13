@@ -29,8 +29,7 @@ import { AuthContext } from "./context/AuthContext"; // 🔥 AuthContext ইম�
 import CanAccess from "./components/CanAccess";
 import ProtectedRoute from "./ProtectedRoute"; // ⚠️ পাথ ঠিক আছে কি না চেক করে নেবেন
 import ChinaWarehouse from "./components/ChinaWarehouse";
-
-
+import TrackShipment from "./components/TrackShipment";
 
 // ==========================================
 // 4. Main App Routes (Route Security)
@@ -39,6 +38,8 @@ const App = () => (
   <Routes>
     {/* Public Route */}
     <Route path="/login" element={<Login />} />
+    {/* 🚀 কাস্টমারদের জন্য পাবলিক ট্র্যাকিং রাউট */}
+    <Route path="/track" element={<TrackShipment />} />
 
     {/* Protected Routes Wrapper */}
     <Route path="/" element={<Layout />}>
@@ -114,7 +115,7 @@ const App = () => (
       <Route
         path="/box-details/:id"
         element={
-          <ProtectedRoute >
+          <ProtectedRoute>
             <BoxDetails />
           </ProtectedRoute>
         }
@@ -173,7 +174,6 @@ const App = () => (
           </ProtectedRoute>
         }
       />
-
 
       <Route
         path="/china-warehouse"

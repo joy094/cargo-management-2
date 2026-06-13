@@ -19,6 +19,7 @@ import paymentRoute from "./paymentRoute.js";
 import dashboardRoute from "./dashboardRoute.js";
 import roleRoutes from "./roleRoute.js";
 import userRoutes from "./userRoute.js";
+import trackingRoutes from "./trackingRoutes.js";
 
 dotenv.config();
 
@@ -40,6 +41,8 @@ app.use("/api/payments", paymentRoute);
 app.use("/api/dashboard", dashboardRoute);
 app.use("/api/roles", roleRoutes);
 app.use("/api/users", userRoutes);
+
+app.use("/api/tracking", trackingRoutes);
 /* ===========================
    MongoDB Connection
 =========================== */
