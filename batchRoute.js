@@ -193,16 +193,41 @@ router.put("/:id", async (req, res) => {
 });
 
 // --- ৭. ব্যাচ ডিলিট করা ---
+// ✅ ব্যাচ এবং এর ভেতরের সকল শিপমেন্ট (বক্স) একসাথে ডিলিট করার রাউট
 router.delete("/:id", async (req, res) => {
   try {
-    await Shipment.updateMany(
-      { batch: req.params.id },
-      { $unset: { batch: "" } },
-    );
-    await Batch.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: "ব্যাচ ডিলিট হয়েছে।" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const batchId = req.params.id;
+
+    // ১. প্রথমে চেক করা হচ্ছে এই ব্যাচের কোনো মালের ইনভয়েস (বিল) তৈরি হয়েছে কি না
+    const billedShipments = await Shipment.find({
+      batch: batchId,
+      isBilled: true,
+    });
+
+    if (billedShipments.length > 0) {
+      return res.status(400).json({
+        error: "⛔ Warning: Some shipments in this batch are already billed! You cannot delete a batch containing billed items.",
+      });
+    }
+
+    // ২. যদি কোনো ইনভয়েস না থাকে, তবে ব্যাচের ভেতরের সকল মাল (মাস্টার এবং সাব-বক্স) ডিলিট করা
+    await Shipment.deleteMany({ batch: batchId });
+
+    // ৩. এরপর মূল ব্যাচটি (Batch) ডিলিট করা
+    const deletedBatch = await Batch.findByIdAndDelete(batchId);
+
+    if (!deletedBatch) {
+      return res.status(404).json({ error: "Batch not found!" });
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Batch and all its shipments have been successfully deleted." 
+    });
+
+  } catch (error) {
+    console.error("Batch Delete Error:", error);
+    res.status(500).json({ error: "Server error, failed to delete batch." });
   }
 });
 
