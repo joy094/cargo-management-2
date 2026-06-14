@@ -39,7 +39,7 @@ const App = () => (
     {/* Public Route */}
     <Route path="/login" element={<Login />} />
     {/* 🚀 কাস্টমারদের জন্য পাবলিক ট্র্যাকিং রাউট */}
-    <Route path="/track" element={<TrackShipment />} />
+    <Route path="/tracking" element={<TrackShipment />} />
 
     {/* Protected Routes Wrapper */}
     <Route path="/" element={<Layout />}>

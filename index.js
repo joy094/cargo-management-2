@@ -1,7 +1,7 @@
 // index.js
 
 // ======================================
-// Hajji Management System - Backend Entry
+
 // ======================================
 
 import express from "express";
@@ -34,6 +34,10 @@ app.use(express.json());
 /* ===========================
    Routes
 =========================== */
+
+
+app.use("/api/tracking", trackingRoutes);
+
 app.use("/api", routes);
 app.use("/api/batches", batchRoute);
 app.use("/api/branches", branchRoute);
@@ -42,7 +46,8 @@ app.use("/api/dashboard", dashboardRoute);
 app.use("/api/roles", roleRoutes);
 app.use("/api/users", userRoutes);
 
-app.use("/api/tracking", trackingRoutes);
+
+
 /* ===========================
    MongoDB Connection
 =========================== */
