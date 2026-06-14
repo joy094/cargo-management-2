@@ -304,133 +304,53 @@ export default function UploadExcelModal({
         </div>
 
         {excelData.length > 0 && (
-          <div className="preview-section" style={{ marginTop: "25px" }}>
-            <h3 style={{ marginBottom: "15px", color: "#0f172a" }}>
-              📊 Data Preview ({excelData.length} items)
-            </h3>
-            <div
-              style={{
-                overflowX: "auto",
-                maxHeight: "350px",
-                border: "1px solid #e2e8f0",
-                borderRadius: "8px",
-              }}
-            >
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                <thead style={{ background: "#003580", color: "white" }}>
+          <div className="preview-section">
+            <h3>📊 Data Preview ({excelData.length} items)</h3>
+            <div className="table-responsive-container">
+              <table className="excel-preview-table">
+                <thead>
                   <tr>
-                    <th style={{ padding: "10px" }}>Category</th>
-                    <th style={{ padding: "10px" }}>Rcv Date</th>{" "}
-                    {/* 📅 নতুন কলাম */}
-                    <th style={{ padding: "10px" }}>Mark</th>
-                    <th style={{ padding: "10px" }}>Carton</th>
-                    {batchId && <th style={{ padding: "10px" }}>Type</th>}
-                    {batchId && <th style={{ padding: "10px" }}>Parent</th>}
-                    <th style={{ padding: "10px" }}>Qty/Wt</th>
-                    <th style={{ padding: "10px" }}>CBM</th>
-                    {!batchId && <th style={{ padding: "10px" }}>Note</th>}
+                    <th>Category</th>
+                    <th>Rcv Date</th>
+                    <th>Mark</th>
+                    <th>Carton</th>
+                    {batchId && <th>Type</th>}
+                    {batchId && <th>Parent</th>}
+                    <th>Qty/Wt</th>
+                    <th>CBM</th>
+                    {!batchId && <th>Note</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {excelData.slice(0, 10).map((row, index) => (
+                  {excelData.map((row, index) => (
                     <tr
                       key={index}
-                      style={{
-                        borderBottom: "1px solid #e2e8f0",
-                        background: row.isMasterCarton ? "white" : "#f8fafc",
-                        fontSize: "13px",
-                      }}
+                      className={row.isMasterCarton ? "master-row" : "sub-row"}
                     >
-                      <td style={{ padding: "10px" }}>
-                        <span
-                          style={{
-                            background: "#e0f2fe",
-                            color: "#0369a1",
-                            padding: "3px 6px",
-                            borderRadius: "4px",
-                            fontWeight: "bold",
-                            fontSize: "11px",
-                          }}
-                        >
-                          {row.category}
-                        </span>
+                      <td>
+                        <span className="category-tag">{row.category}</span>
                       </td>
-                      <td
-                        style={{
-                          padding: "10px",
-                          fontWeight: "bold",
-                          color: "#10b981",
-                        }}
-                      >
-                        {row.receivedDate}
-                      </td>{" "}
-                      {/* 📅 রিসিভ ডেট */}
-                      <td style={{ padding: "10px", fontWeight: "bold" }}>
-                        {row.shippingMark}
-                      </td>
-                      <td style={{ padding: "10px" }}>{row.cartonNo}</td>
+                      <td className="date-col">{row.receivedDate}</td>
+                      <td className="bold-col">{row.shippingMark}</td>
+                      <td>{row.cartonNo}</td>
                       {batchId && (
                         <>
-                          <td style={{ padding: "10px" }}>
+                          <td>
                             {row.isMasterCarton ? (
-                              <span
-                                style={{
-                                  background: "#dcfce7",
-                                  color: "#166534",
-                                  padding: "3px 8px",
-                                  borderRadius: "5px",
-                                  fontSize: "12px",
-                                }}
-                              >
-                                Master
-                              </span>
+                              <span className="type-master">Master</span>
                             ) : (
-                              <span
-                                style={{
-                                  background: "#fef3c7",
-                                  color: "#b45309",
-                                  padding: "3px 8px",
-                                  borderRadius: "5px",
-                                  fontSize: "12px",
-                                }}
-                              >
-                                Sub-box
-                              </span>
+                              <span className="type-sub">Sub-box</span>
                             )}
                           </td>
-                          <td style={{ padding: "10px" }}>
-                            {row.parentCartonNo || "-"}
-                          </td>
+                          <td>{row.parentCartonNo || "-"}</td>
                         </>
                       )}
-                      <td style={{ padding: "10px" }}>
+                      <td>
                         {row.quantity} Pcs / {row.grossWeight} kg
                       </td>
-                      <td
-                        style={{
-                          padding: "10px",
-                          color: "#16a34a",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        {row.cbm > 0 ? row.cbm : "-"}
-                      </td>
+                      <td className="cbm-col">{row.cbm > 0 ? row.cbm : "-"}</td>
                       {!batchId && (
-                        <td
-                          style={{
-                            padding: "10px",
-                            maxWidth: "120px",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                          title={row.note}
-                        >
+                        <td className="note-col" title={row.note}>
                           {row.note || "-"}
                         </td>
                       )}
@@ -438,37 +358,15 @@ export default function UploadExcelModal({
                   ))}
                 </tbody>
               </table>
-              {excelData.length > 10 && (
-                <p
-                  style={{
-                    textAlign: "center",
-                    color: "#64748b",
-                    margin: "10px 0",
-                  }}
-                >
-                  ...and {excelData.length - 10} more rows
-                </p>
-              )}
             </div>
 
             <button
+              className="confirm-upload-btn"
               onClick={handleImport}
               disabled={loading}
-              style={{
-                width: "100%",
-                padding: "15px",
-                background: "#16a34a",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                fontSize: "16px",
-                fontWeight: "bold",
-                cursor: "pointer",
-                marginTop: "20px",
-              }}
             >
               {loading
-                ? "Saving Data..."
+                ? "⏳ Saving Data..."
                 : `🚀 Confirm & Save ${excelData.length} Shipments`}
             </button>
           </div>

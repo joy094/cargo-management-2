@@ -841,7 +841,9 @@ export default function BatchDetails() {
                         />
                       </td>
                       <td>{idx + 1}</td>
-                      <td>{s.chinaTrackingNo || "-"}</td>
+                      <td className="tracking-cell">
+                        {s.chinaTrackingNo || "-"}
+                      </td>
                       <td className="mark-cell">
                         {s.isMasterCarton && (
                           <button
@@ -998,7 +1000,7 @@ export default function BatchDetails() {
                                 </span>
                               </td>
 
-                              <td className="sub-tracking">
+                              <td className="sub-tracking tracking-cell">
                                 {sub.chinaTrackingNo || "-"}
                               </td>
                               <td className="sub-mark">

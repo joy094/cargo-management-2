@@ -473,6 +473,7 @@ input[type="number"] {
 /* ==========================================
    Product Name Text Wrap Fix
 ========================================== */
+
 .product-name-cell {
   /* কলামের সর্বোচ্চ এবং সর্বনিম্ন প্রস্থ নির্ধারণ */
   max-width: 150px;
@@ -486,6 +487,15 @@ input[type="number"] {
 
   /* দেখতে সুন্দর লাগার জন্য হালকা প্যাডিং এবং লাইন হাইট */
   padding: 8px !important;
+  line-height: 1.4;
+}
+
+/* Tracking Number Wrap Fix */
+.tracking-cell {
+  max-width: 160px; /* কলামের সর্বোচ্চ প্রস্থ, চাইলে বাড়াতে/কমাতে পারেন */
+  white-space: normal; /* ডানে না বেড়ে নিচে নামতে বাধ্য করবে */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
   line-height: 1.4;
 }
 
