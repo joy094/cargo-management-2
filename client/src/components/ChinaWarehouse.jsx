@@ -802,6 +802,7 @@ export default function ChinaWarehouse() {
                     name="chinaTrackingNo"
                     value={formData.chinaTrackingNo}
                     onChange={handleEntryChange}
+                    placeholder="If Multiple Tracking separate by (,)"
                   />
                 </div>
                 <div className="form-group">

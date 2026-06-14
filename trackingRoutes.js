@@ -3,22 +3,20 @@ import { Shipment } from "./models.js";
 
 const router = express.Router();
 
-// ✅ পাবলিক ট্র্যাকিং এপিআই (গ্রাহকদের জন্য)
 router.get("/public/tracking/:trackingCode", async (req, res) => {
   try {
     const { trackingCode } = req.params;
     const searchCode = trackingCode.trim().toUpperCase();
 
-    // ১. ট্র্যাকিং নম্বর, চায়না ট্র্যাকিং অথবা কার্টন নম্বর দিয়ে মালটি খোঁজা
-    const shipment = await Shipment.findOne({
-      $or: [
-        { trackingNumber: searchCode },
-        { chinaTrackingNo: searchCode },
+    // 🔥 ১. স্মার্ট রেজেক্স: কমা দিয়ে লেখা লিস্টের ভেতর থেকে নিখুঁতভাবে আপনার কোডটি খুঁজে বের করবে
+    // এটি শুধু আংশিক মিল নয়, বরং কমা বা স্পেসের মাঝের সঠিক শব্দটি ধরবে
+    const searchRegex = new RegExp(searchCode, "i");
 
-      ],
-    }).populate("batch"); // ব্যাচ পপুলেট করছি কারণ ব্যাচের স্ট্যাটাস জানতে হবে
+    const shipments = await Shipment.find({
+      $or: [{ trackingNumber: searchRegex }, { chinaTrackingNo: searchRegex }],
+    }).populate("batch");
 
-    if (!shipment) {
+    if (!shipments || shipments.length === 0) {
       return res.status(404).json({
         success: false,
         message:
@@ -26,99 +24,102 @@ router.get("/public/tracking/:trackingCode", async (req, res) => {
       });
     }
 
-    // ২. মাস্টার বক্স লজিক (যদি এটি কোনো মাস্টার বক্সের ভেতরে থাকে)
-    let masterBoxDetails = null;
-    let currentStatus = shipment.status;
+    // ২. সবগুলো বক্সের ডাটা প্রসেস করা
+    const allProductsTimeline = await Promise.all(
+      shipments.map(async (shipment) => {
+        let masterBoxDetails = null;
+        let currentStatus = shipment.status;
 
-    if (shipment.parentId) {
-      const masterBox = await Shipment.findById(shipment.parentId).populate(
-        "batch",
-      );
-      if (masterBox) {
-        masterBoxDetails = {
-          trackingNumber: masterBox.trackingNumber,
-          cartonNo: masterBox.cartonNo,
-          note: "Your item is consolidated inside a Master Box for better security.",
-        };
-        // যদি মাস্টার বক্স কোনো ফ্লাইটে (ব্যাচে) থাকে, তবে তার স্ট্যাটাসই ছোট বক্সের স্ট্যাটাস হবে
-        if (masterBox.status !== "Warehouse Received") {
-          currentStatus = masterBox.status;
+        if (shipment.parentId) {
+          const masterBox = await Shipment.findById(shipment.parentId).populate(
+            "batch",
+          );
+          if (masterBox) {
+            masterBoxDetails = {
+              trackingNumber: masterBox.trackingNumber,
+              cartonNo: masterBox.cartonNo,
+            };
+            if (masterBox.status !== "Warehouse Received") {
+              currentStatus = masterBox.status;
+            }
+          }
         }
-      }
-    }
 
-    // ৩. ডায়নামিক ট্র্যাকিং টাইমলাইন তৈরি
-    const allStages = [
-      "Warehouse Received",
-      "Processing",
-      "Ready to Ship",
-      "Dispatched",
-      "In-Transit",
-      "Customs Clearing",
-      "Arrived",
-      "Delivered",
-    ];
+        const allStages = [
+          "Warehouse Received",
+          "Processing",
+          "Ready to Ship",
+          "Dispatched",
+          "In-Transit",
+          "Customs Clearing",
+          "Arrived",
+          "Delivered",
+        ];
 
-    const currentIndex = allStages.indexOf(currentStatus);
+        const currentIndex = allStages.indexOf(currentStatus);
+        const isAir =
+          shipment.category && shipment.category.toLowerCase().includes("air");
 
-    // ক্যাটাগরি চেক করা (Air নাকি Sea)
-    const isAir =
-      shipment.category && shipment.category.toLowerCase().includes("air");
+        const timeline = allStages.map((stage, index) => {
+          let stepDate =
+            index === 0 ? shipment.receivedDate || shipment.createdAt : null;
+          if (index === currentIndex && index > 0)
+            stepDate = shipment.updatedAt;
 
-    // ৮টি স্টেজের জন্য ডায়নামিক টাইমলাইন জেনারেট করা
-    const timeline = allStages.map((stage, index) => {
-      let stepDate = null;
+          let displayStatus = stage;
+          if (stage === "Ready to Ship")
+            displayStatus = isAir ? "Ready to Fly ✈️" : "Ready to Sail 🚢";
+          else if (stage === "Dispatched")
+            displayStatus = isAir
+              ? "Dispatched (Air Freight)"
+              : "Dispatched (Sea Freight)";
 
-      if (index === 0) {
-        stepDate = shipment.receivedDate || shipment.createdAt;
-      } else if (index === currentIndex && index > 0) {
-        stepDate = shipment.updatedAt;
-      }
+          return {
+            status: displayStatus,
+            completed: index <= currentIndex,
+            date: stepDate,
+          };
+        });
 
-      // 🔥 ম্যাজিক লজিক: ক্যাটাগরি অনুযায়ী নাম পরিবর্তন (শুধু কাস্টমারদের দেখানোর জন্য)
-      let displayStatus = stage;
+        return {
+          shipmentId: shipment._id,
+          trackingInfo: {
+            trackingNumber: shipment.trackingNumber,
+            chinaTrackingNo: shipment.chinaTrackingNo,
+            currentStatus: currentStatus, // ফ্রন্টএন্ডে স্ট্যাটাস ব্যাজ দেখানোর জন্য
+          },
+          customerInfo: {
+            name: shipment.customerName || "Registered Customer",
+            shippingMark: shipment.shippingMark,
+          },
+          productDetails: {
+            productName: shipment.productName,
+            cartonNo: shipment.cartonNo,
+            quantity: shipment.quantity,
+          },
+          masterBox: masterBoxDetails,
+          timeline: timeline,
+        };
+      }),
+    );
 
-      if (stage === "Ready to Ship") {
-        displayStatus = isAir ? "Ready to Fly ✈️" : "Ready to Sail 🚢";
-      } else if (stage === "Dispatched") {
-        displayStatus = isAir
-          ? "Dispatched (Air Freight)"
-          : "Dispatched (Sea Freight)";
-      }
-
-      return {
-        status: displayStatus,
-        completed: index <= currentIndex,
-        date: stepDate,
-      };
+    // 🔥 ৩. স্ট্যাটাস সামারি তৈরি করা (কয়টা বক্স কোন অবস্থায় আছে)
+    const statusCounts = {};
+    allProductsTimeline.forEach((item) => {
+      const status = item.trackingInfo.currentStatus;
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
     });
-    // ৪. ফ্রন্টএন্ডের জন্য সুন্দরভাবে ডেটা সাজানো (সিক্রেট ডেটা হাইড করা)
-    const responseData = {
-      success: true,
-      trackingInfo: {
-        trackingNumber: shipment.trackingNumber,
-        chinaTrackingNo:
-          shipment.chinaTrackingNo !== "-" ? shipment.chinaTrackingNo : "N/A",
-        currentStatus: currentStatus,
-      },
-      customerInfo: {
-        // প্রাইভেসির জন্য কাস্টমারের পুরো নাম না দেখিয়ে একটু মাস্ক করে দেওয়া ভালো (ঐচ্ছিক)
-        name: shipment.customerName || "Registered Customer",
-        shippingMark: shipment.shippingMark,
-      },
-      productDetails: {
-        productName: shipment.productName,
-        cartonNo: shipment.cartonNo,
-        quantity: shipment.quantity,
-        totalWeight: `${shipment.actualWeight || shipment.grossWeight} KG`,
-        totalCBM: `${shipment.cbm} m³`,
-        category: shipment.category || "Standard Cargo",
-      },
-      masterBox: masterBoxDetails, // যদি থাকে
-      timeline: timeline, // ফ্রন্টএন্ডে প্রোগ্রেস বার বানানোর জন্য
-    };
 
-    res.status(200).json(responseData);
+    // ৪. ফাইনাল রেসপন্স
+    res.status(200).json({
+      success: true,
+      searchedCode: searchCode,
+      summary: {
+        totalBoxes: allProductsTimeline.length, // মোট বক্সের সংখ্যা
+        statusBreakdown: statusCounts, // কোন স্ট্যাটাসে কয়টা বক্স আছে তার হিসাব
+      },
+      results: allProductsTimeline, // বক্সগুলোর বিস্তারিত লিস্ট
+    });
   } catch (error) {
     console.error("Tracking API Error:", error);
     res.status(500).json({ success: false, message: "Internal server error." });
