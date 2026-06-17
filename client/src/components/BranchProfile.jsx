@@ -69,10 +69,10 @@ export default function BranchProfile() {
       setSummary(summaryRes.data.summary);
 
       // স্মার্ট ফিল্টার: শুধু দেশে পৌঁছানো মালগুলো ফিল্টার করা হচ্ছে
+      // 🔥 স্মার্ট ফিল্টার: এখন শুধুমাত্র "Arrived" বা "Delivered" হওয়া মালগুলোই প্রোফাইল ও বিলে দেখাবে
       const arrivedItems = itemsRes.data.items.filter(
         (item) =>
-          item.status !== "Warehouse Received" &&
-          item.status !== "In-Transit" &&
+          (item.status === "Arrived" || item.status === "Delivered") &&
           item.isMasterCarton !== true &&
           item.isHeld !== true,
       );
