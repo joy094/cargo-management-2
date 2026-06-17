@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { translateToChinese } from "../utils/translate"; // 🇨🇳 নতুন: ট্রান্সলেট ফাংশন ইম্পোর্ট
-import "./EditModal.css"; // 🔥 আলাদা করা CSS ফাইল ইম্পোর্ট
+import { translateToChinese } from "../utils/translate";
+import "./EditModal.css";
 
 export default function EditShipmentModal({
   isOpen,
@@ -22,6 +22,7 @@ export default function EditShipmentModal({
     cartonNo: "",
     quantity: 1,
     grossWeight: "",
+    actualWeight: "", // 🔥 নতুন: Actual Weight স্টেট
     length: 0,
     width: 0,
     height: 0,
@@ -32,7 +33,6 @@ export default function EditShipmentModal({
     receivedDate: "",
   });
 
-  // 🔥 নতুন: Customer Map স্টেট এবং ডাটা ফেচ
   const [customerMap, setCustomerMap] = useState({});
 
   useEffect(() => {
@@ -60,6 +60,7 @@ export default function EditShipmentModal({
         cartonNo: shipment.cartonNo || "",
         quantity: shipment.quantity || 1,
         grossWeight: shipment.grossWeight || "",
+        actualWeight: shipment.actualWeight || "", // 🔥 নতুন: ডাটাবেস থেকে Actual Weight আনা
         length: shipment.dimensions?.length || 0,
         width: shipment.dimensions?.width || 0,
         height: shipment.dimensions?.height || 0,
@@ -80,17 +81,15 @@ export default function EditShipmentModal({
     const { name, value } = e.target;
     let newFormData = { ...formData, [name]: value };
 
-    // 🔥 ম্যাজিক: Shipping Mark চেঞ্জ হলে Customer Name অটোমেটিক বসে যাবে
     if (name === "shippingMark") {
       const markUpper = value.trim().toUpperCase();
       if (customerMap[markUpper]) {
         newFormData.customerName = customerMap[markUpper];
       } else {
-        newFormData.customerName = ""; // লিস্টে না থাকলে ফাঁকা হয়ে যাবে
+        newFormData.customerName = "";
       }
     }
 
-    // CBM Calculation
     if (["length", "width", "height"].includes(name)) {
       const l = Number(newFormData.length) || 0;
       const w = Number(newFormData.width) || 0;
@@ -100,6 +99,7 @@ export default function EditShipmentModal({
 
     setFormData(newFormData);
   };
+
   const handleProductBlur = async (e) => {
     const text = e.target.value;
     if (text) {
@@ -115,6 +115,9 @@ export default function EditShipmentModal({
     try {
       await axios.put(`/api/shipments/edit/${shipment._id}`, {
         ...formData,
+        // 🔥 নিশ্চিত করা হচ্ছে যেন ওজনগুলো Number হিসেবে ডাটাবেসে যায়
+        grossWeight: Number(formData.grossWeight) || 0,
+        actualWeight: Number(formData.actualWeight) || 0,
         dimensions: {
           length: formData.length,
           width: formData.width,
@@ -135,7 +138,6 @@ export default function EditShipmentModal({
   return (
     <div className="fixed-modal-overlay">
       <div className="fixed-modal-content">
-        {/* Fixed Header */}
         <div className="modal-header">
           <h2>✏️ Edit Shipment</h2>
           <p>
@@ -146,7 +148,6 @@ export default function EditShipmentModal({
           </p>
         </div>
 
-        {/* Scrollable Body */}
         <div className="modal-body edit-grid">
           <div className="form-group">
             <label>Category</label>
@@ -229,13 +230,26 @@ export default function EditShipmentModal({
             />
           </div>
 
+          {/* 🔥 Gross Weight (চীন থেকে আসা ওজন) */}
           <div className="form-group">
-            <label>Gross Weight (KG)</label>
+            <label>Gross Weight (CN) (KG)</label>
             <input
               type="number"
               name="grossWeight"
               value={formData.grossWeight}
               onChange={handleChange}
+            />
+          </div>
+
+          {/* 🔥 Actual / Office Weight (অফিসে মাপা ওজন) */}
+          <div className="form-group">
+            <label>Actual / Office Weight (KG)</label>
+            <input
+              type="number"
+              name="actualWeight"
+              value={formData.actualWeight}
+              onChange={handleChange}
+              style={{ border: "1px solid #f59e0b", background: "#fef3c7" }} // হালকা হলুদ ব্যাকগ্রাউন্ড
             />
           </div>
 
@@ -333,7 +347,6 @@ export default function EditShipmentModal({
           </div>
         </div>
 
-        {/* Fixed Footer */}
         <div className="modal-footer">
           <button className="cancel-btn" onClick={onClose}>
             ✖ Cancel

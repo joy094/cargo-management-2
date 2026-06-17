@@ -3,8 +3,17 @@
 import React from "react";
 
 // 🌟 টাকাকে কথায় (Words) রূপান্তর করার ফাংশন (কম্পোনেন্টের বাইরে)
-const numberToWords = (num) => {
-  if (num === 0) return "Zero Taka Only";
+
+// 🌟 টাকাকে কথায় (Words) রূপান্তর করার স্মার্ট ফাংশন
+const numberToWords = (amount) => {
+  if (amount === 0 || !amount) return "Zero Taka Only";
+
+  // দশমিকের আগে ও পরের অংশ আলাদা করা
+  const amountStr = Number(amount).toFixed(2);
+  const parts = amountStr.split(".");
+  const takaPart = parseInt(parts[0], 10);
+  const poishaPart = parseInt(parts[1], 10);
+
   const a = [
     "",
     "One ",
@@ -39,34 +48,54 @@ const numberToWords = (num) => {
     "Eighty",
     "Ninety",
   ];
-  if ((num = num.toString()).length > 9) return "Overflow";
-  const n = ("000000000" + num)
-    .substr(-9)
-    .match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
-  if (!n) return "";
-  let str = "";
-  str +=
-    n[1] != 0
-      ? (a[Number(n[1])] || b[n[1][0]] + " " + a[n[1][1]]) + "Crore "
-      : "";
-  str +=
-    n[2] != 0
-      ? (a[Number(n[2])] || b[n[2][0]] + " " + a[n[2][1]]) + "Lakh "
-      : "";
-  str +=
-    n[3] != 0
-      ? (a[Number(n[3])] || b[n[3][0]] + " " + a[n[3][1]]) + "Thousand "
-      : "";
-  str +=
-    n[4] != 0
-      ? (a[Number(n[4])] || b[n[4][0]] + " " + a[n[4][1]]) + "Hundred "
-      : "";
-  str +=
-    n[5] != 0
-      ? (str != "" ? "and " : "") +
-        (a[Number(n[5])] || b[n[5][0]] + " " + a[n[5][1]])
-      : "";
-  return str.trim() + " Taka Only";
+
+  const convertWholeNumber = (num) => {
+    if (num === 0) return "";
+    if (num.toString().length > 9) return "Overflow";
+
+    const n = ("000000000" + num)
+      .substr(-9)
+      .match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+    if (!n) return "";
+
+    let str = "";
+    str +=
+      n[1] != 0
+        ? (a[Number(n[1])] || b[n[1][0]] + " " + a[n[1][1]]) + "Crore "
+        : "";
+    str +=
+      n[2] != 0
+        ? (a[Number(n[2])] || b[n[2][0]] + " " + a[n[2][1]]) + "Lakh "
+        : "";
+    str +=
+      n[3] != 0
+        ? (a[Number(n[3])] || b[n[3][0]] + " " + a[n[3][1]]) + "Thousand "
+        : "";
+    str +=
+      n[4] != 0
+        ? (a[Number(n[4])] || b[n[4][0]] + " " + a[n[4][1]]) + "Hundred "
+        : "";
+    str +=
+      n[5] != 0
+        ? (str != "" ? "and " : "") +
+          (a[Number(n[5])] || b[n[5][0]] + " " + a[n[5][1]])
+        : "";
+
+    return str.trim();
+  };
+
+  const takaWords = convertWholeNumber(takaPart);
+  const poishaWords = convertWholeNumber(poishaPart);
+
+  let finalString = takaWords ? `${takaWords} Taka` : "";
+
+  if (poishaPart > 0) {
+    finalString += finalString
+      ? ` and ${poishaWords} Poisha`
+      : `${poishaWords} Poisha`;
+  }
+
+  return finalString + " Only";
 };
 
 export default function InvoicePrintModal({
