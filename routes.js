@@ -260,8 +260,31 @@ router.post("/bulk-import-excel", async (req, res) => {
       message: `সফলভাবে ${finalDocsToInsert.length} টি বক্স আপলোড হয়েছে!`,
     });
   } catch (err) {
-    console.error("Excel Import Error:", err);
-    res.status(500).json({ error: "এক্সেল আপলোড ব্যর্থ হয়েছে।" });
+    console.error("Bulk Import Error:", err);
+
+    // ১. ডুপ্লিকেট কি এরর (Duplicate Key Error - MongoDB Code 11000)
+    // যদি এক্সেলে এমন কোনো ট্র্যাকিং নম্বর বা ডেটা থাকে যা ডাটাবেসে অলরেডি আছে (unique: true হলে)
+    if (err.code === 11000) {
+      const duplicateKey = Object.keys(err.keyValue)[0];
+      const duplicateValue = err.keyValue[duplicateKey];
+      return res.status(400).json({
+        error: `ডাটাবেসে এই ${duplicateKey} (${duplicateValue}) আগে থেকেই আছে! ডুপ্লিকেট এন্ট্রি করা যাবে না।`,
+      });
+    }
+
+    // ২. স্কিমা ভ্যালিডেশন এরর (Mongoose ValidationError)
+    // যদি ডাটাবেসের স্কিমায় কোনো ফিল্ড required থাকে কিন্তু এক্সেলে না থাকে
+    if (err.name === "ValidationError") {
+      const messages = Object.values(err.errors).map((val) => val.message);
+      return res.status(400).json({
+        error: `ভ্যালিডেশন এরর: ${messages.join(", ")}`,
+      });
+    }
+
+    // ৩. অন্যান্য অপ্রত্যাশিত সার্ভার এরর
+    res.status(500).json({
+      error: err.message || "বাল্ক ইম্পোর্ট ব্যর্থ হয়েছে। ফাইলটি চেক করুন।",
+    });
   }
 });
 
@@ -404,17 +427,21 @@ router.delete("/shipments/:id", async (req, res) => {
 
     // 🔥 ২. ইনভয়েস চেক করা (বিল হয়ে থাকলে ডিলিট হবে না)
     if (shipment.isBilled) {
-      return res.status(400).json({ 
-        error: "⛔ This box has an invoice created, so it cannot be deleted!" 
+      return res.status(400).json({
+        error: "⛔ This box has an invoice created, so it cannot be deleted!",
       });
     }
 
     // ৩. মাস্টার বক্স হলে এর ভেতরের সাব-বক্সগুলোর ইনভয়েস চেক করা
     if (shipment.isMasterCarton) {
-      const billedSubItems = await Shipment.find({ parentId: shipmentId, isBilled: true });
+      const billedSubItems = await Shipment.find({
+        parentId: shipmentId,
+        isBilled: true,
+      });
       if (billedSubItems.length > 0) {
-        return res.status(400).json({ 
-          error: "⛔ This master box has some items with invoices created, so it cannot be deleted!" 
+        return res.status(400).json({
+          error:
+            "⛔ This master box has some items with invoices created, so it cannot be deleted!",
         });
       }
       // ইনভয়েস না থাকলে ভেতরের সাব-বক্সগুলো ডিলিট করা
@@ -553,7 +580,8 @@ router.post("/payments/allocate", async (req, res) => {
 router.delete("/statements/:id", async (req, res) => {
   try {
     const statement = await BankStatement.findById(req.params.id);
-    if (!statement) return res.status(404).json({ error: "Statement not found." });
+    if (!statement)
+      return res.status(404).json({ error: "Statement not found." });
 
     const allocations = await PaymentAllocation.find({
       statement: statement._id,

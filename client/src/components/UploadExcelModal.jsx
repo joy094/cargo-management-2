@@ -13,21 +13,20 @@ export default function UploadExcelModal({
   const [excelData, setExcelData] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const [errorMessage, setErrorMessage] = useState(""); // 🔥 নতুন এরর স্টেট
+
   if (!isOpen) return null;
 
   // 📥 ডায়নামিক টেমপ্লেট ডাউনলোড লজিক
   const downloadTemplate = () => {
     let templateData;
     let fileName;
-
-    // আজকের তারিখ বের করে টেমপ্লেটে দেওয়ার জন্য
     const today = new Date().toISOString().split("T")[0];
 
     if (batchId) {
-      // 📦 ব্যাচ পেজের জন্য মাস্টার/সাব-বক্স টেমপ্লেট
       templateData = [
         {
-          "Received Date": today, // 📅 নতুন কলাম
+          "Received Date": today,
           "Shipping Mark": "SKL-RONY",
           "Carton No": "100",
           "Box Type": "Master",
@@ -61,11 +60,10 @@ export default function UploadExcelModal({
       ];
       fileName = "batch_master_sub_template.xlsx";
     } else {
-      // 🏠 ওয়্যারহাউজের জন্য লুজ মাল টেমপ্লেট
       templateData = [
         {
           Category: "By Sea",
-          "Received Date": today, // 📅 নতুন কলাম
+          "Received Date": today,
           "China Tracking": "YT123456789",
           "Shipping Mark": "JAMAL-01",
           "Customer Name": "Jamal",
@@ -104,7 +102,6 @@ export default function UploadExcelModal({
     const worksheet = XLSX.utils.json_to_sheet(templateData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Shipment List");
-
     XLSX.writeFile(workbook, fileName);
   };
 
@@ -120,7 +117,6 @@ export default function UploadExcelModal({
       const sheet = workbook.Sheets[sheetName];
       const json = XLSX.utils.sheet_to_json(sheet);
 
-      // ✅ ডায়নামিক এক্সেল ডাটা ম্যাপিং লজিক
       const mappedData = json.map((row) => {
         const l = Number(row["L"]) || 0;
         const w = Number(row["W"]) || 0;
@@ -131,20 +127,15 @@ export default function UploadExcelModal({
         let isMaster = false;
         let parentCartonNo = "";
 
-        // 📦 ব্যাচ পেজ থেকে আপলোড হলে
         if (batchId) {
           const rawBoxType = String(row["Box Type"] || "").toLowerCase();
           isMaster = rawBoxType !== "sub-box";
           parentCartonNo = String(row["Parent Carton No"] || "");
         }
 
-        // 📅 এক্সেলে ডেট থাকলে নিবে, না থাকলে আজকের ডেট বসিয়ে দিবে (Format: YYYY-MM-DD)
         const defaultDate = new Date().toISOString().split("T")[0];
-
-        // এক্সেল সিরিয়াল ডেট ফরম্যাট ফিক্স করার ছোট লজিক (যদি ক্লায়েন্ট ডেট ফরম্যাট ভুল দেয়)
         let parsedDate = row["Received Date"] || defaultDate;
         if (typeof parsedDate === "number") {
-          // Excel Serial Date Conversion
           parsedDate = new Date(Math.round((parsedDate - 25569) * 86400 * 1000))
             .toISOString()
             .split("T")[0];
@@ -167,8 +158,7 @@ export default function UploadExcelModal({
           packagingCost: Number(row["Packaging Cost"]) || 0,
           receivingCost: Number(row["Receiving Cost"]) || 0,
           note: row["Note"] || "",
-          receivedDate: parsedDate, // 📅 নতুন ফিল্ড
-
+          receivedDate: parsedDate,
           isMasterCarton: isMaster,
           parentCartonNo: parentCartonNo,
         };
@@ -176,7 +166,6 @@ export default function UploadExcelModal({
 
       setExcelData(mappedData);
     };
-
     reader.readAsBinaryString(file);
   };
 
@@ -198,180 +187,297 @@ export default function UploadExcelModal({
 
       const res = await axios.post("/api/bulk-import-excel", payload);
       alert(res.data.message || "সফলভাবে ইমপোর্ট হয়েছে!");
-
       setExcelData([]);
       onSuccess();
       onClose();
     } catch (err) {
-      alert(err.response?.data?.error || "ইম্পোর্ট করতে সমস্যা হয়েছে।");
+      // alert(...) এর বদলে এটি দিন
+      setErrorMessage(
+        err.response?.data?.error ||
+          "ইম্পোর্ট করতে কোনো অপ্রত্যাশিত সমস্যা হয়েছে।",
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed-modal-overlay" style={{ zIndex: 1000 }}>
-      <div
-        className="fixed-modal-content"
-        style={{ maxWidth: "1050px", width: "95%" }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "20px",
-          }}
-        >
-          <h2 style={{ margin: 0, color: "#0f172a" }}>
+    <div className="excel-modal-overlay">
+      <div className="excel-modal-container">
+        {/* 📌 Header Component */}
+        <div className="excel-modal-header">
+          <h2>
             {batchId
               ? "🚀 Upload Master & Sub-Boxes"
               : "🏠 Upload Warehouse Shipments"}
           </h2>
-          <button
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: "24px",
-              cursor: "pointer",
-              color: "#ef4444",
-              fontWeight: "bold",
-            }}
-          >
+          <button className="close-modal-btn" onClick={onClose}>
             ✖
           </button>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: "20px",
-            alignItems: "center",
-          }}
-        >
-          <p style={{ color: "#64748b", margin: 0 }}>
-            {batchId
-              ? "বর্তমান ব্যাচে সরাসরি ডাটা যুক্ত হবে।"
-              : "Will be added to the warehouse as loose goods."}
-          </p>
-          <button
-            onClick={downloadTemplate}
+        {/* 📜 Scrollable Content Area */}
+        <div className="excel-modal-body">
+          <div className="template-info-row">
+            <p>
+              {batchId
+                ? "বর্তমান ব্যাচে সরাসরি ডাটা যুক্ত হবে।"
+                : "Will be added to the warehouse as loose goods."}
+            </p>
+            <button
+              className="download-template-btn"
+              onClick={downloadTemplate}
+            >
+              📥 Download Template
+            </button>
+          </div>
+
+          {/* Drag & Drop Area */}
+          <div className="excel-upload-zone">
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              onChange={handleFileUpload}
+            />
+            <p>📁 Click or Drag Excel File Here to Upload</p>
+          </div>
+
+          {/* 📊 Preview Section */}
+          {excelData.length > 0 && (
+            <div className="excel-preview-section">
+              <h3>📊 Data Preview ({excelData.length} items)</h3>
+              <div className="excel-table-wrapper">
+                <table className="excel-preview-table">
+                  <thead>
+                    <tr>
+                      <th>Category</th>
+                      <th>Rcv Date</th>
+                      <th>Mark</th>
+                      <th>Carton</th>
+                      {batchId && <th>Type</th>}
+                      {batchId && <th>Parent</th>}
+                      <th>Qty / Weight</th>
+                      <th>CBM</th>
+                      {!batchId && <th>Note</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {excelData.map((row, index) => (
+                      <tr
+                        key={index}
+                        className={
+                          row.isMasterCarton ? "row-master" : "row-sub"
+                        }
+                      >
+                        <td>
+                          <span className="badge-category">{row.category}</span>
+                        </td>
+                        <td className="text-date">{row.receivedDate}</td>
+                        <td className="text-bold">{row.shippingMark}</td>
+                        <td>{row.cartonNo}</td>
+                        {batchId && (
+                          <>
+                            <td>
+                              <span
+                                className={
+                                  row.isMasterCarton ? "tag-master" : "tag-sub"
+                                }
+                              >
+                                {row.isMasterCarton ? "Master" : "Sub-box"}
+                              </span>
+                            </td>
+                            <td>{row.parentCartonNo || "-"}</td>
+                          </>
+                        )}
+                        <td>
+                          {row.quantity} Pcs / {row.grossWeight} kg
+                        </td>
+                        <td className="text-cbm">
+                          {row.cbm > 0 ? row.cbm : "-"}
+                        </td>
+                        {!batchId && (
+                          <td className="text-note" title={row.note}>
+                            {row.note || "-"}
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ❌ Error Message Alert */}
+        {errorMessage && (
+          <div
             style={{
-              background: "#34495e",
-              color: "white",
-              padding: "8px 15px",
+              margin: "0 24px 15px 24px",
+              padding: "12px",
+              background: "#fee2e2",
+              borderLeft: "4px solid #ef4444",
+              color: "#b91c1c",
               borderRadius: "6px",
-              border: "none",
-              cursor: "pointer",
               fontWeight: "bold",
+              fontSize: "14px",
             }}
           >
-            📥 Download {batchId ? "Master/Sub" : "Warehouse"} Format
-          </button>
-        </div>
-
-        <div
-          className="upload-area"
-          style={{
-            border: "2px dashed #0369a1",
-            padding: "30px",
-            borderRadius: "10px",
-            textAlign: "center",
-            background: "#f0f9ff",
-            cursor: "pointer",
-            position: "relative",
-          }}
-        >
-          <input
-            type="file"
-            accept=".xlsx, .xls"
-            onChange={handleFileUpload}
-            style={{
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-              top: 0,
-              left: 0,
-              opacity: 0,
-              cursor: "pointer",
-            }}
-          />
-          <p style={{ color: "#0369a1", fontWeight: "bold", margin: 0 }}>
-            Click or Drag Excel File Here to Upload
-          </p>
-        </div>
-
+            ⚠️ Upload Failed: {errorMessage}
+          </div>
+        )}
+        {/* 📌 Sticky Footer Action Button */}
         {excelData.length > 0 && (
-          <div className="preview-section">
-            <h3>📊 Data Preview ({excelData.length} items)</h3>
-            <div className="table-responsive-container">
-              <table className="excel-preview-table">
-                <thead>
-                  <tr>
-                    <th>Category</th>
-                    <th>Rcv Date</th>
-                    <th>Mark</th>
-                    <th>Carton</th>
-                    {batchId && <th>Type</th>}
-                    {batchId && <th>Parent</th>}
-                    <th>Qty/Wt</th>
-                    <th>CBM</th>
-                    {!batchId && <th>Note</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {excelData.map((row, index) => (
-                    <tr
-                      key={index}
-                      className={row.isMasterCarton ? "master-row" : "sub-row"}
-                    >
-                      <td>
-                        <span className="category-tag">{row.category}</span>
-                      </td>
-                      <td className="date-col">{row.receivedDate}</td>
-                      <td className="bold-col">{row.shippingMark}</td>
-                      <td>{row.cartonNo}</td>
-                      {batchId && (
-                        <>
-                          <td>
-                            {row.isMasterCarton ? (
-                              <span className="type-master">Master</span>
-                            ) : (
-                              <span className="type-sub">Sub-box</span>
-                            )}
-                          </td>
-                          <td>{row.parentCartonNo || "-"}</td>
-                        </>
-                      )}
-                      <td>
-                        {row.quantity} Pcs / {row.grossWeight} kg
-                      </td>
-                      <td className="cbm-col">{row.cbm > 0 ? row.cbm : "-"}</td>
-                      {!batchId && (
-                        <td className="note-col" title={row.note}>
-                          {row.note || "-"}
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
+          <div className="excel-modal-footer">
             <button
-              className="confirm-upload-btn"
+              className="excel-save-btn"
               onClick={handleImport}
               disabled={loading}
             >
               {loading
-                ? "⏳ Saving Data..."
+                ? "⏳ Saving Data, Please Wait..."
                 : `🚀 Confirm & Save ${excelData.length} Shipments`}
             </button>
           </div>
         )}
       </div>
+
+      {/* 🎨 fully responsive internal CSS */}
+      <style>{`
+        .excel-modal-overlay {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(15, 23, 42, 0.6);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2000;
+          padding: 15px;
+        }
+
+        .excel-modal-container {
+          background: #ffffff;
+          width: 100%;
+          max-width: 1100px;
+          max-height: 90vh;
+          border-radius: 14px;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          animation: modalFadeIn 0.3s ease-out;
+        }
+
+        @keyframes modalFadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .excel-modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 20px 24px;
+          border-bottom: 1px solid #f1f5f9;
+          background: #f8fafc;
+        }
+        .excel-modal-header h2 { margin: 0; font-size: 1.4rem; color: #0f172a; font-weight: 700; }
+        .close-modal-btn { background: none; border: none; fontSize: 22px; cursor: pointer; color: #ef4444; }
+
+        .excel-modal-body {
+          padding: 24px;
+          overflow-y: auto;
+          flex: 1;
+        }
+
+        .template-info-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+          gap: 15px;
+        }
+        .template-info-row p { color: #64748b; margin: 0; font-size: 14px; }
+        
+        .download-template-btn {
+          background: #334155; color: white; padding: 10px 16px;
+          border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 13px;
+          transition: background 0.2s; white-space: nowrap;
+        }
+        .download-template-btn:hover { background: #1e293b; }
+
+        .excel-upload-zone {
+          border: 2px dashed #0284c7; padding: 30px 20px; border-radius: 10px;
+          text-align: center; background: #f0f9ff; position: relative; transition: all 0.2s;
+        }
+        .excel-upload-zone:hover { background: #e0f2fe; border-color: #0369a1; }
+        .excel-upload-zone input { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; cursor: pointer; }
+        .excel-upload-zone p { color: #0369a1; font-weight: 600; margin: 0; font-size: 15px; }
+
+        .excel-preview-section { margin-top: 25px; }
+        .excel-preview-section h3 { margin: 0 0 15px 0; font-size: 1.1rem; color: #1e293b; font-weight: 700; }
+
+        /* 🚀 Dynamic Table Scroll Controller */
+        .excel-table-wrapper {
+          overflow-x: auto;
+          overflow-y: auto;
+          max-height: 280px; /* টেবিলটি এখানে স্ক্রল লক হবে */
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .excel-preview-table { width: 100%; border-collapse: collapse; white-space: nowrap; text-align: left; }
+        
+        /* Fixed Headers on Scroll */
+        .excel-preview-table thead th {
+          position: sticky; top: 0; background: #003580; color: white;
+          padding: 12px 14px; font-size: 13px; font-weight: 600; z-index: 5;
+        }
+
+        .excel-preview-table tbody td { padding: 12px 14px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+        .excel-preview-table tbody .row-master { background: #ffffff; }
+        .excel-preview-table tbody .row-sub { background: #f8fafc; }
+
+        .badge-category { background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 11px; }
+        .text-date { font-weight: 600; color: #10b981; }
+        .text-bold { font-weight: 700; color: #0f172a; }
+        .text-cbm { color: #16a34a; font-weight: 700; }
+        .text-note { max-width: 150px; overflow: hidden; text-overflow: ellipsis; color: #64748b; }
+
+        .tag-master { background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .tag-sub { background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+
+        .excel-modal-footer {
+          padding: 16px 24px;
+          border-top: 1px solid #e2e8f0;
+          background: #f8fafc;
+        }
+
+        .excel-save-btn {
+          width: 100%; padding: 14px; background: #16a34a; color: white;
+          border: none; border-radius: 8px; font-size: 16px; font-weight: 700;
+          cursor: pointer; transition: background 0.2s, transform 0.1s;
+          box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.2);
+        }
+        .excel-save-btn:hover:not(:disabled) { background: #15803d; }
+        .excel-save-btn:active:not(:disabled) { transform: scale(0.99); }
+        .excel-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* 📱 Responsive Adjustments */
+        @media screen and (max-width: 768px) {
+          .excel-modal-container { max-height: 95vh; }
+          .excel-modal-header { padding: 15px; }
+          .excel-modal-header h2 { font-size: 1.1rem; }
+          .excel-modal-body { padding: 15px; }
+          .template-info-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+          .download-template-btn { width: 100%; text-align: center; }
+          .excel-table-wrapper { max-height: 220px; } /* ছোট স্ক্রিনে টেবিল স্ক্রল হাইট কমবে */
+          .excel-modal-footer { padding: 12px 15px; }
+          .excel-save-btn { font-size: 14px; padding: 12px; }
+        }
+      `}</style>
     </div>
   );
 }
