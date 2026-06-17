@@ -113,30 +113,32 @@ export default function InvoicePrintModal({
         <div id="print-area" className="pro-invoice-wrapper">
           {/* Company Header */}
 
+          <div className="pro-inv-header">
+            <div className="pro-logo-container">
+              <img
+                src="/SABA_&_RIHAN_LOGO.jpeg"
+                alt="Company Logo"
+                className="pro-main-logo"
+                onError={(e) => {
+                  e.target.style.display = "none";
+                }}
+              />
+            </div>
 
-        <div className="pro-inv-header">
-  <div className="pro-logo-container">
-    <img
-      src="/SABA_&_RIHAN_LOGO.jpeg"
-      alt="Company Logo"
-      className="pro-main-logo"
-      onError={(e) => { e.target.style.display = "none"; }}
-    />
-  </div>
-
-  <div className="pro-company-details-centered">
-    <h1 className="gradient-company-name">SABA & RIHAN ENTERPRISE</h1>
-    <p className="pro-tagline">
-      GOVT. AUTHORISED CUSTOMS, CLEARING & FORWARDING (C&F) AGENT
-    </p>
-    <p className="pro-address">
-      🏢 Office: Uttara sector-4 road-2D House-2, Dhaka, Bangladesh |   📞 Phone:+8801841389672
-    </p>
-    <p className="pro-address">
-      Door to Door (Cargo) • China • Hongkong • Dubai • Malaysia
-    </p>
-  </div>
-</div>
+            <div className="pro-company-details-centered">
+              <h1 className="gradient-company-name">SABA & RIHAN ENTERPRISE</h1>
+              <p className="pro-tagline">
+                GOVT. AUTHORISED CUSTOMS, CLEARING & FORWARDING (C&F) AGENT
+              </p>
+              <p className="pro-address">
+                🏢 Office: Uttara sector-4 road-2D House-2, Dhaka, Bangladesh |
+                📞 Phone:+8801841389672
+              </p>
+              <p className="pro-address">
+                Door to Door (Cargo) • China • Hongkong • Dubai • Malaysia
+              </p>
+            </div>
+          </div>
 
           <div className="pro-inv-title-bar">
             <h2>COMMERCIAL INVOICE</h2>
@@ -356,6 +358,13 @@ export default function InvoicePrintModal({
                 <p>A/C Name: SABA AND RIHAN ENTERPRIS</p>
                 <p>A/C No: 003011100006291</p>
                 <p>Branch: Aganagor</p>
+              </div>
+              {/* 🔥 নতুন ব্যাংক অ্যাকাউন্ট এখানে যোগ করা হলো */}
+              <div className="bank-card">
+                <strong>Mercantile Bank Limited</strong>
+                <p>A/C Name: SABA AND RIHAN ENTERPRISE</p>
+                <p>A/C No: 1111001428569</p>
+                <p>Branch: Uttara(Dakshin Khan Upashakha)</p>
               </div>
             </div>
           </div>
