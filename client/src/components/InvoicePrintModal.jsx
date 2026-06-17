@@ -112,32 +112,31 @@ export default function InvoicePrintModal({
       <div className="modal-content pro-modal-width">
         <div id="print-area" className="pro-invoice-wrapper">
           {/* Company Header */}
-          <div className="pro-inv-header">
-            <div className="pro-logo-container">
-              <img
-                src="/SABA_&_RIHAN_LOGO.jpeg"
-                alt="Company Logo"
-                className="pro-main-logo"
-                onError={(e) => {
-                  e.target.style.display = "none";
-                  e.target.nextSibling.style.display = "flex";
-                }}
-              />
-              <div className="pro-logo-placeholder" style={{ display: "none" }}>
-                <span>LOGO</span>
-              </div>
-            </div>
 
-            <div className="pro-company-details">
-              <h1 className="gradient-company-name">SABA & RIHAN ENTERPRISE</h1>
-              <p className="pro-tagline">
-                GOVT. AUTHORISED CUSTOMS, CLEARING & FORWARDING (C&F) AGENT
-              </p>
-              <p className="pro-address">
-                Door to Door (Cargo) • China • Hongkong • Dubai • Malaysia
-              </p>
-            </div>
-          </div>
+
+        <div className="pro-inv-header">
+  <div className="pro-logo-container">
+    <img
+      src="/SABA_&_RIHAN_LOGO.jpeg"
+      alt="Company Logo"
+      className="pro-main-logo"
+      onError={(e) => { e.target.style.display = "none"; }}
+    />
+  </div>
+
+  <div className="pro-company-details-centered">
+    <h1 className="gradient-company-name">SABA & RIHAN ENTERPRISE</h1>
+    <p className="pro-tagline">
+      GOVT. AUTHORISED CUSTOMS, CLEARING & FORWARDING (C&F) AGENT
+    </p>
+    <p className="pro-address">
+      🏢 Office: Uttara sector-4 road-2D House-2, Dhaka, Bangladesh |   📞 Phone:+8801841389672
+    </p>
+    <p className="pro-address">
+      Door to Door (Cargo) • China • Hongkong • Dubai • Malaysia
+    </p>
+  </div>
+</div>
 
           <div className="pro-inv-title-bar">
             <h2>COMMERCIAL INVOICE</h2>

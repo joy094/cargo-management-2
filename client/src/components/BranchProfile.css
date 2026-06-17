@@ -204,6 +204,18 @@
   font-weight: bold;
 }
 
+
+/* Tracking Number Wrap Fix */
+.tracking-cell {
+  max-width: 160px; /* কলামের সর্বোচ্চ প্রস্থ, চাইলে বাড়াতে/কমাতে পারেন */
+  white-space: normal; /* ডানে না বেড়ে নিচে নামতে বাধ্য করবে */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.4;
+}
+
+
+
 /* ✅ New Styles for Billed Items */
 .billed-row-style {
   background-color: #f8fafc !important;

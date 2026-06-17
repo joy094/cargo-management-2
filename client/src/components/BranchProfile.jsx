@@ -688,7 +688,7 @@ export default function BranchProfile() {
                             </span>
                           )}
                         </td>
-                        <td>
+                        <td className="tracking-cell">
                           <small>{item.chinaTrackingNo}</small>
                         </td>
                         <td>{item.shippingMark} </td>

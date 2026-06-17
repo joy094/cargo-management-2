@@ -1,0 +1,40 @@
+/* হেডার কন্টেইনার */
+.pro-inv-header {
+  display: flex;
+  align-items: center; /* লম্বালম্বি মাঝখানে */
+  position: relative;
+  padding: 10px;
+}
+
+/* লোগো সেকশন */
+.pro-logo-container {
+  flex: 0 0 120px; /* লোগোর জন্য ফিক্সড জায়গা */
+}
+
+/* সেন্ট্রাল টেক্সট সেকশন */
+.pro-company-details-centered {
+  flex: 1;
+  text-align: center;
+  padding-right: 120px; /* লোগোর সমান জায়গা ডানপাশে ফাঁকা রাখলাম যেন লেখাটি ঠিক মাঝখানে থাকে */
+}
+
+/* টেক্সট স্টাইল */
+.pro-company-details-centered h1 {
+  margin: 0;
+  font-size: 26px;
+  text-transform: uppercase;
+  color: #0f172a;
+}
+
+.pro-company-details-centered p {
+  margin: 2px 0;
+  font-size: 12px;
+  color: #475569;
+}
+
+/* প্রিন্ট মিডিয়ার জন্য ফিক্স */
+@media print {
+  .pro-company-details-centered {
+    padding-right: 120px;
+  }
+}
