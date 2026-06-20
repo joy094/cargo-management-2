@@ -111,6 +111,11 @@ export default function InvoicePrintModal({
     <div className="modal-overlay">
       <div className="modal-content pro-modal-width">
         <div id="print-area" className="pro-invoice-wrapper">
+          {/* 🔥 যদি পেমেন্ট ক্লিয়ার থাকে, তাহলে ব্লু স্ট্যাম্প দেখাবে */}
+          {invoiceData.netPayable - (invoiceData.paidAmount || 0) <= 0 && (
+            <div className="paid-stamp-watermark">PAID</div>
+          )}
+
           {/* Company Header */}
 
           <div className="pro-inv-header">
@@ -330,6 +335,31 @@ export default function InvoicePrintModal({
                     <td>Grand Total</td>
                     <td className="right">
                       ৳ {(invoiceData.netPayable || 0).toLocaleString()}
+                    </td>
+                  </tr>
+
+                  {/* 🔥 নতুন যুক্ত করা Paid এবং Due অংশ */}
+                  <tr style={{ color: "#16a34a", fontWeight: "bold" }}>
+                    <td>Total Paid</td>
+                    <td className="right">
+                      - ৳ {(invoiceData.paidAmount || 0).toLocaleString()}
+                    </td>
+                  </tr>
+
+                  <tr
+                    style={{
+                      color: "#dc2626",
+                      fontWeight: "bold",
+                      fontSize: "16px",
+                    }}
+                  >
+                    <td>Current Due</td>
+                    <td className="right">
+                      ৳{" "}
+                      {Math.max(
+                        0,
+                        invoiceData.netPayable - (invoiceData.paidAmount || 0),
+                      ).toLocaleString()}
                     </td>
                   </tr>
                 </tbody>

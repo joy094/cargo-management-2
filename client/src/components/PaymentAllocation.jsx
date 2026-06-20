@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
 import CanAccess from "./CanAccess";
+import PaymentReceiptModal from "./PaymentReceiptModal";
 
 export default function PaymentAllocation() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -15,6 +16,11 @@ export default function PaymentAllocation() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBatch, setSelectedBatch] = useState("");
+
+  // States for Receipt Modal
+
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [selectedReceipt, setSelectedReceipt] = useState(null);
 
   // States for Detail View (Ledger)
   const [activeMark, setActiveMark] = useState("");
@@ -211,6 +217,22 @@ export default function PaymentAllocation() {
     }
   };
 
+  // ✅ রসিদ প্রিন্ট করার জন্য মডাল ওপেন করার ফাংশন
+
+  const handlePrintReceipt = (payment) => {
+    console.log("Print button clicked! Payment data:", payment); // এটি চেক করুন
+    setSelectedReceipt({
+      receiptId: payment.transactionId || payment._id.slice(-6),
+      date: payment.date,
+      customerName: activeMark || "Valued Customer",
+      shippingMark: payment.shippingMark,
+      invoiceId: payment.allocatedInvoice || "General Payment",
+      amount: payment.amount,
+    });
+    setIsReceiptModalOpen(true);
+    console.log("Modal state set to true");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const amountVal = parseFloat(formData.amount);
@@ -336,7 +358,6 @@ export default function PaymentAllocation() {
             ⬅ Back to Customer List
           </button>
         </div>
-
         {loading ? (
           <div className="loading-text">ডেটা লোড হচ্ছে...</div>
         ) : (
@@ -644,6 +665,24 @@ export default function PaymentAllocation() {
                           </td>
                           <td className="text-center">
                             <CanAccess module="payment" action="delete">
+                              {/* 🔥 রিসিট প্রিন্ট বাটন */}
+                              <button
+                                className="print-receipt-btn"
+                                onClick={() => handlePrintReceipt(txn)}
+                                title="Print Money Receipt"
+                                style={{
+                                  background: "#10b981",
+                                  color: "white",
+                                  border: "none",
+                                  padding: "5px 10px",
+                                  borderRadius: "4px",
+                                  marginRight: "5px",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                🖨️
+                              </button>
+
                               <button
                                 className="delete-row-btn"
                                 onClick={() => handleDelete(txn._id)}
@@ -661,7 +700,6 @@ export default function PaymentAllocation() {
             </div>
           </div>
         )}
-
         {/* Detail View CSS */}
         <style>{`
           .payment-allocation-container { padding: 30px; background: #f4f7fa; min-height: 100vh; font-family: 'Inter', sans-serif; }
@@ -705,6 +743,13 @@ export default function PaymentAllocation() {
           .text-center { text-align: center; }
           .loading-text { text-align: center; font-weight: bold; color: #3b82f6; margin: 20px 0; }
         `}</style>
+        {/* 🔥 আসল ম্যাজিক: মডালটি এখানে বসাতে হবে! */}
+        <PaymentReceiptModal
+          isOpen={isReceiptModalOpen}
+          onClose={() => setIsReceiptModalOpen(false)}
+          receiptData={selectedReceipt}
+        />
+        ;
       </div>
     );
   }

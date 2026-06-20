@@ -936,17 +936,14 @@ export default function BranchProfile() {
           selectedBatch={selectedBatch}
           setSelectedBatch={setSelectedBatch}
           uniqueBatches={uniqueBatches}
-          onViewInvoice={(inv) => {
+      onViewInvoice={(inv) => {
             const subTotal = inv.totalAmount;
             const discountAmt = inv.discount || 0;
             const transportAmt = inv.transportBill || 0;
-
-            const rCost = inv.invoiceReceivingCost || 0; // 🔥 নতুন নাম
-            const pCost = inv.invoicePackagingCost || 0; // 🔥 নতুন নাম
-
-            // 🔥 টোটাল হিসাব আপডেট করা হলো
-            const finalTotal =
-              subTotal + transportAmt + rCost + pCost - discountAmt;
+            const rCost = inv.invoiceReceivingCost || 0;
+            const pCost = inv.invoicePackagingCost || 0;
+            
+            const finalTotal = subTotal + transportAmt + rCost + pCost - discountAmt;
 
             setInvoiceData({
               invoiceId: inv._id,
@@ -954,8 +951,7 @@ export default function BranchProfile() {
               customerMark: activeMark,
               items: inv.items.map((it) => ({
                 ...it,
-                calcWeight:
-                  Number(it.actualWeight) || Number(it.grossWeight) || 0,
+                calcWeight: Number(it.actualWeight) || Number(it.grossWeight) || 0,
                 rate: it.perKgRate,
                 total: it.totalBill,
               })),
@@ -963,9 +959,12 @@ export default function BranchProfile() {
               subTotal: subTotal,
               discount: discountAmt,
               transportCost: transportAmt,
-              receivingCost: rCost, // 🔥 মোডালে পাঠানোর জন্য
-              packagingCost: pCost, // 🔥 মোডালে পাঠানোর জন্য
+              receivingCost: rCost,
+              packagingCost: pCost,
               netPayable: finalTotal,
+
+              // 🔥 এই লাইনটি অবশ্যই যুক্ত করতে হবে!
+              paidAmount: inv.paidAmount || inv.paid || inv.totalPaid || 0, 
             });
             setIsInvoiceModalOpen(true);
           }}

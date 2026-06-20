@@ -446,10 +446,7 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// ==========================================
-// 📦 Shipment & Invoice API Routes
-// ==========================================
-// ✅ ইনভয়েস হিস্ট্রি ফেচ করা (সব মার্ক একসাথে)
+// ✅ ইনভয়েস হিস্ট্রি ফেচ করা (সব মার্ক একসাথে) - Payment Collection থেকে পেমেন্ট লিংক করা হলো
 router.get("/invoice-history/:shippingMark", async (req, res) => {
   try {
     const requestedMark = req.params.shippingMark;
@@ -467,7 +464,6 @@ router.get("/invoice-history/:shippingMark", async (req, res) => {
     }
 
     const history = await Shipment.aggregate([
-      // 🔥 $in অপারেটর দিয়ে সবগুলো মার্কের ডাটা একসাথে আনা হচ্ছে
       {
         $match: {
           shippingMark: {
@@ -476,7 +472,6 @@ router.get("/invoice-history/:shippingMark", async (req, res) => {
           isBilled: true,
         },
       },
-
       {
         $lookup: {
           from: "batches",
@@ -493,19 +488,16 @@ router.get("/invoice-history/:shippingMark", async (req, res) => {
       },
       {
         $group: {
-          _id: "$invoiceId",
+          _id: "$invoiceId", // এটি হলো ইনভয়েস আইডি
           date: { $first: "$billingDate" },
           transportBill: { $first: { $ifNull: ["$transportBill", 0] } },
           discount: { $first: { $ifNull: ["$discount", 0] } },
-
-          // 🔥 নতুন: BDT রিসিভিং এবং প্যাকেজিং কস্ট ডাটাবেস থেকে রিড করা হলো
           invoiceReceivingCost: {
             $first: { $ifNull: ["$invoiceReceivingCost", 0] },
           },
           invoicePackagingCost: {
             $first: { $ifNull: ["$invoicePackagingCost", 0] },
           },
-
           totalAmount: { $sum: "$totalBill" },
           totalWeight: { $sum: { $toDouble: "$grossWeight" } },
           items: {
@@ -518,8 +510,28 @@ router.get("/invoice-history/:shippingMark", async (req, res) => {
           },
         },
       },
-
-      { $sort: { date: -1 } }, // একটি সর্ট রেখে বাকিটা রিমুভ করা হয়েছে
+      // 🔥 ম্যাজিক ১: Payment কালেকশন থেকে এই ইনভয়েসের পেমেন্টগুলো খুঁজে আনা হচ্ছে
+      {
+        $lookup: {
+          from: "payments", // MongoDB তে Payment মডেল 'payments' নামে সেভ হয়
+          localField: "_id", // $group এর _id হলো ইনভয়েস আইডি
+          foreignField: "allocatedInvoice", // Payment স্কিমার allocatedInvoice ফিল্ড
+          as: "paymentDetails",
+        },
+      },
+      // 🔥 ম্যাজিক ২: paymentDetails এর ভেতরের সব 'amount' যোগ করে 'paidAmount' বানানো হচ্ছে
+      {
+        $addFields: {
+          paidAmount: { $sum: "$paymentDetails.amount" },
+        },
+      },
+      // (ঐচ্ছিক) ফ্রন্টএন্ডে অপ্রয়োজনীয় ডাটা না পাঠানোর জন্য paymentDetails অ্যারে মুছে ফেলা
+      {
+        $project: {
+          paymentDetails: 0,
+        },
+      },
+      { $sort: { date: -1 } },
     ]);
 
     res.status(200).json({ success: true, history });

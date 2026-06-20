@@ -1,0 +1,201 @@
+/* গুগল ফন্ট ইমপোর্ট (ঐচ্ছিক, যদি আরও রিয়েলিস্টিক চান) */
+@import url("https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap");
+
+.receipt-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center !important;
+  align-items: center !important;
+  z-index: 999999 !important;
+}
+
+/* 🏦 ব্যাংকের POS/ATM রিসিট স্টাইল */
+.pos-receipt {
+  background: #ffffff;
+  width: 350px; /* রিসিটের সাইজ চিকন করা হয়েছে */
+  padding: 20px;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+  font-family:
+    "Share Tech Mono", "Courier New", Courier, monospace; /* ব্যাংক ফন্ট */
+  color: #000;
+  font-size: 14px;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+.pos-header {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.pos-logo {
+  width: 60px;
+  filter: grayscale(100%) contrast(1.2); /* লোগো সাদা-কালো দেখাবে */
+  margin-bottom: 5px;
+}
+
+.pos-company-name {
+  font-size: 18px;
+  margin: 0 0 5px 0;
+  font-weight: bold;
+}
+
+.pos-address {
+  font-size: 12px;
+  margin: 0;
+}
+
+.divider {
+  text-align: center;
+  font-weight: bold;
+  letter-spacing: 2px;
+  overflow: hidden;
+  white-space: nowrap;
+  margin: 5px 0;
+}
+
+.pos-title {
+  text-align: center;
+  font-size: 16px;
+  margin: 5px 0;
+}
+
+.pos-info p {
+  margin: 4px 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.pos-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pos-table th {
+  padding-bottom: 5px;
+}
+
+.text-left {
+  text-align: left;
+}
+.text-right {
+  text-align: right;
+}
+.align-bottom {
+  vertical-align: bottom;
+}
+
+.divider-td {
+  letter-spacing: 2px;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 0;
+}
+
+.pos-total-row td {
+  font-weight: bold;
+  font-size: 16px;
+  padding-top: 5px;
+}
+
+.pos-in-words {
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+.pos-footer {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 12px;
+}
+
+.pos-signatures {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 40px;
+}
+
+.pos-signatures div p {
+  border-top: 1px dashed #000;
+  padding-top: 5px;
+  margin: 0;
+  width: 100px;
+}
+
+/* 🖲️ মডালের বাটন */
+.receipt-actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 15px;
+}
+
+.btn-print,
+.btn-close {
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-print {
+  background: #10b981;
+  color: white;
+}
+.btn-close {
+  background: #ef4444;
+  color: white;
+}
+
+/* 🖨️ প্রিন্ট ঠিক করার সেফ ম্যাজিক (A4 & Thermal Safe) */
+@media print {
+  /* পুরো পেজের বাকি সব কিছু লুকিয়ে ফেলা */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* মডালের ব্যাকগ্রাউন্ড সরাতে এবং ফ্লেক্সবক্সের ঝামেলা এড়াতে */
+  .receipt-modal-overlay {
+    background: transparent !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    display: block !important; 
+  }
+
+  /* শুধুমাত্র রিসিট প্রিন্ট এরিয়ায় দেখানো */
+  #receipt-print, #receipt-print * {
+    visibility: visible;
+  }
+  
+  /* A4-এ মাঝখানে থাকবে, আর থার্মাল প্রিন্টারে পুরো জায়গা নেবে */
+  #receipt-print {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    margin: 0 auto; /* এটি যেকোনো পেপারে সেফলি মাঝখানে রাখবে */
+    width: 80mm; /* থার্মাল সাইজ */
+    box-shadow: none;
+    padding: 0;
+  }
+
+  /* বাটনগুলো হাইড হবে */
+  .no-print {
+    display: none !important;
+  }
+
+  /* চারপাশের ডিফল্ট মার্জিন */
+  @page {
+    margin: 5mm; 
+  }
+}

@@ -32,11 +32,29 @@
   color: #475569;
 }
 
+/* 🔥 রিয়েলিস্টিক ব্লু PAID স্ট্যাম্প */
+.paid-stamp-watermark {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-25deg);
+  font-size: 100px;
+  font-weight: 900;
+  color: rgba(37, 99, 235, 0.4); /* Blue Color with transparency */
+  border: 10px solid rgba(37, 99, 235, 0.4);
+  padding: 10px 50px;
+  border-radius: 15px;
+  text-transform: uppercase;
+  letter-spacing: 15px;
+  pointer-events: none; /* যাতে ক্লিক বা সিলেক্ট করতে সমস্যা না হয় */
+  z-index: 10;
+  /* একটু রাফ বা সিলমারার মতো ইফেক্ট */
+  box-shadow: inset 0 0 0 5px rgba(37, 99, 235, 0.2);
+}
+
 /* প্রিন্ট মিডিয়ার জন্য ফিক্স */
 @media print {
   .pro-company-details-centered {
     padding-right: 120px;
   }
 }
-
-
