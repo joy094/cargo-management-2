@@ -251,6 +251,12 @@ export default function InvoicePrintModal({
                     <strong className="item-name">
                       {it.productName || "General Cargo Item"}
                     </strong>
+
+                    {/* 🔥 এখান থেকে কোড শুরু */}
+                    {it.cartonNo && (
+                      <span className="carton-pill">CTN-{it.cartonNo}</span>
+                    )}
+                    {/* 🔥 কোড শেষ */}
                     <div className="item-meta">
                       {it.batchName && (
                         <span className="batch-pill">
@@ -271,6 +277,21 @@ export default function InvoicePrintModal({
               ))}
             </tbody>
           </table>
+          {/* 🔥 নতুন যুক্ত করা অংশ: টেবিলের পরেই টোটাল ওয়েট দেখানোর জন্য */}
+          <div
+            style={{
+              textAlign: "right",
+              padding: "10px",
+              fontSize: "14px",
+              fontWeight: "bold",
+            }}
+          >
+            Total Weight:{" "}
+            {invoiceData.items
+              .reduce((acc, item) => acc + (Number(item.calcWeight) || 0), 0)
+              .toFixed(2)}{" "}
+            KG
+          </div>
 
           {/* Financial Calculations */}
           <div className="pro-calc-section">

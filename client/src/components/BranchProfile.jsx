@@ -828,13 +828,19 @@ export default function BranchProfile() {
             </table>
           </div>
           {unbilledItems.length > 0 && (
-            <div className="billing-footer-card">
+
+<div className="billing-footer-card">
               <div className="f-row">
-                <span>Unbilled Items:</span>
-                <strong>{selectedUnbilledItems.length} PCS</strong>
+                <span>Selected Items:</span>
+                <strong style={{ color: "#3b82f6" }}>
+                  {selectedUnbilledItems.length} PCS ( {totalWeightSum.toFixed(2)} KG )
+                </strong>
               </div>
               <div className="f-row">
                 <span>Unbilled Sub-Total:</span>
+
+
+
                 <strong>৳ {totalBillAmount.toLocaleString()}</strong>
               </div>
               <div className="f-row">

@@ -216,6 +216,24 @@
   line-height: 1.4;
 }
 
+
+
+/* কার্টুন নম্বর ব্যাজ স্টাইল */
+.carton-pill {
+  background: #f1f5f9;
+  color: #334155;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  border: 1px solid #cbd5e1;
+  margin-right: 5px;
+  display: inline-block;
+}
+
+/* আপনার যদি অন্য ব্যাচ বা ট্র্যাকিং এর জন্য আগে থেকে স্টাইল থাকে, 
+   সেগুলোর সাথে এটি খুব সুন্দরভাবে মানিয়ে যাবে */
+
 /* ✅ New Styles for Billed Items */
 .billed-row-style {
   background-color: #f8fafc !important;
