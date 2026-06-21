@@ -205,8 +205,8 @@ export default function BranchProfile() {
     );
   };
 
-  const toggleSelectAll = () => {
-    // 🔥 এখন এটি বিল্ড এবং আনবিল্ড সব আইটেমই সিলেক্ট করতে পারবে
+ const toggleSelectAll = () => {
+    // 🔥 এখন এটি ফিল্টার করা লিস্টের সব আইটেম সঠিকভাবে সিলেক্ট/আনসিলেক্ট করবে
     if (
       selectedIds.length === filteredItems.length &&
       filteredItems.length > 0
@@ -469,39 +469,25 @@ export default function BranchProfile() {
           <h3>৳ {currentDue.toLocaleString()}</h3>
         </div>
 
-        <div
+
+
+<div
           className="action-bar"
           style={{ display: "flex", gap: "10px", margin: "20px 0" }}
         >
           <CanAccess module="branch" action="create">
             <button
-              className="direct-entry-btn"
+              className={`direct-entry-btn ${showDirectEntry ? "btn-close" : "btn-open"}`}
               onClick={() => setShowDirectEntry(!showDirectEntry)}
-              style={{
-                background: showDirectEntry ? "#ef4444" : "#3b82f6",
-                color: "white",
-                padding: "10px 15px",
-                border: "none",
-                borderRadius: "5px",
-                cursor: "pointer",
-              }}
             >
-              {showDirectEntry ? "✖ Close Direct Entry" : "📥 Add Direct Entry"}
+              {showDirectEntry ? "✖ Close Direct Entry" : "➕ Add Direct Entry"}
             </button>
           </CanAccess>
         </div>
       </div>
+
       {showDirectEntry && (
-        <div
-          className="direct-entry-wrapper"
-          style={{
-            background: "#f8fafc",
-            padding: "20px",
-            borderRadius: "10px",
-            border: "1px solid #e2e8f0",
-            marginBottom: "20px",
-          }}
-        >
+        <div className="direct-entry-wrapper">
           <DirectBulkEntry
             fixedShippingMark={activeMark}
             onSuccess={() => {
@@ -512,6 +498,10 @@ export default function BranchProfile() {
           />
         </div>
       )}
+
+
+
+
       <div className="tab-navigation">
         <button
           className={`tab-btn ${activeTab === "pending" ? "active" : ""}`}
@@ -572,27 +562,16 @@ export default function BranchProfile() {
                 ⚡ Apply to Selected
               </button>
 
-              {/* 🔥 Bulk Undo Button */}
+          {/* 🔥 Bulk Undo Button */}
               {allItems.some(
                 (item) => selectedIds.includes(item._id) && item.isBilled,
               ) && (
                 <button
+                  className="bulk-undo-btn"
                   onClick={handleBulkRevert}
                   disabled={submitting}
-                  style={{
-                    background: "#dc2626",
-                    color: "white",
-                    border: "none",
-                    padding: "0 15px",
-                    borderRadius: "6px",
-                    fontWeight: "bold",
-                    cursor: "pointer",
-                    transition: "0.2s",
-                  }}
-                  onMouseOver={(e) => (e.target.style.background = "#b91c1c")}
-                  onMouseOut={(e) => (e.target.style.background = "#dc2626")}
                 >
-                  {submitting ? "Undoing..." : "↩️ Bulk Undo"}
+                  {submitting ? "⏳ Undoing..." : "↩️ Bulk Undo"}
                 </button>
               )}
             </div>
@@ -607,9 +586,8 @@ export default function BranchProfile() {
                       type="checkbox"
                       onChange={toggleSelectAll}
                       checked={
-                        selectedIds.length ===
-                          filteredItems.filter((i) => !i.isBilled).length &&
-                        selectedIds.length > 0
+                        selectedIds.length === filteredItems.length &&
+                        filteredItems.length > 0
                       }
                     />
                   </th>
@@ -641,14 +619,14 @@ export default function BranchProfile() {
                           ${isManual ? "row-manual" : ""} 
                         `}
                       >
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.includes(item._id)}
-                            onChange={() => toggleSelect(item._id)}
-                            disabled={isCompleted}
-                          />
-                        </td>
+                       <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(item._id)}
+                          onChange={() => toggleSelect(item._id)}
+                          /* 🔥 disabled প্রপার্টি রিমুভ করা হলো, যাতে বিল্ড আইটেমও সিলেক্ট করা যায় */
+                        />
+                      </td>
                         <td>{idx + 1}</td>
                         <td className="product-name-cell">
                           {item.productName}

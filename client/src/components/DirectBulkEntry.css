@@ -1,0 +1,139 @@
+/* =========================================
+   Direct Bulk Entry Modern Styles
+   ========================================= */
+
+.direct-bulk-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.bulk-header h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 20px;
+}
+
+.bulk-header p {
+  margin: 5px 0 15px 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+/* 📋 টেবিল ডিজাইন */
+.modern-bulk-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.modern-bulk-table th {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 12px;
+  font-size: 13px;
+  text-align: left;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.modern-bulk-table td {
+  padding: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* ✍️ ইনপুট ডিজাইন */
+.bulk-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.bulk-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.bulk-input.short-input {
+  width: 80px;
+  text-align: center;
+}
+
+.bulk-input.disabled-input {
+  background: #f8fafc;
+  color: #94a3b8;
+  font-weight: bold;
+  cursor: not-allowed;
+  border-color: #e2e8f0;
+}
+
+/* 🗑️ ডিলিট বাটন */
+.delete-row-btn {
+  background: #fee2e2;
+  color: #ef4444;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: 0.2s;
+  font-size: 14px;
+}
+
+.delete-row-btn:hover {
+  background: #ef4444;
+  color: white;
+  transform: scale(1.05);
+}
+
+/* 🔘 নিচের অ্যাকশন বাটনগুলো */
+.bulk-actions-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 15px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 15px;
+}
+
+.add-row-modern-btn {
+  background: white;
+  color: #3b82f6;
+  border: 2px dashed #3b82f6;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.add-row-modern-btn:hover {
+  background: #eff6ff;
+}
+
+.save-bulk-modern-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  padding: 10px 25px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+  transition: 0.3s;
+}
+
+.save-bulk-modern-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4);
+}
+
+.save-bulk-modern-btn:disabled {
+  background: #a7f3d0;
+  cursor: not-allowed;
+  box-shadow: none;
+}

@@ -1,3 +1,6 @@
+/* গুগল ফন্ট ইমপোর্ট */
+@import url("https://fonts.googleapis.com/css2?family=Tiro+Bangla&display=swap");
+
 .profile-container {
   padding: 30px;
   background: #f8fafc;
@@ -204,7 +207,6 @@
   font-weight: bold;
 }
 
-
 /* Tracking Number Wrap Fix */
 .tracking-cell {
   max-width: 160px; /* কলামের সর্বোচ্চ প্রস্থ, চাইলে বাড়াতে/কমাতে পারেন */
@@ -213,8 +215,6 @@
   overflow-wrap: break-word;
   line-height: 1.4;
 }
-
-
 
 /* ✅ New Styles for Billed Items */
 .billed-row-style {
@@ -270,6 +270,40 @@
 }
 .undo-mini-btn:hover {
   background: #fca5a5;
+}
+
+/* Bulk Undo Button Design */
+.bulk-undo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+  transition: all 0.3s ease;
+}
+
+.bulk-undo-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 6px 15px rgba(239, 68, 68, 0.4);
+  transform: translateY(-2px);
+}
+
+.bulk-undo-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(239, 68, 68, 0.3);
+}
+
+.bulk-undo-btn:disabled {
+  background: #fca5a5;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .history-table th {
@@ -784,8 +818,65 @@
   margin-left: auto; /* টেবিলটাকে একদম ডান দিকে চাপিয়ে রাখবে */
 }
 
-/* গুগল ফন্ট ইমপোর্ট */
-@import url("https://fonts.googleapis.com/css2?family=Tiro+Bangla&display=swap");
+/* 🔘 Add Direct Entry Button */
+.direct-entry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+/* যখন বাটনটি "Add" অবস্থায় থাকবে */
+.direct-entry-btn.btn-open {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+}
+
+.direct-entry-btn.btn-open:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-2px);
+}
+
+/* যখন বাটনটি "Close" অবস্থায় থাকবে */
+.direct-entry-btn.btn-close {
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+  box-shadow: 0 4px 10px rgba(100, 116, 139, 0.2);
+}
+
+.direct-entry-btn.btn-close:hover {
+  background: linear-gradient(135deg, #475569 0%, #334155 100%);
+  transform: translateY(-2px);
+}
+
+/* 📝 ফর্ম র‍্যাপারের স্মুথ অ্যানিমেশন ও ডিজাইন */
+.direct-entry-wrapper {
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  margin-bottom: 25px;
+  animation: slideDownFade 0.4s ease-out forwards;
+}
+
+/* স্লাইড-ডাউন কিফ্রেম */
+@keyframes slideDownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 /* Warning Note Design */
 .invoice-warning-note {
@@ -925,27 +1016,6 @@
     padding: 0;
   }
 }
-/* 
-@media print {
-  body * {
-    visibility: hidden;
-  }
-  #print-area,
-  #print-area * {
-    visibility: visible;
-  }
-  #print-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    padding: 0;
-    margin: 0;
-  }
-  .modal-btns {
-    display: none;
-  }
-} */
 
 /* ==========================================
    Responsive Table Scroll Fix

@@ -1,11 +1,11 @@
-// components/DirectBulkEntry.jsx
 import React, { useState } from "react";
 import axios from "axios";
+import "./DirectBulkEntry.css"; // (ঐচ্ছিক: যদি আলাদা সিএসএস ফাইল ব্যবহার করেন)
 
 export default function DirectBulkEntry({
   fixedShippingMark,
   onSuccess,
-  onClose,
+  // onClose এখন আর এই ফাইলের ভেতরে দরকার নেই
 }) {
   const [rows, setRows] = useState([
     {
@@ -70,7 +70,7 @@ export default function DirectBulkEntry({
             cbm: 0,
           },
         ]);
-        onSuccess(); // প্রোফাইলের ডাটা রিফ্রেশ করবে
+        onSuccess(); // প্রোফাইলের ডাটা রিফ্রেশ করবে এবং মডাল ক্লোজ করবে
       }
     } catch (err) {
       alert("সেভ করতে সমস্যা হয়েছে!");
@@ -81,105 +81,124 @@ export default function DirectBulkEntry({
 
   return (
     <div className="direct-bulk-container">
-      <div className="flex-between">
+      {/* 🚀 হেডার আপডেট করা হলো, ক্লোজ বাটন রিমুভ করা হয়েছে */}
+      <div className="bulk-header">
         <h3>📥 Direct Quick Entry</h3>
-        <button className="close-btn" onClick={onClose}>
-          ✖ Close
-        </button>
+        <p>
+          এই কাস্টমারের জন্য ম্যানুয়াল বা মিসিং এন্ট্রিগুলো এখানে যুক্ত করুন
+        </p>
       </div>
 
-      <table className="bulk-table">
-        <thead>
-          <tr>
-            <th>Tracking No</th>
-            <th>Shipping Mark</th> {/* এটি ফিক্সড থাকবে */}
-            <th>Product</th>
-            <th>Carton No</th>
-            <th>Qty</th>
-            <th>Weight (KG)</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i}>
-              <td>
-                <input
-                  type="text"
-                  value={row.chinaTrackingNo}
-                  onChange={(e) =>
-                    handleChange(i, "chinaTrackingNo", e.target.value)
-                  }
-                  placeholder="Tracking"
-                />
-              </td>
-              <td>
-                {/* 🔥 শিপিং মার্ক ফিক্সড এবং Read-Only */}
-                <input
-                  type="text"
-                  value={fixedShippingMark}
-                  disabled
-                  className="disabled-input"
-                />
-              </td>
-              <td>
-                <input
-                  type="text"
-                  value={row.productName}
-                  onChange={(e) =>
-                    handleChange(i, "productName", e.target.value)
-                  }
-                  placeholder="Product"
-                />
-              </td>
-              <td>
-                <input
-                  type="text"
-                  value={row.cartonNo}
-                  onChange={(e) => handleChange(i, "cartonNo", e.target.value)}
-                  placeholder="Box-1"
-                />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  value={row.quantity}
-                  onChange={(e) => handleChange(i, "quantity", e.target.value)}
-                  style={{ width: "60px" }}
-                />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  value={row.actualWeight}
-                  onChange={(e) =>
-                    handleChange(i, "actualWeight", e.target.value)
-                  }
-                  placeholder="0.00"
-                  style={{ width: "80px" }}
-                />
-              </td>
-              <td>
-                <button
-                  onClick={() => {
-                    const newRows = rows.filter((_, idx) => idx !== i);
-                    setRows(newRows);
-                  }}
-                >
-                  🗑️
-                </button>
-              </td>
+      <div className="table-responsive">
+        <table className="modern-bulk-table">
+          <thead>
+            <tr>
+              <th>Tracking No</th>
+              <th>Shipping Mark</th>
+              <th>Product</th>
+              <th>Carton No</th>
+              <th>Qty</th>
+              <th>Weight (KG)</th>
+              <th className="text-center">Action</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i}>
+                <td>
+                  <input
+                    type="text"
+                    value={row.chinaTrackingNo}
+                    onChange={(e) =>
+                      handleChange(i, "chinaTrackingNo", e.target.value)
+                    }
+                    placeholder="Tracking..."
+                    className="bulk-input"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    value={fixedShippingMark}
+                    disabled
+                    className="bulk-input disabled-input"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    value={row.productName}
+                    onChange={(e) =>
+                      handleChange(i, "productName", e.target.value)
+                    }
+                    placeholder="Product..."
+                    className="bulk-input"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    value={row.cartonNo}
+                    onChange={(e) =>
+                      handleChange(i, "cartonNo", e.target.value)
+                    }
+                    placeholder="Box-1"
+                    className="bulk-input"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    value={row.quantity}
+                    onChange={(e) =>
+                      handleChange(i, "quantity", e.target.value)
+                    }
+                    className="bulk-input short-input"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    value={row.actualWeight}
+                    onChange={(e) =>
+                      handleChange(i, "actualWeight", e.target.value)
+                    }
+                    placeholder="0.00"
+                    className="bulk-input short-input"
+                  />
+                </td>
+                <td className="text-center">
+                  <button
+                    className="delete-row-btn"
+                    onClick={() => {
+                      if (rows.length > 1) {
+                        const newRows = rows.filter((_, idx) => idx !== i);
+                        setRows(newRows);
+                      } else {
+                        alert("কমপক্ষে একটি সারি (Row) থাকতে হবে!");
+                      }
+                    }}
+                    title="Remove Row"
+                  >
+                    🗑️
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      <div className="bulk-actions">
-        <button onClick={addRow} className="add-row-btn">
-          + Add New Row
+      <div className="bulk-actions-footer">
+        <button onClick={addRow} className="add-row-modern-btn">
+          ➕ Add Another Row
         </button>
-        <button onClick={handleSave} className="save-btn" disabled={saving}>
-          {saving ? "Saving..." : "💾 Save All Items"}
+        <button
+          onClick={handleSave}
+          className="save-bulk-modern-btn"
+          disabled={saving}
+        >
+          {saving ? "⏳ Saving..." : "💾 Save All Items"}
         </button>
       </div>
     </div>
