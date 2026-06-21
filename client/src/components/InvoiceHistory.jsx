@@ -92,7 +92,21 @@ export default function InvoiceHistory({
                       {inv._id}
                     </td>
                     <td>{inv.items?.length || 0} PCS</td>
-                    <td>{inv.totalWeight?.toFixed(2)} KG</td>
+
+                    <td>
+                      {inv.items
+                        ?.reduce(
+                          (acc, it) =>
+                            acc +
+                            (Number(it.actualWeight) ||
+                              Number(it.grossWeight) ||
+                              0),
+                          0,
+                        )
+                        .toFixed(2)}{" "}
+                      KG
+                    </td>
+
                     <td style={{ fontWeight: "bold" }}>
                       ৳ {finalTotal.toLocaleString()}
                     </td>
