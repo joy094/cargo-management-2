@@ -232,7 +232,11 @@ export default function PaymentAllocation() {
     setSelectedReceipt({
       receiptId: payment.transactionId || payment._id.slice(-6),
       date: payment.date,
-      customerName: activeMark || "Valued Customer",
+
+
+      customerName: currentCustomer?.branchName || "Valued Customer",
+
+
       shippingMark: payment.shippingMark,
       invoiceId: payment.allocatedInvoice || "General Payment",
       amount: payment.amount,

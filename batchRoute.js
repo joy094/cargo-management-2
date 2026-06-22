@@ -7,7 +7,7 @@ const router = express.Router();
 
 // --- ১. সকল ব্যাচ দেখা (Get All Batches) ---
 router.get("/", async (req, res) => {
-  console.log("✅ ব্যাচ লিস্টের নতুন এপিআই কল হয়েছে!"); // টার্মিনালে চেক করার জন্য
+  
 
   try {
     const batches = await Batch.find().sort({ createdAt: -1 });
