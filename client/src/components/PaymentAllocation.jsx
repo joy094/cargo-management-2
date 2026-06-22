@@ -220,7 +220,15 @@ export default function PaymentAllocation() {
   // ✅ রসিদ প্রিন্ট করার জন্য মডাল ওপেন করার ফাংশন
 
   const handlePrintReceipt = (payment) => {
-    console.log("Print button clicked! Payment data:", payment); // এটি চেক করুন
+    console.log("Print button clicked! Payment data:", payment);
+
+    // 🔥 ১. অল-ব্রাঞ্চ লিস্ট থেকে বর্তমান কাস্টমারের ফোন নম্বর খুঁজে বের করার লজিক
+    const currentCustomer = allBranches.find(
+      (b) =>
+        b.shippingMark === activeMark ||
+        (b.shippingMarks && b.shippingMarks.includes(activeMark)),
+    );
+
     setSelectedReceipt({
       receiptId: payment.transactionId || payment._id.slice(-6),
       date: payment.date,
@@ -228,10 +236,15 @@ export default function PaymentAllocation() {
       shippingMark: payment.shippingMark,
       invoiceId: payment.allocatedInvoice || "General Payment",
       amount: payment.amount,
+      phone: currentCustomer?.phone || "", // 🔥 মডালে কাস্টমারের ফোন নম্বর পাঠানো হলো
+      currentDue: currentDue, // 🔥 মডালে কাস্টমারের সর্বমোট বকেয়া (Current Due) পাঠানো হলো
+      totalBilled: totalBilled, // 🔥 মডালে কাস্টমারের মোট বিল (Total Billed) পাঠানো হলো
     });
     setIsReceiptModalOpen(true);
-    console.log("Modal state set to true");
+    console.log("Modal state set to true with due data");
   };
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();

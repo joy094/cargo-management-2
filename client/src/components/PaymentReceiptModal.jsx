@@ -1,8 +1,10 @@
+// PaymentReceiptModal.jsx
+
 import React from "react";
 import ReactDOM from "react-dom";
 import "./PaymentReceiptModal.css";
 
-// 💯 টাকার অংক কথায় লেখার সম্পূর্ণ ফাংশন
+// 💯 টাকার অংক কথায় লেখার সম্পূর্ণ ফাংশন
 const numberToWords = (amount) => {
   if (amount === 0 || !amount) return "ZERO TAKA ONLY";
   const amountStr = Number(amount).toFixed(0);
@@ -70,6 +72,53 @@ export default function PaymentReceiptModal({ isOpen, onClose, receiptData }) {
   // প্রিন্ট করার ফাংশন
   const handlePrint = () => {
     window.print();
+  };
+
+const handleWhatsAppShare = () => {
+    // ১. ফোন নম্বর ফরম্যাটিং
+    let phone = receiptData.phone || "";
+    if (phone && phone.startsWith("01")) {
+      phone = "+88" + phone;
+    }
+    const formattedPhone = phone.replace(/[^0-9+]/g, "");
+
+    // ২. অপশনাল ডেটা চেক করা
+    const invoiceText = receiptData.invoiceId && receiptData.invoiceId !== "General Payment"
+      ? `\nInvoice No: ${receiptData.invoiceId}`
+      : "";
+
+    const totalBilledText = receiptData.totalBilled !== undefined
+      ? `\nTotal Billed: Tk ${receiptData.totalBilled.toLocaleString()}`
+      : "";
+      
+    const dueText = receiptData.currentDue !== undefined
+      ? `\nCurrent Due: Tk ${receiptData.currentDue.toLocaleString()}`
+      : "";
+
+    // ৩. মেসেজ টেমপ্লেট তৈরি (কোনো ইমোজি ছাড়া)
+    const message = `আসসালামু আলাইকুম ${receiptData.customerName || "Sir"},
+
+আপনার পেমেন্ট সফলভাবে গ্রহণ করা হয়েছে। নিচে রিসিটের বিস্তারিত দেওয়া হলো:
+
+Receipt No: ${receiptData.receiptId}${invoiceText}
+Date: ${new Date(receiptData.date).toLocaleDateString("en-GB")}
+
+--------------------------${totalBilledText}
+Paid Today: Tk ${receiptData.amount.toLocaleString()}${dueText}
+--------------------------
+
+পেমেন্ট করার জন্য ধন্যবাদ! 
+SABA & RIHAN ENTERPRISE`;
+
+    // ৪. হোয়াটসঅ্যাপ ওপেন করা
+    let whatsappUrl = "";
+    if (formattedPhone) {
+      whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+    } else {
+      whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    }
+
+    window.open(whatsappUrl, "_blank");
   };
 
   return ReactDOM.createPortal(
@@ -178,11 +227,57 @@ export default function PaymentReceiptModal({ isOpen, onClose, receiptData }) {
       </div>
 
       {/* Action Buttons (Will be hidden during print) */}
-      <div className="receipt-actions no-print">
-        <button className="btn-print" onClick={handlePrint}>
+      <div
+        className="receipt-actions no-print"
+        style={{
+          display: "flex",
+          gap: "10px",
+          justifyContent: "center",
+          marginTop: "20px",
+        }}
+      >
+        {/* 🔥 নতুন হোয়াটসঅ্যাপ বাটন */}
+        <button
+          className="btn-whatsapp"
+          onClick={handleWhatsAppShare}
+          style={{
+            background: "#25D366",
+            color: "white",
+            padding: "10px 15px",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+            fontWeight: "bold",
+            display: "flex",
+            alignItems: "center",
+            gap: "5px",
+          }}
+        >
+          💬 WhatsApp
+        </button>
+
+        <button
+          className="btn-print"
+          onClick={handlePrint}
+          style={{
+            padding: "10px 15px",
+            borderRadius: "5px",
+            cursor: "pointer",
+            fontWeight: "bold",
+          }}
+        >
           🖨️ Print Receipt
         </button>
-        <button className="btn-close" onClick={onClose}>
+        <button
+          className="btn-close"
+          onClick={onClose}
+          style={{
+            padding: "10px 15px",
+            borderRadius: "5px",
+            cursor: "pointer",
+            fontWeight: "bold",
+          }}
+        >
           ✖ Close
         </button>
       </div>
