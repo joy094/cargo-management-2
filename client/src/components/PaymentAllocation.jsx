@@ -145,6 +145,9 @@ export default function PaymentAllocation() {
         `/api/branches/invoice-history/${encodedMark}`,
       );
       if (invoiceRes.data.success) setCustomerInvoices(invoiceRes.data.history);
+
+   
+      
     } catch (error) {
       alert("ডেটা লোড করতে সমস্যা হয়েছে!");
     } finally {
@@ -233,9 +236,7 @@ export default function PaymentAllocation() {
       receiptId: payment.transactionId || payment._id.slice(-6),
       date: payment.date,
 
-
       customerName: currentCustomer?.branchName || "Valued Customer",
-
 
       shippingMark: payment.shippingMark,
       invoiceId: payment.allocatedInvoice || "General Payment",
@@ -247,8 +248,6 @@ export default function PaymentAllocation() {
     setIsReceiptModalOpen(true);
     console.log("Modal state set to true with due data");
   };
-
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -423,16 +422,19 @@ export default function PaymentAllocation() {
                       onChange={handleInputChange}
                     >
                       <option value="">General Payment / Advance</option>
+
                       {invoiceStats.map((inv) => (
                         <option
                           key={inv._id}
                           value={inv._id}
-                          disabled={inv.isFullyPaid} // 🔥 ফুল পেইড হলে সিলেক্ট করা যাবে না
+                          disabled={inv.isFullyPaid}
                         >
+                          {/* 🔥 এখানে inv.batchName বা inv.batchNo যোগ করা হলো */}
                           {inv._id}{" "}
+                          {inv.batchName ? `(Batch: ${inv.batchName})` : ""}
                           {inv.isFullyPaid
-                            ? "✅ (Fully Paid)"
-                            : `(Due: ৳${inv.dueAmount.toLocaleString()})`}
+                            ? " ✅ (Fully Paid)"
+                            : ` (Due: ৳${inv.dueAmount.toLocaleString()})`}
                         </option>
                       ))}
                     </select>
@@ -458,7 +460,11 @@ export default function PaymentAllocation() {
                         >
                           <span>Invoice Total:</span>
                           <strong>
-                            ৳{selectedInvDetails.totalAmount.toLocaleString()}
+                            <span>Invoice Total:</span>
+                            <strong>
+                              ৳
+                              {selectedInvDetails.actualGrandTotal.toLocaleString()}
+                            </strong>
                           </strong>
                         </div>
                         <div
@@ -624,9 +630,12 @@ export default function PaymentAllocation() {
                                         borderRadius: "4px",
                                       }}
                                     >
-                                      🧾 {txn.allocatedInvoice}
+                                      {/* 🔥 এখানে নতুন কোডটি যোগ হলো */}
+                                      🧾 {txn.allocatedInvoice}{" "}
+                                      {matchedInv?.batchName
+                                        ? `| Batch: ${matchedInv.batchName}`
+                                        : ""}
                                     </div>
-
                                     {matchedInv && (
                                       <div
                                         style={{
@@ -647,7 +656,7 @@ export default function PaymentAllocation() {
                                           style={{ color: "#475569" }}
                                         >
                                           বিল: ৳
-                                          {matchedInv.totalAmount.toLocaleString()}
+                                          {matchedInv.actualGrandTotal.toLocaleString()}
                                         </span>
                                         <span
                                           title="Total Paid"

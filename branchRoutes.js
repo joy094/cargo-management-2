@@ -490,6 +490,8 @@ router.get("/invoice-history/:shippingMark", async (req, res) => {
         $group: {
           _id: "$invoiceId", // এটি হলো ইনভয়েস আইডি
           date: { $first: "$billingDate" },
+          // 🔥 এই নতুন লাইনটি যুক্ত করা হয়েছে, যা রুট লেভেলে ব্যাচের নাম নিয়ে আসবে:
+          batchName: { $first: "$batchDetails.batchName" },
           transportBill: { $first: { $ifNull: ["$transportBill", 0] } },
           discount: { $first: { $ifNull: ["$discount", 0] } },
           invoiceReceivingCost: {
@@ -513,19 +515,26 @@ router.get("/invoice-history/:shippingMark", async (req, res) => {
       // 🔥 ম্যাজিক ১: Payment কালেকশন থেকে এই ইনভয়েসের পেমেন্টগুলো খুঁজে আনা হচ্ছে
       {
         $lookup: {
-          from: "payments", // MongoDB তে Payment মডেল 'payments' নামে সেভ হয়
-          localField: "_id", // $group এর _id হলো ইনভয়েস আইডি
-          foreignField: "allocatedInvoice", // Payment স্কিমার allocatedInvoice ফিল্ড
+          from: "payments",
+          localField: "_id",
+          foreignField: "allocatedInvoice",
           as: "paymentDetails",
         },
       },
       // 🔥 ম্যাজিক ২: paymentDetails এর ভেতরের সব 'amount' যোগ করে 'paidAmount' বানানো হচ্ছে
       {
+        $lookup: {
+          from: "payments",
+          localField: "_id",
+          foreignField: "allocatedInvoice",
+          as: "paymentDetails",
+        },
+      },
+      {
         $addFields: {
           paidAmount: { $sum: "$paymentDetails.amount" },
         },
       },
-      // (ঐচ্ছিক) ফ্রন্টএন্ডে অপ্রয়োজনীয় ডাটা না পাঠানোর জন্য paymentDetails অ্যারে মুছে ফেলা
       {
         $project: {
           paymentDetails: 0,
