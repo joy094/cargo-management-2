@@ -12,6 +12,9 @@ export default function AddBranch() {
   const [batches, setBatches] = useState([]);
   const [selectedBatch, setSelectedBatch] = useState("");
 
+  // 🔥 Search State
+  const [searchTerm, setSearchTerm] = useState("");
+
   const [formData, setFormData] = useState({
     branchName: "",
     shippingMark: "",
@@ -54,6 +57,20 @@ export default function AddBranch() {
     fetchBranches();
     fetchBatches();
   }, []);
+
+  // 🔥 Smart Search Logic (Name, Phone, Shipping Mark)
+  const filteredBranches = branches.filter((branch) => {
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) return true;
+
+    const nameMatch = branch.branchName?.toLowerCase().includes(term);
+    const phoneMatch = branch.phone?.toLowerCase().includes(term);
+    const marksMatch =
+      branch.shippingMarks?.some((mark) => mark.toLowerCase().includes(term)) ||
+      branch.shippingMark?.toLowerCase().includes(term);
+
+    return nameMatch || phoneMatch || marksMatch;
+  });
 
   const fetchBatches = async () => {
     try {
@@ -268,9 +285,7 @@ export default function AddBranch() {
       <div className="header-section">
         <div className="header-text">
           <h2>🏢 Branch & Customer Management</h2>
-          <p>
-            
-          </p>
+          <p></p>
         </div>
 
         <CanAccess module="branch" action="create">
@@ -367,21 +382,64 @@ export default function AddBranch() {
 
         {/* Right Side: List Table */}
         <div className="list-card">
-          <div className="list-header">
-            <h3>Registered Branches ({branches.length})</h3>
+          <div
+            className="list-header"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "10px",
+            }}
+          >
+            <h3>Registered Branches ({filteredBranches.length})</h3>
 
-            <div className="filter-group">
-              <span>Filter:</span>
-              <select value={selectedBatch} onChange={handleBatchChange}>
-                <option value="">🌍 All Batches</option>
-                {batches &&
-                  batches.length > 0 &&
-                  batches.map((b) => (
-                    <option key={b._id} value={b._id}>
-                      {b.batchName || b.name}
-                    </option>
-                  ))}
-              </select>
+            <div
+              style={{
+                display: "flex",
+                gap: "15px",
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
+            >
+              {/* 🔥 Smart Search Input */}
+              <div className="filter-group" style={{ margin: 0 }}>
+                <input
+                  type="text"
+                  placeholder="🔍 Search by Name, Mark or Phone..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: "6px",
+                    border: "1px solid #cbd5e1",
+                    outline: "none",
+                    width: "250px",
+                  }}
+                />
+              </div>
+
+              {/* Existing Batch Filter */}
+              <div className="filter-group" style={{ margin: 0 }}>
+                <select
+                  value={selectedBatch}
+                  onChange={handleBatchChange}
+                  style={{
+                    padding: "8px",
+                    borderRadius: "6px",
+                    border: "1px solid #cbd5e1",
+                  }}
+                >
+                  <option value="">🌍 All Batches</option>
+                  {batches &&
+                    batches.length > 0 &&
+                    batches.map((b) => (
+                      <option key={b._id} value={b._id}>
+                        {b.batchName || b.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -396,8 +454,8 @@ export default function AddBranch() {
                 </tr>
               </thead>
               <tbody>
-                {branches.length > 0 ? (
-                  branches.map((branch, index) => (
+                {filteredBranches.length > 0 ? (
+                  filteredBranches.map((branch, index) => (
                     <tr key={branch._id}>
                       <td>{index + 1}</td>
                       <td>

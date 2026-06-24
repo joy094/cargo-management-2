@@ -530,3 +530,87 @@
 }
 
 /* অন্যান্য বিদ্যমান CSS নিচে থাকবে... */
+/* কন্টেইনারকে ফ্লেক্সিবল করা */
+.manage-branch-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 20px;
+  background: #f4f7fa;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 400px 1fr; /* ফর্ম এবং টেবিলের অনুপাত */
+  gap: 20px;
+  height: calc(100vh - 120px); /* স্ক্রিন হাইট অনুযায়ী সেট করা */
+  overflow: hidden;
+}
+
+/* 🔥 বাম পাশের ফর্মটি ফ্রিজ করা (স্ক্রল করলেও নড়বে না) */
+.form-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  overflow-y: auto; /* যদি ফর্ম বড় হয় তবে নিজের ভেতর স্ক্রল করবে */
+  height: 100%;
+}
+
+/* 🔥 টেবিল কার্ড এবং লিস্ট হাইট কন্ট্রোল */
+.list-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.list-header {
+  padding: 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: white;
+  z-index: 10;
+}
+
+/* 🔥 টেবিল হেডার ফ্রিজ করা */
+.table-responsive-container {
+  flex-grow: 1;
+  overflow-y: auto; /* টেবিল বডি স্ক্রল হবে */
+}
+
+.branch-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.branch-table thead th {
+  position: sticky; /* টেবিল হেডার ফ্রিজ করার জন্য */
+  top: 0;
+  background: #f8fafc;
+  padding: 15px;
+  z-index: 1;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+/* সাধারণ স্টাইল */
+.mark-badge {
+  display: inline-block;
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-right: 5px;
+  font-weight: bold;
+}
+
+.action-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 5px;
+}

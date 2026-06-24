@@ -891,14 +891,44 @@ export default function BatchDetails() {
                             )}
                           </div>
                         ) : (
-                          <input
-                            type="number"
-                            defaultValue={stats.actual}
-                            onBlur={(e) => updateWeight(s._id, e.target.value)}
-                            className={
-                              isLocked ? "input-disabled" : "input-editable"
-                            }
-                          />
+                          <div
+                            style={{
+                              position: "relative",
+                              display: "inline-block",
+                            }}
+                          >
+                            <input
+                              type="number"
+                              defaultValue={stats.actual}
+                              onBlur={(e) =>
+                                updateWeight(s._id, e.target.value)
+                              }
+                              className={
+                                isLocked ? "input-disabled" : "input-editable"
+                              }
+                            />
+                            {/* 🔥 যদি grossWeight এবং actualWeight আলাদা হয়, তবে লাল ব্যাজ দেখাবে */}
+                            {Number(s.actualWeight) &&
+                            Number(s.actualWeight) !== Number(s.grossWeight) ? (
+                              <span
+                                style={{
+                                  position: "absolute",
+                                  top: "-10px",
+                                  right: "-10px",
+                                  background: "#ef4444",
+                                  color: "white",
+                                  fontSize: "9px",
+                                  fontWeight: "bold",
+                                  padding: "2px 6px",
+                                  borderRadius: "10px",
+                                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                }}
+                                title={`Original China Wt: ${s.grossWeight} KG`}
+                              >
+                                Edited
+                              </span>
+                            ) : null}
+                          </div>
                         )}
                       </td>
                       <td className="cbm-badge">{s.cbm || 0}</td>
@@ -1029,20 +1059,54 @@ export default function BatchDetails() {
                               <td>{sub.quantity || 1}</td>
                               <td>{sub.grossWeight || 0} KG</td>
                               <td>
-                                <input
-                                  type="number"
-                                  defaultValue={subActual}
-                                  onBlur={(e) =>
-                                    updateWeight(sub._id, e.target.value)
-                                  }
-                                  className={
-                                    isLocked
-                                      ? "input-disabled"
-                                      : "input-editable-small"
-                                  }
-                                />
+                                <div
+                                  style={{
+                                    position: "relative",
+                                    display: "inline-block",
+                                  }}
+                                >
+                                  <input
+                                    type="number"
+                                    defaultValue={subActual}
+                                    onBlur={(e) =>
+                                      updateWeight(sub._id, e.target.value)
+                                    }
+                                    className={
+                                      isLocked
+                                        ? "input-disabled"
+                                        : "input-editable-small"
+                                    }
+                                  />
+                                  {/* 🔥 সাব-বক্সের জন্য এডিটেড ব্যাজ */}
+                                  {Number(sub.actualWeight) &&
+                                  Number(sub.actualWeight) !==
+                                    Number(sub.grossWeight) ? (
+                                    <span
+                                      style={{
+                                        position: "absolute",
+                                        top: "-8px",
+                                        right: "-8px",
+                                        background: "#ef4444",
+                                        color: "white",
+                                        fontSize: "9px",
+                                        fontWeight: "bold",
+                                        padding: "2px 5px",
+                                        borderRadius: "10px",
+                                        boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                      }}
+                                    >
+                                      Edited
+                                    </span>
+                                  ) : null}
+                                </div>
                                 {subMissing > 0 && (
-                                  <span className="sub-missing-alert">
+                                  <span
+                                    className="sub-missing-alert"
+                                    style={{
+                                      display: "block",
+                                      marginTop: "5px",
+                                    }}
+                                  >
                                     -{subMissing.toFixed(2)}
                                   </span>
                                 )}
