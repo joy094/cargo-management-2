@@ -125,6 +125,11 @@ export default function PaymentAllocation() {
     }
   };
 
+  // সব ধরনের দশমিকের ঝামেলা এড়ানোর জন্য এই ফাংশনটি ব্যবহার করবেন
+  const normalize = (num) => {
+    return Math.round(num * 100) / 100;
+  };
+
   const loadCustomerLedger = async (mark) => {
     if (!mark) return;
     setLoading(true);
@@ -145,9 +150,6 @@ export default function PaymentAllocation() {
         `/api/branches/invoice-history/${encodedMark}`,
       );
       if (invoiceRes.data.success) setCustomerInvoices(invoiceRes.data.history);
-
-   
-      
     } catch (error) {
       alert("ডেটা লোড করতে সমস্যা হয়েছে!");
     } finally {
@@ -249,20 +251,32 @@ export default function PaymentAllocation() {
     console.log("Modal state set to true with due data");
   };
 
-  const handleSubmit = async (e) => {
+
+
+
+ const handleSubmit = async (e) => {
     e.preventDefault();
-    const amountVal = parseFloat(formData.amount);
+
+    // 🔥 এখানে প্রথমবার amountVal ডিফাইন করা হচ্ছে, তাই শুধু একবারই normalize করবো
+    const amountVal = normalize(parseFloat(formData.amount)); 
     if (!amountVal || amountVal <= 0) return alert("সঠিক টাকার পরিমাণ দিন!");
 
     if (formData.allocatedInvoice) {
       const selectedInv = invoiceStats.find(
         (inv) => inv._id === formData.allocatedInvoice,
       );
-      if (selectedInv && amountVal > selectedInv.dueAmount) {
-        playWarningSound();
-        return alert(
-          `⚠️ ওয়ার্নিং: ইনভয়েস ${selectedInv._id} এর বকেয়া আছে মাত্র ৳${selectedInv.dueAmount.toLocaleString()}। আপনি এর চেয়ে বেশি টাকা ইনপুট দিতে পারবেন না!`,
-        );
+
+      if (selectedInv) {
+        // 🔥 ডিউ অ্যামাউন্টকেও নরমাল (২ ঘর দশমিক) করে নিতে হবে
+        const dueAmount = normalize(selectedInv.dueAmount);
+        
+        // এখানে Math.round ব্যবহার করে ফাইনাল চেক করা হচ্ছে যাতে কোনোরকম দশমিকের ঝামেলা না হয়
+        if (Math.round(amountVal) > Math.round(dueAmount)) {
+          playWarningSound();
+          return alert(
+            `⚠️ ওয়ার্নিং: ইনভয়েস ${selectedInv._id} এর বকেয়া আছে মাত্র ৳${dueAmount.toLocaleString()}। আপনি এর চেয়ে বেশি টাকা ইনপুট দিতে পারবেন না!`,
+          );
+        }
       }
     }
 
@@ -281,7 +295,7 @@ export default function PaymentAllocation() {
         ...formData,
         transactionId: finalTxnId,
         shippingMark: activeMark,
-        amount: amountVal,
+        amount: amountVal, // 🔥 এইখানে সেই normalize করা ভ্যালুটিই যাবে
       };
 
       const res = await axios.post("/api/payments/add-payment", payload);
