@@ -505,3 +505,52 @@ input[type="number"] {
   white-space: normal;
   word-wrap: break-word;
 }
+
+
+
+/* ১. মূল কার্ডটিকে নির্দিষ্ট হাইট দিয়ে ফ্লেক্স করা হলো */
+.main-card {
+  display: flex;
+  flex-direction: column;
+  height: 70vh; /* আপনার স্ক্রিন অনুযায়ী এটি 75vh বা 600px ও দিতে পারেন */
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  overflow: hidden !important; /* কার্ডের বাইরের স্ক্রল পুরোপুরি বন্ধ */
+  margin-bottom: 20px;
+}
+
+/* ২. টুলবার: যেহেতু কার্ডটি ফ্লেক্স, এটি অটোমেটিক উপরে ফিক্সড থাকবে */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: white;
+  flex-shrink: 0; /* টুলবারটি যাতে কোনোভাবেই চেপে ছোট না হয় */
+  z-index: 10;
+}
+
+/* ৩. টেবিল কন্টেইনার: শুধু এই অংশটুকু স্ক্রল হবে */
+.table-responsive {
+  flex-grow: 1; /* বাকি সবটুকু জায়গা নিয়ে নেবে */
+  overflow-y: auto !important; /* এখানে স্ক্রলবার আসবে */
+  position: relative;
+}
+
+/* ৪. টেবিল হেডার ফ্রিজ করা */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead th {
+  position: sticky;
+  top: 0; /* একদম উপরে আটকে থাকবে */
+  background: #f8fafc; /* আপনার পছন্দমতো কালার দিতে পারেন */
+  z-index: 20; /* সাধারণ ডেটার উপরে দেখানোর জন্য */
+  padding: 12px 15px;
+  border-bottom: 2px solid #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* স্ক্রল করলে হেডারের নিচে হালকা শ্যাডো দেখাবে */
+}

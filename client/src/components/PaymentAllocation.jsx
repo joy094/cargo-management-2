@@ -5,6 +5,7 @@ import axios from "axios";
 import { useSearchParams } from "react-router-dom";
 import CanAccess from "./CanAccess";
 import PaymentReceiptModal from "./PaymentReceiptModal";
+import "./PaymentAllocation.css"
 
 export default function PaymentAllocation() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -886,28 +887,7 @@ export default function PaymentAllocation() {
         </div>
       </div>
 
-      {/* List View CSS */}
-      <style>{`
-        .payment-allocation-container { padding: 30px; background: #f4f7fa; min-height: 100vh; font-family: 'Inter', sans-serif; }
-        .header-section { margin-bottom: 25px; }
-        .header-section h2 { margin: 0; color: #0f172a; font-size: 26px; }
-        .header-section p { margin: 5px 0 0; color: #64748b; font-size: 14px; }
-        .search-filter-card { display: flex; gap: 20px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 25px; max-width: 800px; }
-        .filter-group { flex: 1; }
-        .filter-group label { display: block; font-weight: bold; color: #475569; margin-bottom: 8px; }
-        .smart-input { width: 100%; padding: 12px 15px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; }
-        .smart-input:focus { border-color: #0ea5e9; }
-        .select-dropdown { cursor: pointer; font-weight: bold; color: #0f172a; }
-        .customer-list-card { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); overflow: hidden; max-width: 800px; }
-        .customer-list-table { width: 100%; border-collapse: collapse; }
-        .customer-list-table th { background: #f8fafc; padding: 15px; text-align: left; font-size: 14px; color: #475569; border-bottom: 2px solid #e2e8f0; }
-        .customer-list-table td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; color: #334155; }
-        .customer-list-table tr:hover { background: #f8fafc; }
-        .select-btn { background: #3b82f6; color: white; border: none; padding: 8px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .select-btn:hover { background: #2563eb; transform: translateX(3px); }
-        .no-data { text-align: center; padding: 40px !important; color: #94a3b8; font-size: 15px; }
-        .loading-text { text-align: center; font-weight: bold; color: #3b82f6; padding: 20px 0; }
-      `}</style>
+  
     </div>
   );
 }
