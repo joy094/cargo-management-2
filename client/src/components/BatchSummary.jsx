@@ -1,6 +1,5 @@
-//src/components/BatchSummary.jsx
-
 import React from "react";
+import "./BatchSummary.css"; // 🔥 নতুন CSS ফাইল ইম্পোর্ট
 
 export default function BatchSummary({
   totalGross,
@@ -15,94 +14,109 @@ export default function BatchSummary({
     0,
   );
 
-  return (
-    <div className="summary-section">
-      {/* ✅ কলাম সংখ্যা ৪ থেকে ৫ করা হয়েছে */}
-      <div
-        className="stats-grid"
-        style={{ gridTemplateColumns: "repeat(5, 1fr)" }}
-      >
-        <div className="stat-card blue">
-          <label>Total China Wt.</label>
-          <div className="value">
-            {totalGross.toFixed(2)} <span>KG</span>
-          </div>
-        </div>
-        <div className="stat-card green">
-          <label>Total Office Wt.</label>
-          <div className="value">
-            {totalActual.toFixed(2)} <span>KG</span>
-          </div>
-        </div>
-        <div className="stat-card red">
-          <label>Missing Weight</label>
-          <div className="value">
-            {(totalGross - totalActual).toFixed(2)} <span>KG</span>
-          </div>
-        </div>
-        <div className="stat-card blue">
-          <label>Total CBM</label>
-          <div className="value">
-            {totalCbm.toFixed(3)} <span>CBM</span>
-          </div>
-        </div>
-        {/* ✅ নতুন Total Quantity Card যুক্ত করা হলো */}
-        <div className="stat-card" style={{ borderBottomColor: "#f59e0b" }}>
-          <label>Total Quantity</label>
+  const handleBillChange = (e) => {
+    setBills({ ...bills, [e.target.name]: e.target.value });
+  };
 
-          <div className="value" style={{ color: "#d97706" }}>
-            {totalQuantity} <span style={{ color: "#fcd34d" }}>PCS</span>
-          </div>
-        </div>
+  return (
+    <div className="batch-summary-compact">
+      <div className="summary-table-wrapper">
+        <table className="summary-compact-table">
+          <tbody>
+            {/* 🟢 প্রথম সারি: পার্সেল এবং ওজনের হিসাব */}
+            <tr className="stats-row">
+              <th>Quantity</th>
+              <td>
+                <strong>{totalQuantity}</strong> Pcs
+              </td>
+
+              <th>China Wt.</th>
+              <td>
+                <strong>{totalGross.toFixed(2)}</strong> KG
+              </td>
+
+              <th>BD Office Wt.</th>
+              <td>
+                <strong>{totalActual.toFixed(2)}</strong> KG
+              </td>
+
+              <th>Missing Wt.</th>
+              <td style={{ color: "#ef4444" }}>
+                <strong>{(totalGross - totalActual).toFixed(2)}</strong> KG
+              </td>
+
+              <th>Total CBM</th>
+              <td>
+                <strong>{totalCbm.toFixed(3)}</strong>
+              </td>
+            </tr>
+
+            {/* 🔵 দ্বিতীয় সারি: খরচের (বিলের) ইনপুট */}
+            <tr className="billing-row">
+              <th>Air Bill (৳)</th>
+              <td>
+                <input
+                  type="number"
+                  name="airBill"
+                  value={bills.airBill || ""}
+                  onChange={handleBillChange}
+                  className="summary-input"
+                  placeholder="0"
+                />
+              </td>
+
+              <th>Customs (৳)</th>
+              <td>
+                <input
+                  type="number"
+                  name="customs"
+                  value={bills.customs || ""}
+                  onChange={handleBillChange}
+                  className="summary-input"
+                  placeholder="0"
+                />
+              </td>
+
+              <th>Load/Unload (৳)</th>
+              <td>
+                <input
+                  type="number"
+                  name="loadUnload"
+                  value={bills.loadUnload || ""}
+                  onChange={handleBillChange}
+                  className="summary-input"
+                  placeholder="0"
+                />
+              </td>
+
+              <th>Other Cost (৳)</th>
+              <td>
+                <input
+                  type="number"
+                  name="other"
+                  value={bills.other || ""}
+                  onChange={handleBillChange}
+                  className="summary-input"
+                  placeholder="0"
+                />
+              </td>
+
+              <th className="total-highlight">Total Expense</th>
+              <td className="total-highlight-val">
+                ৳ {totalBill.toLocaleString()}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <div className="costing-card">
-        <div className="cost-inputs">
-          <div className="cost-box">
-            <label>Air Bill</label>
-            <input
-              type="number"
-              value={bills.airBill}
-              onChange={(e) => setBills({ ...bills, airBill: e.target.value })}
-            />
-          </div>
-          <div className="cost-box">
-            <label>Customs</label>
-            <input
-              type="number"
-              value={bills.customs}
-              onChange={(e) => setBills({ ...bills, customs: e.target.value })}
-            />
-          </div>
-          <div className="cost-box">
-            <label>Load Unload</label>
-            <input
-              type="number"
-              value={bills.loadUnload}
-              onChange={(e) =>
-                setBills({ ...bills, loadUnload: e.target.value })
-              }
-            />
-          </div>
-          <div className="cost-box">
-            <label>Other bill</label>
-            <input
-              type="number"
-              value={bills.other}
-              onChange={(e) => setBills({ ...bills, other: e.target.value })}
-            />
-          </div>
-          <div className="total-expense">
-            <label>Total Expense</label>
-            <div className="amt">৳ {totalBill}</div>
-          </div>
-        </div>
-        <div className="avg-cost-bar">
-          Average Cost Per KG:{" "}
-          <strong>
-            ৳ {(totalActual > 0 ? totalBill / totalActual : 0).toFixed(2)}
-          </strong>
-        </div>
+      {/* 🔴 তৃতীয় সারি: প্রতি কেজির গড় খরচ */}
+      <div className="avg-cost-footer">
+        Average Cost Per KG:
+        <strong>
+          {" "}
+          ৳ {(totalActual > 0 ? totalBill / totalActual : 0).toFixed(2)}
+        </strong>
       </div>
     </div>
   );

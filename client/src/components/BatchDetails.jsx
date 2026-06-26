@@ -943,7 +943,7 @@ export default function BatchDetails() {
                               }}
                               className="add-sub-btn"
                             >
-                              📦+Sub
+                              📦+
                             </button>
                           </CanAccess>
                           <CanAccess module="batch" action="edit">

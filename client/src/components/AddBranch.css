@@ -13,7 +13,7 @@
 ========================================== */
 .header-section {
   background: #ffffff;
-  padding: 25px 20px;
+  padding: 5px 5px;
   border-radius: 16px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
   display: flex;
@@ -58,15 +58,7 @@
   transform: translateY(-2px);
 }
 
-/* ==========================================
-   Content Grid (Form on left, List on right)
-========================================== */
-.content-grid {
-  display: grid;
-  grid-template-columns: 350px 1fr;
-  gap: 20px;
-  align-items: start;
-}
+
 
 /* ==========================================
    Card Styling (Form & List)
@@ -74,7 +66,7 @@
 .form-card,
 .list-card {
   background: white;
-  padding: 25px;
+  padding: 3px;
   border-radius: 16px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
   border: 1px solid #f1f5f9;
@@ -529,19 +521,11 @@
   }
 }
 
-/* অন্যান্য বিদ্যমান CSS নিচে থাকবে... */
-/* কন্টেইনারকে ফ্লেক্সিবল করা */
-.manage-branch-container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  padding: 20px;
-  background: #f4f7fa;
-}
+
 
 .content-grid {
   display: grid;
-  grid-template-columns: 400px 1fr; /* ফর্ম এবং টেবিলের অনুপাত */
+  grid-template-columns: 340px 1fr; /* ফর্ম এবং টেবিলের অনুপাত */
   gap: 20px;
   height: calc(100vh - 120px); /* স্ক্রিন হাইট অনুযায়ী সেট করা */
   overflow: hidden;

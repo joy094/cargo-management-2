@@ -301,7 +301,7 @@ export default function AddBranch() {
       <div className="content-grid">
         {/* Left Side: Form */}
         <div className="form-card">
-          <h3>{isEditing ? "✏️ Edit Branch" : "➕ Add New Branch"}</h3>
+          <h3>{isEditing ? "✏️ Edit Branch" : "➕ Add New Branch/Customer"}</h3>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Branch / Customer Name *</label>

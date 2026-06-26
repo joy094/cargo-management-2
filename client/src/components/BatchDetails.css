@@ -18,17 +18,12 @@ input[type="number"] {
   justify-content: space-between;
   align-items: center;
   background: #fff;
-  padding: 25px;
+  padding: 10px;
   border-radius: 16px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-  margin-bottom: 25px;
+  margin-bottom: 10px;
 }
-.main-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-}
+
 .batch-tag {
   background: #e0f2fe;
   color: #0369a1;
@@ -148,22 +143,36 @@ input[type="number"] {
   font-weight: bold;
 }
 
-.input-editable {
-  width: 75px;
-  padding: 6px;
-  border: 1px solid #16a34a;
-  border-radius: 6px;
-  text-align: center;
-  font-weight: bold;
-  background: white;
-}
-.input-editable-small {
-  width: 60px;
-  padding: 4px;
+/* 🔥 অফিস ওয়েট ইনপুট বক্সের সাইজ ছোট করা হলো */
+.input-editable,
+.input-editable-small,
+.input-disabled {
+  width: 70px !important; /* বক্সের চওড়া একদম ছোট করে দেওয়া হলো */
+  text-align: center; /* ওজনটা সুন্দরভাবে মাঝখানে দেখাবে */
+  padding: 5px;
   border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  text-align: center;
-  font-size: 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: bold;
+  color: #0f172a;
+  outline: none;
+  background: white;
+  transition: all 0.2s;
+}
+
+/* লক করা ব্যাচের জন্য স্টাইল */
+.input-disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+  border-color: #e2e8f0;
+}
+
+/* ফোকাস করলে বর্ডার কালার চেঞ্জ হবে */
+.input-editable:focus,
+.input-editable-small:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
 }
 
 .toolbar {
@@ -290,90 +299,9 @@ input[type="number"] {
   cursor: pointer;
 }
 
-.summary-section {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 25px;
-  margin-top: 30px;
-}
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 15px;
-}
-.stat-card {
-  background: #fff;
-  padding: 25px;
-  border-radius: 16px;
-  text-align: center;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-  border-bottom: 5px solid #eee;
-}
-.stat-card.blue {
-  border-color: #3b82f6;
-}
-.stat-card.green {
-  border-color: #10b981;
-}
-.stat-card.red {
-  border-color: #ef4444;
-}
-.stat-card label {
-  font-size: 12px;
-  font-weight: 700;
-  color: #64748b;
-  text-transform: uppercase;
-}
-.stat-card .value {
-  font-size: 24px;
-  font-weight: 900;
-  margin-top: 10px;
-  color: #0f172a;
-}
-.costing-card {
-  background: #0f172a;
-  color: white;
-  padding: 25px;
-  border-radius: 16px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-.cost-inputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1.5fr;
-  gap: 20px;
-  align-items: center;
-}
-.cost-box label {
-  display: block;
-  font-size: 11px;
-  opacity: 0.7;
-  margin-bottom: 5px;
-}
-.cost-box input {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  padding: 10px;
-  border-radius: 8px;
-  width: 100%;
-}
-.total-expense {
-  text-align: right;
-}
-.total-expense .amt {
-  font-size: 28px;
-  font-weight: 900;
-  color: #22c55e;
-}
-.avg-cost-bar {
-  margin-top: 20px;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 12px;
-  border-radius: 10px;
-  text-align: center;
-  font-size: 15px;
-  border: 1px dashed rgba(255, 255, 255, 0.2);
-}
+
+
+
 .calculated-weight-box {
   background: #f1f5f9;
   padding: 6px;
@@ -512,7 +440,7 @@ input[type="number"] {
 .main-card {
   display: flex;
   flex-direction: column;
-  height: 70vh; /* আপনার স্ক্রিন অনুযায়ী এটি 75vh বা 600px ও দিতে পারেন */
+  height: 72vh; /* আপনার স্ক্রিন অনুযায়ী এটি 75vh বা 600px ও দিতে পারেন */
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.05);

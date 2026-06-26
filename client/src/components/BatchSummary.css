@@ -1,0 +1,80 @@
+.batch-summary-compact {
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.summary-table-wrapper {
+  overflow-x: auto;
+}
+
+.summary-compact-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px; /* ছোট ফন্ট সাইজ যাতে জায়গা কম লাগে */
+}
+
+.summary-compact-table th, 
+.summary-compact-table td {
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.summary-compact-table th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.summary-compact-table td {
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+/* ইনপুট ফিল্ড ডিজাইন */
+.summary-input {
+  width: 80px;
+  padding: 5px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+  font-weight: bold;
+  color: #0f172a;
+}
+
+.summary-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* টোটাল বিল হাইলাইট */
+.total-highlight {
+  background-color: #f0f9ff !important;
+  color: #0369a1 !important;
+}
+
+.total-highlight-val {
+  background-color: #f0f9ff !important;
+  color: #0ea5e9 !important;
+  font-size: 15px;
+  font-weight: bold;
+}
+
+/* অ্যাভারেজ কস্ট ফুটার */
+.avg-cost-footer {
+  margin-top: 10px;
+  padding: 6px 12px;
+  background: #fef2f2;
+  color: #991b1b;
+  border-radius: 4px;
+  text-align: right;
+  font-size: 13px;
+  border: 1px dashed #fca5a5;
+}
