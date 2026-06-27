@@ -440,7 +440,7 @@ input[type="number"] {
 .main-card {
   display: flex;
   flex-direction: column;
-  height: 72vh; /* আপনার স্ক্রিন অনুযায়ী এটি 75vh বা 600px ও দিতে পারেন */
+  height: auto; /* আপনার স্ক্রিন অনুযায়ী এটি 75vh বা 600px ও দিতে পারেন ,if specific height header Will fix  */
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.05);

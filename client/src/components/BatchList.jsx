@@ -440,43 +440,7 @@ export default function BatchList() {
         </div>
       )}
 
-      <style>{`
-        .modern-table-container { background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden; margin-top: 20px; border: 1px solid #eee; }
-        .beautiful-table { width: 100%; border-collapse: collapse; white-space: nowrap; }
-        .beautiful-table th { background: #003580; color: white; padding: 16px; text-align: left; font-size: 14px; }
-        .beautiful-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
-        .table-row:hover { background-color: #f8fbff; }
-        
-        /* 🔥 Hold Warning CSS */
-        .has-held-items { background-color: #fef2f2 !important; }
-        .held-badge { background: #ef4444; color: white; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; margin-top: 5px; display: inline-block; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2); }
-        
-        .batch-name-highlight { font-weight: bold; color: #003580; font-size: 15px; }
-        .route-info { line-height: 1.4; }
-        .route-info strong { color: #0284c7; font-size: 13px; }
-        .port-text { font-size: 11px; color: #64748b; }
-        
-        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
-        .status-badge.warehouse-received { background: #e0f2fe; color: #0369a1; }
-        .status-badge.arrived { background: #dcfce7; color: #15803d; }
-        .status-badge.processing { background: #fef3c7; color: #92400e; }
-        
-        .count-badge { background: #f1f5f9; padding: 4px 10px; border-radius: 6px; font-weight: bold; color: #475569; }
-        
-        .action-buttons { display: flex; gap: 8px; }
-        .btn-view { background: #003580; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .btn-edit { background: #eab308; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .btn-delete { background: #fee2e2; color: #ef4444; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
-
-        .btn-view:hover { background: #002255; }
-        .btn-edit:hover { background: #ca8a04; }
-        .btn-delete:hover { background: #fca5a5; }
-
-        /* Modal Styles Updates */
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .modal-content { width: 550px; }
-        .modal-content select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; background: #fff; font-family: inherit; }
-      `}</style>
+     
     </div>
   );
 }
