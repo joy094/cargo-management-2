@@ -107,6 +107,15 @@ export default function InvoicePrintModal({
   // মডাল ওপেন না থাকলে বা ডাটা না থাকলে কিছুই দেখাবে না
   if (!isOpen || !invoiceData) return null;
 
+  // 🔥 নতুন লজিক: ইনভয়েস আইটেমগুলো থেকে শুধুমাত্র ইউনিক শিপিং মার্ক বের করা
+  const billedShippingMarks = [
+    ...new Set(
+      invoiceData.items
+        .map((item) => item.shippingMark || item.customerMark)
+        .filter(Boolean),
+    ),
+  ].join(", ");
+
   return (
     <div className="modal-overlay">
       <div className="modal-content pro-modal-width">
@@ -155,10 +164,10 @@ export default function InvoicePrintModal({
               <h4 className="info-title">BILLED TO:</h4>
               <table className="info-table">
                 <tbody>
-                  <tr>
+                 <tr>
                     <td className="lbl">Shipping Mark</td>
                     <td>
-                      : <strong>{invoiceData.customerMark}</strong>
+                      : <strong>{billedShippingMarks || invoiceData.customerMark}</strong>
                     </td>
                   </tr>
                   <tr>

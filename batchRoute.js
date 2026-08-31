@@ -7,8 +7,6 @@ const router = express.Router();
 
 // --- ১. সকল ব্যাচ দেখা (Get All Batches) ---
 router.get("/", async (req, res) => {
-  
-
   try {
     const batches = await Batch.find().sort({ createdAt: -1 });
 
@@ -99,22 +97,41 @@ router.put("/manage-exception", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// --- ৩. একটি নির্দিষ্ট ব্যাচের বিস্তারিত ও তার শিপমেন্টগুলো দেখা ---
+// --- ৩. একটি নির্দিষ্ট ব্যাচের বিস্তারিত, শিপমেন্ট এবং পাই চার্টের স্ট্যাটাস দেখা ---
 router.get("/:id", async (req, res) => {
   try {
     const batch = await Batch.findById(req.params.id);
     if (!batch) return res.status(404).json({ error: "ব্যাচ পাওয়া যায়নি।" });
 
     const shipments = await Shipment.find({ batch: batch._id });
-    // .populate("customer")
-    // .populate("agency");
 
-    res.json({ batch, shipments });
+    // 🔥 নতুন: পাই চার্টের জন্য Product Type অনুযায়ী ডাটা ক্যালকুলেশন
+    const typeStats = await Shipment.aggregate([
+      { $match: { batch: batch._id } },
+      {
+        $group: {
+          _id: { $ifNull: ["$productType", "General"] }, // টাইপ না থাকলে ডিফল্ট General ধরবে
+          count: { $sum: 1 },
+          totalWeight: {
+            $sum: {
+              $convert: {
+                input: "$actualWeight",
+                to: "double",
+                onError: 0,
+                onNull: 0,
+              },
+            },
+          },
+        },
+      },
+    ]);
+
+    // typeStats কেও ফ্রন্টএন্ডে পাঠানো হচ্ছে
+    res.json({ batch, shipments, typeStats });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
 // --- ৪. শিপমেন্টগুলোকে ব্যাচে (এবং ঐচ্ছিকভাবে মাস্টার বক্সে) যুক্ত করা ---
 // 🔥 (পুরোনোটি মুছে শুধু নতুন আপডেটেডটি রাখা হয়েছে)
 router.put("/:id/assign", async (req, res) => {
@@ -206,7 +223,8 @@ router.delete("/:id", async (req, res) => {
 
     if (billedShipments.length > 0) {
       return res.status(400).json({
-        error: "⛔ Warning: Some shipments in this batch are already billed! You cannot delete a batch containing billed items.",
+        error:
+          "⛔ Warning: Some shipments in this batch are already billed! You cannot delete a batch containing billed items.",
       });
     }
 
@@ -220,11 +238,10 @@ router.delete("/:id", async (req, res) => {
       return res.status(404).json({ error: "Batch not found!" });
     }
 
-    res.json({ 
-      success: true, 
-      message: "Batch and all its shipments have been successfully deleted." 
+    res.json({
+      success: true,
+      message: "Batch and all its shipments have been successfully deleted.",
     });
-
   } catch (error) {
     console.error("Batch Delete Error:", error);
     res.status(500).json({ error: "Server error, failed to delete batch." });

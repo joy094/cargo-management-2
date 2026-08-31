@@ -32,6 +32,7 @@ export default function UploadExcelModal({
           "Box Type": "Master",
           "Parent Carton No": "",
           "Product Name": "Garments",
+          "Product Type": "General", // 🔥 এই লাইনটি যুক্ত করুন
           Quantity: 1,
           "Gross Weight": 45.5,
           L: 55,
@@ -48,6 +49,7 @@ export default function UploadExcelModal({
           "Box Type": "Sub-box",
           "Parent Carton No": "100",
           "Product Name": "T-shirt",
+          "Product Type": "Copy", // 🔥 এই লাইনটি যুক্ত করুন
           Quantity: 1,
           "Gross Weight": 20.0,
           L: "",
@@ -68,6 +70,7 @@ export default function UploadExcelModal({
           "Shipping Mark": "JAMAL-01",
           "Customer Name": "Jamal",
           "Product Name": "Shoes",
+          "Product Type": "General", // 🔥 এই লাইনটি যুক্ত করুন
           "Carton No": "5",
           Quantity: 2,
           "Gross Weight": 30.5,
@@ -84,7 +87,28 @@ export default function UploadExcelModal({
           "China Tracking": "ZTO987654321",
           "Shipping Mark": "KAMAL-02",
           "Customer Name": "Kamal",
+          "Product Name": "Shoes",
+          "Product Type": "Copy", // 🔥 এই লাইনটি যুক্ত করুন
+          "Carton No": "1",
+          Quantity: 5,
+          "Gross Weight": 15.0,
+          L: 20,
+          W: 20,
+          H: 20,
+          "Packaging Cost": 0,
+          "Receiving Cost": 0,
+          Note: "",
+        },
+
+
+           {
+          Category: "By Air",
+          "Received Date": today,
+          "China Tracking": "ZTO987654322",
+          "Shipping Mark": "RONY",
+          "Customer Name": "Md Rony",
           "Product Name": "Electronics",
+          "Product Type": "Electronics", // 🔥 এই লাইনটি যুক্ত করুন
           "Carton No": "1",
           Quantity: 5,
           "Gross Weight": 15.0,
@@ -148,6 +172,7 @@ export default function UploadExcelModal({
           shippingMark: row["Shipping Mark"] || "",
           customerName: row["Customer Name"] || "Unknown",
           productName: row["Product Name"] || "Various Items",
+          productType: row["Product Type"] || "General", // 🔥 এই নতুন লাইনটি যুক্ত করুন
           cartonNo: String(row["Carton No"] || ""),
           quantity: Number(row["Quantity"]) || 1,
           grossWeight: Number(row["Gross Weight"]) || 0,
@@ -254,6 +279,7 @@ export default function UploadExcelModal({
                       <th>Rcv Date</th>
                       <th>Mark</th>
                       <th>Carton</th>
+                      <th>Product Type</th>
                       {batchId && <th>Type</th>}
                       {batchId && <th>Parent</th>}
                       <th>Qty / Weight</th>
@@ -275,6 +301,12 @@ export default function UploadExcelModal({
                         <td className="text-date">{row.receivedDate}</td>
                         <td className="text-bold">{row.shippingMark}</td>
                         <td>{row.cartonNo}</td>
+                        <td>
+                          <span className="badge-category">
+                            {row.productType}
+                          </span>
+                        </td>{" "}
+                        {/* 🔥 এই লাইনটি যুক্ত করুন */}
                         {batchId && (
                           <>
                             <td>

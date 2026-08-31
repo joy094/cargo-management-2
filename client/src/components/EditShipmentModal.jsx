@@ -18,6 +18,7 @@ export default function EditShipmentModal({
     customerName: "",
     productName: "",
     productNameCn: "",
+    productType: "General", // 🔥 নতুন ফিল্ড
     chinaTrackingNo: "",
     cartonNo: "",
     quantity: 1,
@@ -56,6 +57,7 @@ export default function EditShipmentModal({
         customerName: shipment.customerName || "",
         productName: shipment.productName || "",
         productNameCn: shipment.productNameCn || "",
+        productType: shipment.productType || "General", // 🔥 ডেটা লোড করা
         chinaTrackingNo: shipment.chinaTrackingNo || "",
         cartonNo: shipment.cartonNo || "",
         quantity: shipment.quantity || 1,
@@ -218,6 +220,23 @@ export default function EditShipmentModal({
               onChange={handleChange}
               style={{ border: "1px solid #10b981", background: "#f0fdf4" }}
             />
+          </div>
+
+          <div className="form-group">
+            <label>Product Type</label>
+            <select
+              name="productType"
+              value={formData.productType}
+              onChange={handleChange}
+              style={{ border: "1px solid #10b981" }}
+            >
+              <option value="General">General</option>
+              <option value="Copy">Copy</option>
+              <option value="Liquid">Liquid</option>
+              <option value="Electronics">Electronics</option>
+              <option value="Fragile">Fragile</option>
+              <option value="Magnetic">Magnetic</option>
+            </select>
           </div>
 
           <div className="form-group">

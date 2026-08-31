@@ -235,6 +235,7 @@ router.post("/bulk-import-excel", async (req, res) => {
         // 🔥 এক্সেলের জন্যও এই নতুন ফিল্ডগুলো যুক্ত করা হলো
         category: item.category || "By Sea",
         customerName: item.customerName || "",
+        productType: item.productType || "General", // 👈 🔥 এই লাইনটি যুক্ত করুন
         packagingCost: Number(item.packagingCost) || 0,
         receivingCost: Number(item.receivingCost) || 0,
         note: item.note || "",
@@ -329,6 +330,7 @@ router.post("/shipments/bulk-import", async (req, res) => {
 
         // 🔥 এই নতুন ফিল্ডগুলো যুক্ত করা হলো
         category: item.category || "By Sea",
+        productType: item.productType || "General", // 👈 🔥 এই লাইনটি যুক্ত করুন
         customerName: item.customerName || "",
         packagingCost: Number(item.packagingCost) || 0,
         receivingCost: Number(item.receivingCost) || 0,
@@ -477,6 +479,7 @@ router.post("/direct-bulk", authMiddleware, async (req, res) => {
         chinaTrackingNo: item.chinaTrackingNo || "",
         shippingMark: shippingMark, // প্রোফাইলের শিপিং মার্ক ফিক্সড থাকবে
         productName: item.productName || "MIX",
+       productType: item.productType || "General", // 👈 🔥 এই লাইনটি যুক্ত করুন
         cartonNo: item.cartonNo || "",
         quantity: Number(item.quantity) || 1,
         grossWeight: Number(item.grossWeight) || 0,

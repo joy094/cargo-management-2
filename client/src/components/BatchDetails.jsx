@@ -11,6 +11,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import CanAccess from "./CanAccess";
 import "./BatchDetails.css";
 import UploadExcelModal from "./UploadExcelModal";
+import PieChart from "./PieChart"; // 🔥 এটি যুক্ত করুন
 export default function BatchDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ export default function BatchDetails() {
   const [loading, setLoading] = useState(false);
   const [showBulkEntry, setShowBulkEntry] = useState(false);
   const [isMasterMode, setIsMasterMode] = useState(false); // 👈 নতুন স্টেট
+  const [typeStats, setTypeStats] = useState([]); // 🔥 পাই চার্টের ডাটা রাখার জন্য নতুন স্টেট
   const [expandedRows, setExpandedRows] = useState({});
   const [bills, setBills] = useState({
     airBill: 0,
@@ -119,6 +121,7 @@ export default function BatchDetails() {
     {
       shippingMark: "",
       productName: "",
+      productType: "General",
       chinaTrackingNo: "",
       cartonNo: "",
       quantity: 1,
@@ -140,6 +143,7 @@ export default function BatchDetails() {
       const res = await axios.get(`/api/batches/${id}`);
       setBatch(res.data.batch);
       setShipments(res.data.shipments);
+      setTypeStats(res.data.typeStats || []); // 🔥 ব্যাকএন্ড থেকে পাই চার্টের ডাটা রিসিভ করা হলো
     } catch (err) {
       console.error(err);
     }
@@ -173,6 +177,7 @@ export default function BatchDetails() {
       {
         shippingMark: "",
         productName: "",
+        productType: "General",
         chinaTrackingNo: "",
         cartonNo: "",
         quantity: 1,
@@ -205,6 +210,7 @@ export default function BatchDetails() {
         {
           shippingMark: "",
           productName: "",
+          productType: "General",
           chinaTrackingNo: "",
           cartonNo: "",
           quantity: 1,
@@ -340,6 +346,37 @@ export default function BatchDetails() {
   // তাদেরকে একসাথে রাখা হলো যাতে এক্সেলের অরিজিনাল সিরিয়াল ব্রেক না হয়!
   const displayList = finalFilteredList.filter((s) => !s.parentId);
 
+  // ✅ ১. নিখুঁত Pie Chart ক্যালকুলেশন (সাব-বক্সের টাইপ ও ওজন অনুযায়ী)
+  const calculatedTypeStats = {};
+
+  displayList.forEach((s) => {
+    if (s.isMasterCarton) {
+      const children = subItems.filter((sub) => sub.parentId === s._id);
+      if (children.length > 0) {
+        children.forEach((sub) => {
+          const subType = sub.productType || "General";
+          const subWeight =
+            Number(sub.actualWeight) || Number(sub.grossWeight) || 0;
+          calculatedTypeStats[subType] =
+            (calculatedTypeStats[subType] || 0) + subWeight;
+        });
+      } else {
+        const type = s.productType || "General";
+        const weight = Number(s.actualWeight) || Number(s.grossWeight) || 0;
+        calculatedTypeStats[type] = (calculatedTypeStats[type] || 0) + weight;
+      }
+    } else {
+      const type = s.productType || "General";
+      const weight = Number(s.actualWeight) || Number(s.grossWeight) || 0;
+      calculatedTypeStats[type] = (calculatedTypeStats[type] || 0) + weight;
+    }
+  });
+
+  const pieChartData = Object.keys(calculatedTypeStats).map((key) => ({
+    name: key,
+    value: parseFloat(calculatedTypeStats[key].toFixed(2)),
+  }));
+
   // ✅ ২. সার্চ করলে সাব-বক্স অটোমেটিক খোলার লজিক
   useEffect(() => {
     if (searchTerm.trim() !== "") {
@@ -405,6 +442,8 @@ export default function BatchDetails() {
     totalQuantity += stats.qty; // ✅ কোয়ান্টিটি যোগ হচ্ছে
   });
 
+  // ✅ ৪. এক্সেল এক্সপোর্ট লজিক
+
   const exportToExcel = () => {
     const excelData = [];
     displayList.forEach((s, idx) => {
@@ -414,6 +453,7 @@ export default function BatchDetails() {
         "Tracking (China)": s.chinaTrackingNo || "-",
         "Shipping Mark": s.shippingMark,
         Product: s.productName || "-",
+        "Products Type": s.productType || "General", // 👈 এটি যুক্ত করুন
         "Carton No": s.cartonNo || "-",
         Quantity: stats.qty,
         "China Wt (KG)": stats.gross.toFixed(2),
@@ -421,7 +461,7 @@ export default function BatchDetails() {
         "Missing (KG)": stats.missing > 0 ? stats.missing.toFixed(2) : 0,
         CBM: s.cbm || 0,
         Status: s.status,
-        Type: s.isMasterCarton ? "Master Box" : "General",
+        "Box Type": s.isMasterCarton ? "Master Box" : "General Box",
       });
 
       if (s.isMasterCarton) {
@@ -445,7 +485,7 @@ export default function BatchDetails() {
                   : 0,
               CBM: "-",
               Status: "-",
-              Type: `Sub-box of ${s.cartonNo || "Master"}`,
+              "Box Type": `Sub-box of ${s.cartonNo || "Master Box"}`,
             });
           });
       }
@@ -642,6 +682,7 @@ export default function BatchDetails() {
                     <th>Tracking No(CN)</th>
                     <th>Shipping Mark*</th>
                     <th>Product</th>
+                    <th>Type</th>
                     <th>Carton No</th>
                     <th>Qty</th>
                     <th>Wt(KG)</th>
@@ -695,6 +736,33 @@ export default function BatchDetails() {
                           }
                         />
                       </td>
+
+                      <td>
+                        <select
+                          className="small-input"
+                          style={{
+                            padding: "5px",
+                            borderRadius: "4px",
+                            border: "1px solid #ccc",
+                          }}
+                          value={row.productType}
+                          onChange={(e) =>
+                            handleInputChange(
+                              index,
+                              "productType",
+                              e.target.value,
+                            )
+                          }
+                        >
+                          <option value="General">General</option>
+                          <option value="Copy">Copy</option>
+                          <option value="Liquid">Liquid</option>
+                          <option value="Electronics">Electronics</option>
+                          <option value="Fragile">Fragile</option>
+                          <option value="Magnetic">Magnetic</option>
+                        </select>
+                      </td>
+
                       <td>
                         <input
                           type="text"
@@ -817,6 +885,7 @@ export default function BatchDetails() {
                 <th>Tracking (China)</th>
                 <th>Shipping Mark</th>
                 <th>Product</th>
+                <th>Type</th>
                 <th>Carton No</th>
                 <th>Quantity</th>
                 <th>China Wt.</th>
@@ -872,6 +941,14 @@ export default function BatchDetails() {
                       </td>
                       <td className="product-name-cell">
                         {s.productName || "-"}
+                      </td>
+
+                      <td>
+                        <span
+                          className={`type-badge ${s.productType?.replace("/", "-").toLowerCase()}`}
+                        >
+                          {s.productType || "General"}
+                        </span>
                       </td>
                       <td>{s.cartonNo || "-"}</td>
                       <td>
@@ -1055,7 +1132,14 @@ export default function BatchDetails() {
                               <td className="product-name-cell">
                                 {sub.productName || "-"}
                               </td>
-                              <td>-</td>
+                              {/* 🔥 ২. সাব-বক্সের টাইপ ব্যাজ */}
+                              <td>
+                                <span
+                                  className={`type-badge ${sub.productType?.replace("/", "-").toLowerCase()}`}
+                                >
+                                  {sub.productType || "General"}
+                                </span>
+                              </td>
                               <td>{sub.quantity || 1}</td>
                               <td>{sub.grossWeight || 0} KG</td>
                               <td>
@@ -1147,6 +1231,12 @@ export default function BatchDetails() {
           </table>
         </div>
       </div>
+
+      {/* 🔥 আপনার রিইউজেবল পাই চার্ট */}
+      <PieChart
+        data={pieChartData}
+        title={`📊 Batch Stock Analysis (${batch?.batchName || ""})`}
+      />
 
       <BatchSummary
         totalGross={totalGross}

@@ -8,6 +8,7 @@ import EditShipmentModal from "./EditShipmentModal";
 import Search from "./Search";
 import UploadExcelModal from "./UploadExcelModal";
 import { translateToChinese } from "../utils/translate"; // উপরে ইম্পোর্ট করুন
+import ProductTypePieChart from "./PieChart";
 
 export default function ChinaWarehouse() {
   const [unassignedItems, setUnassignedItems] = useState([]);
@@ -42,6 +43,7 @@ export default function ChinaWarehouse() {
     customerName: "",
     productName: "",
     productNameCn: "", // 🇨🇳 নতুন ফিল্ড
+    productType: "General", // 🔥 এই নতুন ফিল্ডটি ইনিশিয়াল স্টেটে যুক্ত করবেন
     cartonNo: "",
     quantity: 1,
     grossWeight: "",
@@ -199,9 +201,7 @@ export default function ChinaWarehouse() {
 
   const handleDelete = async (shipmentId) => {
     if (
-      !window.confirm(
-        "Are you sure you want to delete this warehouse entry?",
-      )
+      !window.confirm("Are you sure you want to delete this warehouse entry?")
     )
       return;
     try {
@@ -295,6 +295,18 @@ export default function ChinaWarehouse() {
       setLoading(false);
     }
   };
+
+  // 🔥 চায়না ওয়ারহাউজের স্টক মালের ওপর ভিত্তি করে পাই চার্ট ডাটা ক্যালকুলেশন
+  const warehouseTypeStats = filteredItems.reduce((acc, item) => {
+    const type = item.productType || "General";
+    acc[type] = (acc[type] || 0) + (Number(item.grossWeight) || 0);
+    return acc;
+  }, {});
+
+  const warehousePieChartData = Object.keys(warehouseTypeStats).map((key) => ({
+    name: key,
+    value: parseFloat(warehouseTypeStats[key].toFixed(2)),
+  }));
 
   return (
     <div className="modern-batch-container">
@@ -735,6 +747,23 @@ export default function ChinaWarehouse() {
                     }}
                   />
                 </div>
+                {/* 🔥 নতুন: Product Type ড্রপডাউনটি এখানে বসান */}
+                <div className="form-group">
+                  <label>Product Type</label>
+                  <select
+                    name="productType"
+                    value={formData.productType}
+                    onChange={handleEntryChange}
+                    style={{ fontWeight: "bold", color: "#0f172a" }}
+                  >
+                    <option value="General">General</option>
+                    <option value="Copy">Copy</option>
+                    <option value="Liquid">Liquid</option>
+                    <option value="Electronics">Electronics</option>
+                    <option value="Fragile">Fragile</option>
+                    <option value="Magnetic">Magnetic</option>
+                  </select>
+                </div>
 
                 <div className="form-group">
                   <label>Quantity</label>
@@ -941,6 +970,17 @@ export default function ChinaWarehouse() {
                 >
                   Product
                 </th>
+
+                {/* 🔥 এই নতুন হেডিংটি যুক্ত করুন */}
+                <th
+                  style={{
+                    padding: "12px",
+                    borderBottom: "2px solid #e2e8f0",
+                    color: "#0369a1",
+                  }}
+                >
+                  Type
+                </th>
                 <th
                   style={{ padding: "12px", borderBottom: "2px solid #e2e8f0" }}
                 >
@@ -1105,6 +1145,39 @@ export default function ChinaWarehouse() {
                       )}
                     </td>
 
+                    {/* ✅ সঠিক কোড (সরাসরি টেবিল থেকে ডাটাবেজে আপডেট করার লজিকসহ) */}
+                    <td style={{ padding: "12px" }}>
+                      <select
+                        value={s.productType || "General"}
+                        onChange={async (e) => {
+                          try {
+                            // সরাসরি ডাটাবেজে টাইপ আপডেট করার লজিক (ওজন আপডেটের মতো)
+                            await axios.put(`/api/shipments/edit/${s._id}`, {
+                              ...s,
+                              productType: e.target.value,
+                            });
+                            fetchWarehouseData(); // ডাটা রিফ্রেশ এবং পাই চার্ট আপডেট
+                          } catch (error) {
+                            alert("Failed to update Product Type!");
+                          }
+                        }}
+                        style={{
+                          padding: "5px",
+                          borderRadius: "4px",
+                          border: "1px solid #cbd5e1",
+                          outline: "none",
+                          background: "#f8fafc",
+                        }}
+                      >
+                        <option value="General">General</option>
+                        <option value="Copy">Copy</option>
+                        <option value="Liquid">Liquid</option>
+                        <option value="Electronics">Electronics</option>
+                        <option value="Fragile">Fragile</option>
+                        <option value="Magnetic">Magnetic</option>
+                      </select>
+                    </td>
+
                     <td style={{ padding: "12px" }}>
                       <strong>{s.quantity || 1}</strong>
                     </td>
@@ -1244,6 +1317,10 @@ export default function ChinaWarehouse() {
               )}
             </tbody>
           </table>
+          <ProductTypePieChart
+            data={warehousePieChartData}
+            title="📊 Warehouse Stock Analysis (By China Wt.)"
+          />
         </div>
       </div>
 

@@ -80,6 +80,19 @@ const shipmentSchema = new mongoose.Schema(
       enum: ["Air", "Sea", "Hand Carry"],
       default: "Air",
     },
+
+    productType: {
+      type: String,
+      enum: [
+        "General",
+        "Copy",
+        "Liquid",
+        "Electronics",
+        "Fragile",
+        "Magnetic",
+      ],
+      default: "General",
+    },
     originPort: { type: String },
 
     // মাস্টার কার্টন ও সাব-কার্টন লজিক
