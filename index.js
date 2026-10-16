@@ -56,7 +56,7 @@ app.use("/api/users", userRoutes);
    MongoDB Connection
 =========================== */
 const MONGO_URI =
-  process.env.MONGO_URI || "mongodb://127.0.0.1:27017/cargo_management";
+  process.env.MONGO_URI || "mongodb://127.0.0.1:27017/cargo_management-2";
 
 mongoose
   .connect(MONGO_URI)
